@@ -1,4 +1,4 @@
-# The manifest hashes original bytes, including original CRLF line endings.
+# The manifest hashes original committed bytes, including original line endings.
 # Prevent core.autocrlf from changing archival/canonical content on checkout.
 legacy-migrations/*.sql -text
 migrations/*.sql -text

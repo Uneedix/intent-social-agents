@@ -3,22 +3,22 @@
   "mappings": [
     {
       "legacy": "legacy-migrations/20261022_communities_baseline.sql",
-      "sha256": "4ff4a57481fedc8c1e20f6144fb37403c199e4832edd3f218c3379490976e522",
+      "sha256": "e583ed56367ab26c5d6f37e518ebdf2212d5216e224422e07421f0732f332bbd",
       "canonical": "migrations/20261022000000_communities_baseline.sql"
     },
     {
       "legacy": "legacy-migrations/20261023_communities_v04.sql",
-      "sha256": "00d6430a919858c878b2e2036b0d2fca60f44c3b3e135caf65f1daa4c6e26951",
+      "sha256": "92201a534447eb7feceb4ef5d9c73338a416b264c8702f996e46b72b8410debe",
       "canonical": "migrations/20261023000000_communities_v04.sql"
     },
     {
       "legacy": "legacy-migrations/20261023_message_groups_v06.sql",
-      "sha256": "c6dcc8aacec7a87db9c7afd81ae8aafc62e6f1762be7632321f0731711a4afa6",
+      "sha256": "7370b8fba54a213220d8b8b13b06556bae7d3dabd7c7fe4bccfffd3d28d7927b",
       "canonical": "migrations/20261023010000_message_groups_v06.sql"
     },
     {
       "legacy": "legacy-migrations/20261024_access_hardening.sql",
-      "sha256": "7ff5a1144a9eed16ed5deaf3e8b2e20bb0b2abe572f83795ab81453be09c3ba4",
+      "sha256": "b17042bc21aa5902ed5a8ee78e604226d0fe16c1a83b3cdef7445cfbe22942fb",
       "canonical": "migrations/20261024000000_access_hardening.sql"
     }
   ],
