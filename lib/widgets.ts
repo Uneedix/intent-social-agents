@@ -30,7 +30,7 @@ export function validDate(value:unknown):value is string {
 export function validDateTime(value:unknown):value is string {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)||!validDate(value.slice(0,10)))return false;
  const hour=Number(value.slice(11,13)),minute=Number(value.slice(14,16));
- return hour<24&&minute<60&&Number.isFinite(new Date(value).getTime());
+ const date=new Date(value);return hour<24&&minute<60&&Number.isFinite(date.getTime())&&date.getHours()===hour&&date.getMinutes()===minute;
 }
 export function safeLink(value:unknown):string|null {
  if(typeof value!=='string'||value.length>2048||/[\u0000-\u001f\u007f]/.test(value))return null;
@@ -76,7 +76,7 @@ export function moveWidget(state:PanelState,id:string,direction:-1|1):PanelState
  if(index<0||next<0||next>=widgets.length)return state;
  [widgets[index],widgets[next]]=[widgets[next],widgets[index]];return {...state,widgets};
 }
-export function remainingFocusSeconds(data:FocusData,now=Date.now()):number {return data.deadline===null?Math.max(0,data.remaining):Math.max(0,Math.min(5400,Math.ceil((data.deadline-now)/1000)));}
+export function remainingFocusSeconds(data:FocusData,now=Date.now()):number {return data.deadline===null?Math.max(0,data.remaining):Math.max(0,Math.min(data.remaining,5400,Math.ceil((data.deadline-now)/1000)));}
 export function startFocus(data:FocusData,now=Date.now()):FocusData {const remaining=remainingFocusSeconds(data,now)||data.minutes*60;return {...data,remaining,deadline:now+remaining*1000};}
 export function pauseFocus(data:FocusData,now=Date.now()):FocusData {return {...data,remaining:remainingFocusSeconds(data,now),deadline:null};}
 export type RatesResponse={base:Currency;date:string;rates:Partial<Record<Currency,number>>;source:'Frankfurter'};
