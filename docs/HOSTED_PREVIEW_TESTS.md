@@ -44,7 +44,7 @@ run's successful `createUser` requests. Foreign-key cascades remove those users'
 test communities, groups and messages. It never enumerates or deletes other users
 or uses broad table deletes. Read-only checks verify removal of run-owned parent
 fixtures. Any test or cleanup failure sets a nonzero exit code. Logs contain fixed
-PASS/FAIL labels, a random run ID, target hostname and account counts; raw response
+PASS/FAIL labels, a random run ID, target hostname, account counts, an allowlisted error code and HTTP status; raw response
 errors, emails, passwords, keys and sessions are never printed.
 
 A forced kill or lost create-user response can prevent complete cleanup. The run ID

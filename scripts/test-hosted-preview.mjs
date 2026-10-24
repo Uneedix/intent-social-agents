@@ -24,8 +24,17 @@ class TestFailure extends Error {
   constructor(label) { super(label); this.name = 'TestFailure'; }
 }
 
-function requireTrue(condition, label) {
-  if (!condition) throw new TestFailure(label);
+function safeMetadata(result) {
+  const code = result?.error?.code;
+  const status = result?.status ?? result?.error?.status;
+  const parts = [];
+  if (typeof code === 'string' && /^[A-Z0-9_]{1,16}$/.test(code)) parts.push(`code=${code}`);
+  if (Number.isInteger(status) && status >= 100 && status <= 599) parts.push(`status=${status}`);
+  return parts.length ? ` [${parts.join(' ')}]` : '';
+}
+
+function requireTrue(condition, label, result) {
+  if (!condition) throw new TestFailure(label + safeMetadata(result));
 }
 
 function configuration() {
@@ -66,7 +75,7 @@ async function response(label, operation) {
 
 async function ok(label, operation) {
   const result = await response(label, operation);
-  requireTrue(!result.error, label);
+  requireTrue(!result.error, label, result);
   console.log(`PASS ${label}`);
   return result.data;
 }
@@ -74,19 +83,19 @@ async function ok(label, operation) {
 async function denied(label, operation, allowedCodes = ['42501']) {
   const result = await response(label, operation);
   // A network/auth/schema failure is not proof that the authorization rule worked.
-  requireTrue(!!result.error && allowedCodes.includes(result.error.code), label);
+  requireTrue(!!result.error && allowedCodes.includes(result.error.code), label, result);
   console.log(`PASS ${label}`);
 }
 
 async function empty(label, operation) {
   const result = await response(label, operation);
-  requireTrue(!result.error && Array.isArray(result.data) && result.data.length === 0, label);
+  requireTrue(!result.error && Array.isArray(result.data) && result.data.length === 0, label, result);
   console.log(`PASS ${label}`);
 }
 
 async function rows(label, operation, predicate) {
   const result = await response(label, operation);
-  requireTrue(!result.error && predicate(result.data), label);
+  requireTrue(!result.error && predicate(result.data), label, result);
   console.log(`PASS ${label}`);
   return result.data;
 }
@@ -113,11 +122,11 @@ async function run(config) {
       }));
       // Record the returned identity before any further assertion or network request.
       if (!created.error && created.data?.user?.id) createdUsers.push(created.data.user.id);
-      requireTrue(!created.error && !!created.data?.user?.id, `Create temporary ${role} account`);
+      requireTrue(!created.error && !!created.data?.user?.id, `Create temporary ${role} account`, created);
       const userClient = client(config.url, config.publishableKey);
       const signedIn = await response(`Sign in temporary ${role}`, () => userClient.auth.signInWithPassword({ email, password }));
       signedInClients.push(userClient);
-      requireTrue(!signedIn.error && signedIn.data?.user?.id === created.data.user.id && !!signedIn.data.session, `Sign in temporary ${role}`);
+      requireTrue(!signedIn.error && signedIn.data?.user?.id === created.data.user.id && !!signedIn.data.session, `Sign in temporary ${role}`, signedIn);
       await rows(`Verify authenticated ${role} identity`, () => userClient.auth.getUser(), data => data?.user?.id === created.data.user.id);
       accounts[role] = { id: created.data.user.id, db: userClient };
     }

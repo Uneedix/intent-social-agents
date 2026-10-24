@@ -55,3 +55,26 @@ test('hosted preview rejects other projects and URL credential/path tricks befor
     assert.equal(result.stdout.includes('Preview test run'), false, 'no run or fixture creation started');
   }
 });
+
+test('hosted preview diagnostics expose only allowlisted code and HTTP status', () => {
+  for (const code of ['42501', 'UNSAFE\nsensitive-payload']) {
+    const fixture = { code, msg: 'sensitive-raw-error-message', details: 'sensitive-details', hint: 'sensitive-hint' };
+    const interceptedFetch = 'data:text/javascript,' + encodeURIComponent(`
+      globalThis.fetch = async () => new Response(${JSON.stringify(JSON.stringify(fixture))}, {status: 403, headers: {'Content-Type':'application/json', 'X-Supabase-Api-Version':'2024-01-01'}});
+    `);
+    const result = spawnSync(process.execPath, ['--import', interceptedFetch, resolve('scripts/test-hosted-preview.mjs')], {
+      encoding: 'utf8', timeout: 5000,
+      env: { ...process.env,
+        SUPABASE_PREVIEW_TEST_URL: `https://${allowed}`,
+        SUPABASE_PREVIEW_TEST_PUBLISHABLE_KEY: 'public-test-placeholder',
+        SUPABASE_PREVIEW_TEST_SECRET_KEY: 'private-test-placeholder',
+      },
+    });
+    assert.equal(result.status, 1);
+    const output = result.stdout + result.stderr;
+    assert.match(result.stderr, /status=403/);
+    assert.equal(output.includes('sensitive-'), false, 'raw message/details/hint and invalid codes must remain redacted');
+    assert.equal(result.stderr.includes('code=42501'), code === '42501');
+    assert.match(result.stdout, /cleanup of 0 run-owned temporary accounts/);
+  }
+});
