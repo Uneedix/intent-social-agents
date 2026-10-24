@@ -32,7 +32,7 @@ JWT sessions and keys remain in memory. All permission tests use separate client
 with the publishable key and the relevant user session. The privileged client is
 used only for creating/deleting the run's accounts and read-only cleanup checks.
 
-Coverage includes login and authenticated identity; owner membership triggers;
+Coverage includes login and authenticated identity; a PGRST106 HTTP rejection of the unexposed `intent_private.intent_can_view(cid, uid)` RPC; owner membership triggers;
 public joining and role escalation denial; pending/repeated join requests, denial
 of self/outsider approval, owner approval and membership; staff-only publishing;
 private community/post/channel restrictions; group create/add-member RPCs; member

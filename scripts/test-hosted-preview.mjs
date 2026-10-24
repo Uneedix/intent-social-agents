@@ -80,10 +80,10 @@ async function ok(label, operation) {
   return result.data;
 }
 
-async function denied(label, operation, allowedCodes = ['42501']) {
+async function denied(label, operation, allowedCodes = ['42501'], expectedStatus) {
   const result = await response(label, operation);
   // A network/auth/schema failure is not proof that the authorization rule worked.
-  requireTrue(!!result.error && allowedCodes.includes(result.error.code), label, result);
+  requireTrue(!!result.error && allowedCodes.includes(result.error.code) && (expectedStatus === undefined || result.status === expectedStatus), label, result);
   console.log(`PASS ${label}`);
 }
 
@@ -132,6 +132,8 @@ async function run(config) {
     }
     requireTrue(createdUsers.length === 3 && new Set(createdUsers).size === 3, 'Exactly three distinct temporary accounts created');
     const { owner, member, outsider } = accounts;
+    await denied('Private implementation schema is not exposed through HTTP', () => owner.db.schema('intent_private')
+      .rpc('intent_can_view', { cid: randomUUID(), uid: owner.id }), ['PGRST106'], 406);
     const communities = {};
     for (const privacy of ['public', 'request', 'private']) {
       const data = await rows(`Owner creates ${privacy} community`, () => owner.db.from('communities').insert({
