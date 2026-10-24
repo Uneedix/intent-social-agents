@@ -21,13 +21,15 @@ The hosted security advisor reports 10 WARN findings for publicly executable SEC
 
 ## Preview-only configuration already bound
 - The isolated project's NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are now bound only to the Vercel Preview environment. Publishable configuration is public by design; no service-role key, database password or other privileged key was placed there.
-- The approved Auth Site URL targets the INTENT preview deployment identified by p9i61ykzr. Allowed redirects use the project's account-specific preview wildcard and localhost. No all-vercel.app redirect wildcard was enabled.
+- Auth Site URL now targets the verified stable branch alias https://intent-social-agents-git-chore-agent-workflow-uneedix.vercel.app . Callbacks should use this alias after the next preview push containing the new configuration. The older immutable p9i61ykzr deployment lacks the new Supabase environment values. Allowed redirects use the project's account-specific preview wildcard and localhost; no all-vercel.app redirect wildcard was enabled. The one-property Auth update left seven undeclared remote properties untouched.
 - Minimum password length: 12. Email confirmation: enabled.
 - Production variables and the separately approved empty production placeholder remain outside this database connection. Build-time configuration requires a new preview build; verify the exact deployment before claiming it consumed the new values.
 
 ## Checks completed and unresolved
 - Hosted authentication succeeded for three disposable test identities; cleanup succeeded for all three.
-- Hosted community creation is failing and is under investigation. Do not report communities/group-message acceptance as passed.
+- Hosted community creation is failing. QA reproduced error 42501 for INSERT communities RETURNING in PGlite, attributed to the STABLE self-lookup read policy. The backend correction is in preparation and is not yet confirmed applied. Do not report communities/group-message acceptance as passed.
+- Remote performance advisors (--level warn --fail-onerror) returned results: [] (no issues); security-advisor warnings remain separate and unresolved.
+- Latest published commit 920323e has successful quality/dependency-security/preview-readiness/Vercel checks. This does not resolve the hosted community-creation failure.
 - The regression suite now contains 16 tests, including three fail-closed hosted-test configuration cases from 262fd85. These guards prevent an unconfirmed target from being used; they are not hosted application acceptance.
 - Pending: resolve the community-creation failure, review the security correction, obtain any required target-specific approval before application, and rerun advisors and remote permission/RPC checks.
 - Pending: nonmember/member/owner scenarios, multi-user group messaging, cookie refresh, login/logout, confirmation/reset redirects, email delivery and Realtime, with browser results recorded separately from SQL/HTTP results.
