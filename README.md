@@ -1,28 +1,28 @@
-# INTENT — expanded local prototype v0.2
+# INTENT
 
-## Run on Windows PowerShell
+Next.js 15 / React 19 / TypeScript social-network prototype with Supabase authentication, communities and private group conversations.
+
+## Product boundaries
+The feed, intentions, profiles, follows, reactions, stories, direct-message UI, marketplace and ad drafts are local demos. They are not yet a complete multi-user social network. Browser data is isolated by account/guest identity. Legacy unscoped data is preserved but not adopted automatically.
+
+Auth, communities and group chats have Supabase integrations and require a configured isolated development project. Demo privacy preferences are not server authorization. Payments, advertising delivery and calls are not connected.
+
+## Checks
+Use Node.js 24 and the committed npm lockfile:
 
 ```powershell
-npm.cmd install
-npm.cmd run dev
+npm.cmd ci --ignore-scripts
+npm.cmd run verify
 ```
 
-Open http://localhost:3000.
+Verification runs TypeScript, ESLint, regression tests, in-memory PostgreSQL/RLS tests, secret scanning, dependency audit and a production build. It never applies SQL to a remote database. See package.json for individual commands and docs/WORKFLOW_STATUS.md for actual results.
 
-## Included
-- Responsive dark Home with Feeds / Intentions tabs, stories preview, posts, reactions, local comments, repost toggles, saves and composer.
-- Explore, Intentions, Communities (local join state), Market (local listings, sample catalog and approximate currency display), Messages (local-only chat), Notifications, Profile, Saved, Your activity.
-- Instant ADS workspace: campaign drafts, objectives, daily budget, delete drafts. **No real advertising or billing.**
-- Advanced Settings: local preferences for privacy, language, messages, mentions, email notifications, demo data export and reset. **These do not enforce server-side access controls.**
-- Sidebar toggle and preferred currency.
+## Environment
+Use .env.example only with a separate development/preview Supabase project. Never use production credentials or data in preview. See supabase/README.md for local SQL and existing-project migration boundaries.
 
-## Important limitations
-This is an **interactive frontend prototype**, not a deployed multi-user social network. All state is stored in the current browser's localStorage; users do not communicate with each other. Images and example profiles are illustrative. No authentication, database, server-side authorization, upload processing, payments, actual ad delivery, messaging transport, moderation or GDPR compliance is implemented. Do not use this for sensitive information or real transactions.
+For Vercel-linked development, authenticate/link the intended project and verify environment configuration before running npm.cmd run dev. A build/test run without Supabase verifies the local-demo shell, not hosted Auth or multi-user behavior.
 
-## Recommended production phases
-1. Database design (PostgreSQL), authentication, sessions, authorization and Row Level Security.
-2. Real profiles, follows, posts, media uploads, comments, reactions, notifications and search.
-3. Real-time messaging, community memberships, roles, moderation and reporting.
-4. Marketplace: listings, order state machine, payment provider, shipping, currency FX and dispute resolution.
-5. Advertising: campaign approval, targeting safeguards, delivery, attribution, billing and fraud prevention.
-6. Internationalization, accessibility, privacy/export/deletion workflows, tests, monitoring and security audit.
+## Agent workflow
+AGENTS.md and .agents/team/ define the Engineering Lead, Frontend, Backend, UI/UX and QA/security roles. Each implementation task uses a separate branch/worktree. Reviewed changes go through PR checks and a non-production preview. Never push directly to main.
+
+PR merge, persistent database migrations and production deployment require explicit approval. See docs/DEVELOPMENT_WORKFLOW.md. Older versioned setup notes are historical context; current workflow/database instructions take precedence where they differ.
