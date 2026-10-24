@@ -26,6 +26,8 @@ Use a dedicated Vercel project and isolated development Supabase. Verify team/pr
 
 Disable automatic main deployment, or use a separate manually gated production project. Leaving PRs unmerged alone is not a technical production gate. Verify this behavior before connecting Git.
 
+The repository build fails closed on Vercel unless both system environment indicators identify preview. Vercel classifies a new project's first deployment as production, even for an explicit preview request. Stop and obtain explicit approval for a separate placeholder bootstrap; never silently bootstrap production or weaken this guard to obtain a preview URL.
+
 Preview uses its own NEXT_PUBLIC_SUPABASE_URL/publishable key only. Service-role keys/passwords must never have NEXT_PUBLIC_ names. Restrict Auth redirects to intended preview URLs. Without isolated Supabase, preview verifies the local-demo shell only; do not claim live Auth/database verification or create fake credentials.
 
 ## Database
