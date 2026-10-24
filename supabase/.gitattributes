@@ -1,0 +1,8 @@
+# The manifest hashes original committed bytes, including original line endings.
+# Prevent core.autocrlf from changing archival/canonical content on checkout.
+legacy-migrations/*.sql -text
+migrations/*.sql -text
+tests/*.sql text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
