@@ -35,6 +35,28 @@ unique 14-digit canonical version prefixes.
 2. `20261023000000_communities_v04.sql`
 3. `20261023010000_message_groups_v06.sql`
 4. `20261024000000_access_hardening.sql`
+5. `20261024120000_private_function_implementations.sql`
+
+The fifth migration moves nine elevated RPC/helper implementations into
+`intent_private`. Public functions become SECURITY INVOKER wrappers, retaining
+their OIDs, named arguments/defaults, ownership and ACLs. Only schema USAGE and
+the necessary per-function EXECUTE are granted for wrapper calls; API roles
+cannot create private objects and PUBLIC receives no private privileges. Existing
+explicit service/custom-role callers retain the corresponding implementation
+access. Do not add `intent_private` to API/PostgREST exposed schemas; local config
+exposes only `public`. This does not rely on a schema name hiding a callable RPC.
+
+It also fixes authenticated Community `INSERT ... RETURNING`: the SELECT policy
+checks the current row inline rather than re-reading the new row through a STABLE
+helper. Separate anonymous/authenticated policies keep public browsing working
+without granting anonymous access to membership helpers.
+
+The local suite snapshots and compares the exact nine public contracts before
+and after the upgrade, checks private DEFINER/search_path/ACLs and public INVOKER
+status, tests real authenticated INSERT RETURNING for all three privacy modes and
+owner trigger creation, then reruns the five-role RLS suite. A synthetic trigger
+failure verifies group creation cannot leave an orphan group. These remain local
+database tests; hosted API schema exposure must be verified separately.
 
 The original scripts, including both `20261023` files, are preserved **byte for
 byte** in `legacy-migrations/`. This removes the duplicate version prefix from
@@ -69,9 +91,12 @@ in this repository does not rewrite `supabase_migrations.schema_migrations` in a
 existing database. No migration repair or remote access has been performed.
 
 For an existing *development* database that already has both legacy 20261023
-changes, the only schema upgrade is the reviewed
+changes, first apply the reviewed
 `legacy-migrations/20261024_access_hardening.sql` (identical canonical counterpart:
-`migrations/20261024000000_access_hardening.sql`). Use one copy, never both. First
+`migrations/20261024000000_access_hardening.sql`), then the new fifth migration.
+An installation whose recorded canonical history already matches all first four
+migrations needs only `20261024120000_private_function_implementations.sql`.
+Use one copy of hardening, never both. First
 back up the database, inspect its table definitions, policies, grants and migration
 history, and test that upgrade on an isolated copy. This document does not authorize
 or execute an upgrade against any hosted project.

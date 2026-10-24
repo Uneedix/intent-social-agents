@@ -29,6 +29,13 @@ async function verifyMigrationIntegrity() {
       if (digest !== entry.sha256) throw new Error(`Migration integrity mismatch: ${relative}`);
     }
   }
+  for (const entry of manifest.additionalMigrations ?? []) {
+    if (typeof entry.path !== 'string' || !/^migrations\/\d{14}_[\w.-]+\.sql$/.test(entry.path) || mappedPaths.has(entry.path)) throw new Error('Invalid additional migration path');
+    mappedPaths.add(entry.path);
+    const digest = createHash('sha256').update(await readFile(new URL(entry.path, base))).digest('hex');
+    if (digest !== entry.sha256) throw new Error(`Migration integrity mismatch: ${entry.path}`);
+  }
+  if (names.some(name => !mappedPaths.has(`migrations/${name}`))) throw new Error('Canonical migration missing from integrity manifest');
   console.log(`PASS migration manifest (${manifest.mappings.length} legacy mappings, ${names.length} canonical migrations)`);
 }
 

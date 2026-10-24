@@ -22,5 +22,11 @@
       "canonical": "migrations/20261024000000_access_hardening.sql"
     }
   ],
-  "formatVersion": 1
+  "formatVersion": 1,
+  "additionalMigrations": [
+    {
+      "path": "migrations/20261024120000_private_function_implementations.sql",
+      "sha256": "2bf9fbc5fa0b9e12d787139edfd0d8f1c3704bdbfac1c2d6ad78a694ffd75546"
+    }
+  ]
 }

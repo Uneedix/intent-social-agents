@@ -20,4 +20,10 @@ END $$;
 \ir ../migrations/20261024000000_access_hardening.sql
 -- Also prove hardening can be applied again without duplicating policies/indexes.
 \ir ../migrations/20261024000000_access_hardening.sql
+\ir function_contract_before.sql
+\ir ../migrations/20261024120000_private_function_implementations.sql
+-- The new migration itself is safe to repeat; old historical migrations must
+-- never be replayed after a subsequent schema upgrade.
+\ir ../migrations/20261024120000_private_function_implementations.sql
+\ir private_function_security.sql
 \ir access_control.sql
