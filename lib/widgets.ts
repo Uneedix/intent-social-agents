@@ -19,6 +19,7 @@ export type PanelState = {version:1;widgets:Widget[]};
 export const LIMITS = {widgets:8,notes:4000,tasks:30,events:30,links:12,label:120} as const;
 const record=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const text=(value:unknown,max:number)=>typeof value==='string'?value.slice(0,max):'';
+const storedId=(value:unknown,fallback:string)=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(value)&&!['__proto__','constructor','prototype'].includes(value)?value:fallback;
 const bounded=(value:unknown,min:number,max:number,fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.max(min,Math.min(max,Math.floor(value))):fallback;
 export function widgetId(){return globalThis.crypto?.randomUUID?.()||`widget-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,12)}`;}
 export function localDate(now=new Date()){return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;}
@@ -45,21 +46,21 @@ function entries(value:unknown,max:number):Record<string,unknown>[] {return Arra
 function unique<T extends {id:string}>(items:T[]):T[]{return [...new Map(items.map(item=>[item.id,item])).values()];}
 /** Empty localStorage arrays are not a schema: validate every persisted field before rendering. */
 export function validatePanel(value:unknown,today=localDate()):PanelState {
- if(!record(value)||value.version!==1||!Array.isArray(value.widgets))return defaultPanel(today);
+ if(!record(value)||value.version!==1||!Array.isArray(value.widgets)){const fallback=defaultPanel(today);return {...fallback,widgets:fallback.widgets.map(item=>({...item,id:`default-${item.type}`}))};}
  today=validDate(today)?today:localDate();
  const widgets:Widget[]=[];const types=new Set<string>();const ids=new Set<string>();
  for(const raw of value.widgets.slice(0,LIMITS.widgets)){
   if(!record(raw)||typeof raw.type!=='string'||!WIDGET_TYPES.includes(raw.type as WidgetType)||!record(raw.data)||types.has(raw.type))continue;
   const type=raw.type as WidgetType;const item=createWidget(type,today);const data=raw.data;
-  item.id=typeof raw.id==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(raw.id)&&!ids.has(raw.id)?raw.id:widgetId();item.collapsed=raw.collapsed===true;
+  let id=storedId(raw.id,`recovered-${type}`);if(ids.has(id)){id=`recovered-${type}`;while(ids.has(id))id+='-x';}item.id=id;item.collapsed=raw.collapsed===true;
   switch(item.type){
    case 'notes':item.data={text:text(data.text,LIMITS.notes)};break;
-   case 'tasks':item.data={items:unique(entries(data.items,LIMITS.tasks).filter(x=>typeof x.text==='string'&&x.text.trim()).map(x=>({id:text(x.id,100)||widgetId(),text:text(x.text,LIMITS.label),done:x.done===true})))};break;
-   case 'calendar':item.data={date:validDate(data.date)?data.date:today,events:unique(entries(data.events,LIMITS.events).filter(x=>typeof x.title==='string'&&x.title.trim()&&validDate(x.date)).map(x=>({id:text(x.id,100)||widgetId(),title:text(x.title,LIMITS.label),date:x.date as string})))};break;
+   case 'tasks':item.data={items:unique(entries(data.items,LIMITS.tasks).filter(x=>typeof x.text==='string'&&x.text.trim()).map((x,index)=>({id:storedId(x.id,`recovered-task-${index}`),text:text((x.text as string).trim(),LIMITS.label),done:x.done===true})))};break;
+   case 'calendar':item.data={date:validDate(data.date)?data.date:today,events:unique(entries(data.events,LIMITS.events).filter(x=>typeof x.title==='string'&&x.title.trim()&&validDate(x.date)).map((x,index)=>({id:storedId(x.id,`recovered-event-${index}`),title:text((x.title as string).trim(),LIMITS.label),date:x.date as string})))};break;
    case 'focus':item.data={minutes:bounded(data.minutes,1,90,25),remaining:bounded(data.remaining,0,5400,1500),deadline:typeof data.deadline==='number'&&Number.isFinite(data.deadline)&&data.deadline>0&&data.deadline<8640000000000000?data.deadline:null};break;
    case 'countdown':item.data={title:text(data.title,LIMITS.label),date:validDateTime(data.date)?data.date:''};break;
    case 'rates':item.data={base:CURRENCIES.includes(data.base as Currency)?data.base as Currency:'EUR'};break;
-   case 'links':item.data={items:unique(entries(data.items,LIMITS.links).filter(x=>safeLink(x.url)&&typeof x.title==='string'&&x.title.trim()).map(x=>({id:text(x.id,100)||widgetId(),title:text(x.title,LIMITS.label),url:safeLink(x.url)!})))};break;
+   case 'links':item.data={items:unique(entries(data.items,LIMITS.links).filter(x=>safeLink(x.url)&&typeof x.title==='string'&&x.title.trim()).map((x,index)=>({id:storedId(x.id,`recovered-link-${index}`),title:text((x.title as string).trim(),LIMITS.label),url:safeLink(x.url)!})))};break;
    case 'goals':{const target=bounded(data.target,1,365,7);item.data={title:text(data.title,LIMITS.label),target,progress:bounded(data.progress,0,target,0)};break;}
   }
   widgets.push(item);types.add(type);ids.add(item.id);

@@ -40,7 +40,7 @@ export default function WidgetPanel({compact=false}:{compact?:boolean}){
  const [removeId,setRemoveId]=useState<string|null>(null);const addButton=useRef<HTMLButtonElement>(null);
  const update=<K extends WidgetType,>(id:string,type:K,data:WidgetData[K])=>change(current=>({...current,widgets:current.widgets.map(item=>item.id===id&&item.type===type?{...item,data} as Widget:item)}));
  return <section className={`${styles.panel} ${compact?styles.compact:''}`} aria-label={t('dashboard')}>
-  <header className={styles.panelHeader}><span className={styles.eyebrow}>INTENT / {t('personal')}</span><div><h2>{t('dashboard')}</h2><LayoutGrid size={19}/></div><p>{t('subtitle')}</p></header>
+  <header className={styles.panelHeader}><span className={styles.eyebrow}>INTENT / {t('personal')}</span><div><h2>{t('dashboard')}</h2><SmallButton label={t('library')} onClick={()=>setCatalog(true)}><LayoutGrid size={19}/></SmallButton></div><p>{t('subtitle')}</p></header>
   <div className={styles.widgetList}>{state.widgets.map((widget,index)=>{const Icon=icons[widget.type];const name=t(widget.type);return <article key={widget.id} className={`${styles.widget} ${widget.type==='notes'?styles.notes:''}`}>
    <header className={styles.widgetHeader}><span className={styles.widgetTitle}><Icon size={16}/><h3>{name}</h3></span><div className={styles.widgetActions}>
     <SmallButton label={t('up',{name})} disabled={index===0} onClick={()=>change(s=>moveWidget(s,widget.id,-1))}><ChevronUp size={13}/></SmallButton>
