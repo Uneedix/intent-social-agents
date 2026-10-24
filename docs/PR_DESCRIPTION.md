@@ -9,7 +9,7 @@ Changes:
 
 Validation on the integrated branch:
 - TypeScript passed; ESLint has 0 errors and 39 existing image warnings.
-- 13 regression tests cover session/storage, paging/races, scanning, main push policy and a fail-closed preview-only build guard.
+- 13 regression tests passed, covering session/storage, paging/races, scanning, main push policy and a fail-closed preview-only build guard.
 - In-memory migration/hash/RLS suite passed, including hardening rerun.
 - Secret scan: 0 findings. npm audit: 0 vulnerabilities.
 - Next.js production build passed locally.
@@ -18,8 +18,9 @@ Review boundaries:
 - Keep this PR unmerged until explicitly approved. No main push, production deployment or hosted Supabase change is authorized by this PR.
 - GitHub private branch protection was refused with HTTP 403 on the current plan. Auto-merge is off, but the local hook is not equivalent to server enforcement.
 - Initial push/PR quality and dependency-security jobs passed remotely. Vercel Git App access is now granted and the Git connection verified. Isolated preview Supabase configuration remains unconfigured.
-- Preview creation is blocked by Vercel's first-deployment behavior: an explicit preview request was classified production. That build was immediately canceled before alias assignment; no release occurred. A guard now refuses non-preview Vercel builds, and automatic previews are paused at project level. A separate empty placeholder is prepared for approval; do not deploy that production bootstrap or remove the app guard without explicit target approval. Official reference: https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting
-- Without Supabase configuration, any future preview verifies only the local-demo shell, not live Auth/database behavior.
+- Vercel's first-deployment issue was resolved by the user's separate one-time approval of an empty static production bootstrap. The placeholder is READY, contains no app/database/secrets, and its automatically created alias was removed. Approval is consumed; the INTENT application remains blocked from production builds. Official reference: https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting
+- Preview is READY and verified HTTP 200: https://intent-social-agents-r2d3cfaof-uneedix.vercel.app . Production URL is null; Vercel Authentication remains enabled. Git integration and automatic previews are enabled; results of the Git-triggered documentation push will be recorded here.
+- Without Supabase configuration, preview verifies only the local-demo shell, not live Auth/database behavior.
 - Existing hosted migration history requires separately approved reconciliation. React tests use experimental Node module mocks and the deprecated React test renderer; full browser/Auth E2E remains a follow-up.
 
 See docs/WORKFLOW_STATUS.md for configuration state and limitations. Preview and remote CI results will be attached to this PR after publication.
