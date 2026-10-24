@@ -1,94 +1,131 @@
-# INTENT database: installation and access-control checks
+# INTENT database: local setup, migrations and access-control tests
 
-These scripts target Supabase PostgreSQL (`auth.users`, `auth.uid()`, `anon`
-and `authenticated` must already exist). The application never applies SQL
-automatically. No remote database has been accessed to prepare these changes.
+`config.toml` defines the **local** `intent-local` stack, PostgreSQL 15, local
+API/Studio ports and a local email inbox with confirmation enabled. It contains no
+hosted project reference or credentials. Fields follow the [official Supabase CLI
+configuration reference](https://supabase.com/docs/guides/local-development/cli/config).
+The CLI/Docker stack has not been started as part of this change.
 
-## Fresh local installation
+## Isolated tests without a database server
 
-Use a disposable **local** Supabase database and a database administrator connection.
-Install PostgreSQL `psql` separately if it is unavailable. Do not use production
-credentials or a remote connection URL for these tests.
+From the repository root after installing the lockfile dependencies:
 
 ```powershell
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f supabase/tests/fresh_install.sql
+npm run test:db
 ```
 
-The example is the usual local Supabase address; use the actual local port and
-password for your instance. The SQL guard accepts only a loopback server address
-or a Unix socket. Docker port forwarding can make `inet_server_addr()` report the
-container's bridge address even when the client URL is localhost; in that case the
-guard intentionally refuses the run. Execute psql inside the local database
-container over its Unix socket with the `supabase` directory mounted/copied there,
-or use the project's in-memory PostgreSQL test runner when available. Do not weaken
-the guard or substitute a remote database to bypass it.
+The runner uses a fresh in-memory PGlite PostgreSQL instance. It does not read
+`.env.local`, contact Supabase or apply anything to a real project. Only
+`auth.users(id,email)` and the JWT subject contract of `auth.uid()` are emulated;
+the actual PostgreSQL `anon` and `authenticated` roles, grants and RLS are exercised.
+`tests/fresh_install.sql` installs the schema, repeats hardening and runs the
+transactional access assertions. Test fixture data is synthetic.
 
-The test refuses to run
-if any INTENT table exists. It applies these files in explicit order:
+The SHA-256 mappings in `migration-manifest.json` record every archived script and
+its canonical counterpart. They must remain byte-identical to their recorded hash.
+New SQL changes belong in a new uniquely versioned migration, rather than editing
+an archive/canonical pair. The SQL runner validates this manifest and requires
+unique 14-digit canonical version prefixes.
 
-1. `migrations/20261022_communities_baseline.sql`
-2. `migrations/20261023_communities_v04.sql`
-3. `migrations/20261023_message_groups_v06.sql`
-4. `migrations/20261024_access_hardening.sql`
+## Canonical chronology for fresh local projects
 
-Historical migration names are preserved. Two historical files share the version
-prefix `20261023`, so do **not** assume this directory is already a valid Supabase
-CLI migration history or run `supabase db push`. Reconcile migration tracking in a
-separate reviewed change before using CLI automation.
+`migrations/` is now the only directory used by the Supabase CLI:
 
-## Existing installations
+1. `20261022000000_communities_baseline.sql`
+2. `20261023000000_communities_v04.sql`
+3. `20261023010000_message_groups_v06.sql`
+4. `20261024000000_access_hardening.sql`
 
-Review/backup the development database first. If both 20261023 migrations have
-already been applied, apply **only** `20261024_access_hardening.sql` as administrator.
-Do not replay historical migrations: the Communities migration is not idempotent.
-The baseline is for fresh installation and deliberately does not repair or replace
-an existing table. A legacy schema missing expected columns requires a separately
-reviewed migration after inspecting its definition.
+The original scripts, including both `20261023` files, are preserved **byte for
+byte** in `legacy-migrations/`. This removes the duplicate version prefix from
+CLI discovery without silently rewriting the meaning of an old script. Both sets
+are part of the repository for auditing; do not run both copies on one database.
 
-Hardening runs inside one transaction. It refuses to proceed if it finds policy
-names outside the known contract on these nine tables. PostgreSQL combines
-permissive policies with OR, so unknown policies must be inspected before retrying;
-the script does not silently delete custom policies. Known policy definitions must
-match the checked-in historical migrations. Custom column-level grants and role
-inheritance should also be reviewed in an existing installation: this migration
-resets table grants for PUBLIC/anon/authenticated, not every possible custom role.
+For a new disposable local stack with Supabase CLI and Docker installed:
 
-## Security contract
+```powershell
+supabase start
+supabase status
+```
+
+Use the reported **local** API URL and publishable/anon key for a separate local
+app environment. No `supabase login`, `link` or hosted project is required. The
+usual API port is 54321; the email inbox is on port 54324. The local config enables
+email confirmation, so registration/recovery still requires following the local
+inbox link. These Auth/browser paths need separate end-to-end verification.
+
+This work does not execute the commands above. Avoid starting several worktrees
+with the same local `project_id` and ports at once. If a disposable local stack
+must be reset, `supabase db reset --local` destroys that stack's local data; use it
+only after confirming the stack is disposable. Never use `--linked` or `--db-url`
+for the local development steps.
+
+## Existing-project upgrade: no automatic history reconciliation
+
+Existing installations **must not run `supabase db push`, `migration repair` or
+replay the canonical history** until their actual schema and migration tracking
+have been reviewed and a reconciliation plan explicitly approved. Renaming files
+in this repository does not rewrite `supabase_migrations.schema_migrations` in any
+existing database. No migration repair or remote access has been performed.
+
+For an existing *development* database that already has both legacy 20261023
+changes, the only schema upgrade is the reviewed
+`legacy-migrations/20261024_access_hardening.sql` (identical canonical counterpart:
+`migrations/20261024000000_access_hardening.sql`). Use one copy, never both. First
+back up the database, inspect its table definitions, policies, grants and migration
+history, and test that upgrade on an isolated copy. This document does not authorize
+or execute an upgrade against any hosted project.
+
+The baseline is exclusively for fresh installation. It never replaces existing
+tables or repairs missing legacy columns. The old Communities migration is not
+idempotent and must not be replayed. Hardening is transactional and can be reapplied.
+It refuses unknown policy names because permissive PostgreSQL policies combine
+with OR. It does not delete custom policies; their intent needs manual review.
+Known policy definitions must match the archived scripts. Custom role inheritance
+and column-level grants also need review: hardening resets table grants for
+PUBLIC/anon/authenticated, not every possible custom role or legacy column ACL.
+
+## Security contract and regression coverage
 
 - Anonymous users can read public/request Communities, their posts and enabled
-  channel metadata; private Communities remain invisible. Anonymous users cannot
-  read membership rosters, channel messages or private group tables.
-- Authenticated community members can read their permitted content; staff-only
-  posting is enforced by RLS. Only the owner changes Community settings. Ownership
-  and server timestamps cannot be changed using the granted update columns.
-- Membership helpers retain their existing signatures but answer only for
-  `auth.uid()`. They cannot be used to probe another user's private memberships.
-- Applicants may repeat a pending/rejected request with the existing client upsert.
-  They cannot approve themselves, edit someone else's request, or retry an approved
-  row. Owner/admin approval remains an atomic RPC.
-- Group membership is managed only by RPC with owner/admin authorization. Members
-  can send only as themselves. Direct membership writes are not granted.
-- Group grants are explicit, independent of default Supabase table privileges.
-- Cursor-oriented composite indexes cover message/post timelines; user/author
-  indexes support membership and foreign-key lookups. Client pagination must still
-  be implemented by the application.
+  channel metadata; private Communities stay invisible. They cannot read rosters,
+  channel messages or group tables.
+- Members can access permitted community/channel content. Staff-only publication
+  and disabled channels are enforced by RLS. Only owners change Community settings;
+  the granted update columns exclude ownership and creation timestamps.
+- The membership helpers answer only for `auth.uid()`; passing another person's
+  UUID cannot probe that person's membership or staff/manager role.
+- A requester can upsert their pending/rejected request, including the same fields
+  used by the client. They cannot self-approve, retry approved rows or directly join
+  a request-only community. Owner/admin approval uses the existing atomic RPC.
+- Group owners/admins add members through RPC. Direct membership writes, sender
+  spoofing and unimplemented message edits remain denied. The test uses populated
+  private histories to verify outsiders cannot read them.
+- Owner membership creation, admin and owner approval, duplicate-approval failure,
+  public joining and disabled-channel visibility are covered by SQL assertions.
+- Grants no longer depend on Supabase default table privileges. Timeline and
+  membership indexes support the application's cursor queries.
 
-## RLS regression checks on an existing local schema
+The suite uses sequential transactions; it is **not a concurrency/race test**.
+It does not verify HTTP/PostgREST, hosted Auth configuration, email delivery,
+cookies, Realtime or browser session reset. PGlite tests are useful database
+regression checks, not proof that a hosted Supabase project is correctly configured.
+
+## Running assertions with psql on a local Supabase database
 
 ```powershell
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f supabase/tests/access_control.sql
 ```
 
-The script creates deterministic test users and fixtures inside a transaction,
-switches to actual `anon`/`authenticated` database roles and sets the JWT subject.
-Checks cover anonymous visibility, outsiders, members, admins, owners, author
-spoofing, helper probing, repeated requests, self-approval denial and owner
-protection. The transaction is rolled back on success; an error stops psql and the
-connection rollback discards fixtures. A fixture UUID collision causes failure,
-never fixture replacement. Custom `auth.users` triggers may require additional
-fixture fields for your local installation.
+Use actual local credentials and administrator privileges. The SQL guard accepts
+only a loopback server address or Unix socket. Docker forwarding may report a
+bridge address even with a localhost URL; in that case use the in-memory runner,
+or psql inside the local database container over its Unix socket with the source
+files available there. Do not weaken the guard or substitute a remote database.
 
-These SQL assertions do not exercise email delivery, browser cookies, HTTP/PostgREST
-behavior, Realtime or concurrent requests. They do not replace an end-to-end test
-against an isolated development project. SQL execution requires a local database;
-source review alone must not be reported as a passing database test.
+`access_control.sql` creates deterministic fixtures in a transaction and rolls
+back on success; ON_ERROR_STOP plus disconnection rolls back failures. UUID
+collisions fail without replacing existing users. Custom `auth.users` triggers may
+need additional fixture fields on your local Supabase instance. `fresh_install.sql`
+requires no preexisting INTENT tables and intentionally persists only the new
+schema. It should run only in a disposable database.

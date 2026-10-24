@@ -14,10 +14,10 @@ DO $$ BEGIN
   RAISE EXCEPTION 'Use a local Supabase database with auth initialized';
  END IF;
 END $$;
-\ir ../migrations/20261022_communities_baseline.sql
-\ir ../migrations/20261023_communities_v04.sql
-\ir ../migrations/20261023_message_groups_v06.sql
-\ir ../migrations/20261024_access_hardening.sql
+\ir ../migrations/20261022000000_communities_baseline.sql
+\ir ../migrations/20261023000000_communities_v04.sql
+\ir ../migrations/20261023010000_message_groups_v06.sql
+\ir ../migrations/20261024000000_access_hardening.sql
 -- Also prove hardening can be applied again without duplicating policies/indexes.
-\ir ../migrations/20261024_access_hardening.sql
+\ir ../migrations/20261024000000_access_hardening.sql
 \ir access_control.sql

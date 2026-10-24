@@ -1,0 +1,26 @@
+{
+  "description": "Canonical files preserve legacy SQL byte-for-byte. New changes require separate migrations. Update this reviewed manifest only when intentionally changing archival mapping.",
+  "mappings": [
+    {
+      "legacy": "legacy-migrations/20261022_communities_baseline.sql",
+      "sha256": "4ff4a57481fedc8c1e20f6144fb37403c199e4832edd3f218c3379490976e522",
+      "canonical": "migrations/20261022000000_communities_baseline.sql"
+    },
+    {
+      "legacy": "legacy-migrations/20261023_communities_v04.sql",
+      "sha256": "00d6430a919858c878b2e2036b0d2fca60f44c3b3e135caf65f1daa4c6e26951",
+      "canonical": "migrations/20261023000000_communities_v04.sql"
+    },
+    {
+      "legacy": "legacy-migrations/20261023_message_groups_v06.sql",
+      "sha256": "c6dcc8aacec7a87db9c7afd81ae8aafc62e6f1762be7632321f0731711a4afa6",
+      "canonical": "migrations/20261023010000_message_groups_v06.sql"
+    },
+    {
+      "legacy": "legacy-migrations/20261024_access_hardening.sql",
+      "sha256": "7ff5a1144a9eed16ed5deaf3e8b2e20bb0b2abe572f83795ab81453be09c3ba4",
+      "canonical": "migrations/20261024000000_access_hardening.sql"
+    }
+  ],
+  "formatVersion": 1
+}
