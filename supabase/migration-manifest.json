@@ -26,7 +26,7 @@
   "additionalMigrations": [
     {
       "path": "migrations/20261024120000_private_function_implementations.sql",
-      "sha256": "2bf9fbc5fa0b9e12d787139edfd0d8f1c3704bdbfac1c2d6ad78a694ffd75546"
+      "sha256": "f796b17f244b44e50a0bfbf037b9173acc928115e9c0c84d44775993e857ce5a"
     }
   ]
 }
