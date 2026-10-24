@@ -1,32 +1,36 @@
-# Hosted Supabase preview setup plan
+# Hosted Supabase preview setup and open acceptance checks
 
-This is a review plan, not an automatic migration or production connection.
+Status snapshot: 2026-10-24. Setup below was separately approved and performed against a newly created isolated preview project. This document does not authorize production changes, an additional migration, a plan upgrade or changes to an existing project.
 
-## Target selection
-1. Authenticate through a working Supabase connector or official CLI browser login. Never paste access tokens, passwords or verification codes into chat.
-2. List organizations/projects read-only. Prefer a newly created isolated project named INTENT Preview; do not reuse an unknown or production project based only on its name.
-3. Check project creation cost/quota. Obtain explicit approval for nonzero charges; no automatic plan upgrade or production branching.
-4. Record the exact organization, project name/ref, region and environment before requesting migration approval.
+## Confirmed target
+- Official CLI: Supabase 2.122.0, authenticated as Uneedix. Never paste tokens, passwords or verification codes into chat or commit them.
+- User-confirmed organization: intent-development, ref kbvnbvlgaqbqtzcepenw, Free plan. No paid upgrade was purchased.
+- New project: INTENT Preview, ref lrhsncjjwamdgqafzgpj, Frankfurt, ACTIVE_HEALTHY, PostgreSQL 17.11.
+- Existing project fvzsgxpxizvbueolgitd was left untouched. Do not reuse it or reconcile its migrations without separate inspection and approval.
 
-## Schema change to approve
-For a confirmed fresh test project, apply the four canonical files in order:
-- supabase/migrations/20261022000000_communities_baseline.sql
-- supabase/migrations/20261023000000_communities_v04.sql
-- supabase/migrations/20261023010000_message_groups_v06.sql
-- supabase/migrations/20261024000000_access_hardening.sql
+## Approved schema changes already applied
+The user approved these four canonical migrations for the fresh project lrhsncjjwamdgqafzgpj; they were applied in order:
+1. supabase/migrations/20261022000000_communities_baseline.sql
+2. supabase/migrations/20261023000000_communities_v04.sql
+3. supabase/migrations/20261023010000_message_groups_v06.sql
+4. supabase/migrations/20261024000000_access_hardening.sql
 
-These create the communities/group-message schema, constraints, indexes, grants, RLS and authorized RPC functions. Their hashes and synthetic PostgreSQL/RLS assertions already pass locally. Existing projects require separate schema/migration-history inspection and reconciliation. Do not apply the fresh-install chain to an existing database.
+The chain creates communities/group-message tables, constraints, indexes, grants, RLS and RPC functions. Nine public tables were confirmed to have RLS enabled. Local migration/hash/RLS tests and table-level RLS flags do not establish hosted RPC correctness or successful multi-user behavior.
 
-The user's informed approval must identify the exact fresh project and these changes. Merely connecting a plugin or authorizing resource discovery is not migration approval.
+The hosted security advisor reports 10 WARN findings for publicly executable SECURITY DEFINER functions. A further backend hardening migration is in preparation. Its final contents, approval/application and advisor recheck remain outstanding in this snapshot; do not describe these findings as fixed.
 
-## Preview-only application settings
-- Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY on Vercel Preview only. Frontend publishable configuration is public by design; no service-role key or database password is exposed to the browser, source or CI logs.
-- Configure Supabase Auth Site URL to a verified INTENT preview URL and restrict redirect patterns to this project/account. Do not allow every vercel.app deployment.
-- Keep email confirmation enabled. Verify email delivery/account ownership before claiming signup/reset E2E has passed; do not email unrelated people.
-- Rebuild only a preview after changing build-time public configuration. Leave production variables and the approved empty placeholder unchanged.
+## Preview-only configuration already bound
+- The isolated project's NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are now bound only to the Vercel Preview environment. Publishable configuration is public by design; no service-role key, database password or other privileged key was placed there.
+- The approved Auth Site URL targets the INTENT preview deployment identified by p9i61ykzr. Allowed redirects use the project's account-specific preview wildcard and localhost. No all-vercel.app redirect wildcard was enabled.
+- Minimum password length: 12. Email confirmation: enabled.
+- Production variables and the separately approved empty production placeholder remain outside this database connection. Build-time configuration requires a new preview build; verify the exact deployment before claiming it consumed the new values.
 
-## Acceptance
-- Verify actual remote table grants, RLS and security/performance advisors after approval/application.
-- Run nonmember/member/owner permission checks with disposable test identities.
-- Verify cookie refresh, login/logout, confirmation/reset redirects, community creation and multi-user group messages against the isolated project.
-- Record separately what was checked through SQL, HTTP and a browser; report missing SMTP/test-account access honestly.
+## Checks completed and unresolved
+- Hosted authentication succeeded for three disposable test identities; cleanup succeeded for all three.
+- Hosted community creation is failing and is under investigation. Do not report communities/group-message acceptance as passed.
+- The regression suite now contains 16 tests, including three fail-closed hosted-test configuration cases from 262fd85. These guards prevent an unconfirmed target from being used; they are not hosted application acceptance.
+- Pending: resolve the community-creation failure, review the security correction, obtain any required target-specific approval before application, and rerun advisors and remote permission/RPC checks.
+- Pending: nonmember/member/owner scenarios, multi-user group messaging, cookie refresh, login/logout, confirmation/reset redirects, email delivery and Realtime, with browser results recorded separately from SQL/HTTP results.
+- Record the final integrated test run and exact successful preview deployment after these investigations. Until then, this is a configured preview with unresolved acceptance checks.
+
+Keep disposable tests restricted to lrhsncjjwamdgqafzgpj and clean up their identities/data. Never infer approval for a different target, main merge or production release from preview setup approval.
