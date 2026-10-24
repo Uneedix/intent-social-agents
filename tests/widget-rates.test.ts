@@ -22,7 +22,8 @@ test('rates use the fixed v2 origin, complete quote allowlist, timeout and hourl
       assert.equal(url.pathname, '/v2/rates');
       assert.equal(url.searchParams.get('base'), base);
       assert.equal(url.searchParams.get('quotes'), 'USD,EUR,PLN,GBP,CHF');
-      assert.deepEqual([...url.searchParams.keys()], ['base', 'quotes']);
+      assert.equal(url.searchParams.get('date'), '2026-10-24');
+      assert.deepEqual([...url.searchParams.keys()], ['base', 'quotes', 'date']);
       assert.equal(options?.method, 'GET');
       assert.equal(options?.redirect, 'error');
       assert.equal(options?.credentials, 'omit');
@@ -40,6 +41,23 @@ test('rates use the fixed v2 origin, complete quote allowlist, timeout and hourl
     });
     assert.equal(result.rates[base], 1);
   }
+});
+
+test('the upstream date cutoff follows UTC midnight and never rewrites provider dates', async () => {
+  for (const instant of ['2026-10-24T23:59:59.999Z', '2026-10-25T00:00:00.000Z', '2026-10-24T23:30:00-02:00']) {
+    const timestamp = Date.parse(instant);
+    const utcDate = new Date(timestamp).toISOString().slice(0, 10);
+    const result = await loadWidgetRates('EUR', async input => {
+      assert.equal(new URL(String(input)).searchParams.get('date'), utcDate);
+      // A legitimate previous observation keeps its source date in the response.
+      return json(rows('EUR', '2026-10-23'));
+    }, timestamp);
+    assert.equal(result.date, '2026-10-23');
+  }
+  await assert.rejects(loadWidgetRates('EUR', async input => {
+    assert.equal(new URL(String(input)).searchParams.get('date'), '2026-10-24');
+    return json(rows('EUR', '2026-10-25'));
+  }, now), 'future rows must still fail if the provider ignores the date cutoff');
 });
 
 test('invalid or ambiguous query parameters return 400 without any upstream fetch', async t => {

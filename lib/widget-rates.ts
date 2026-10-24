@@ -79,6 +79,11 @@ export async function loadWidgetRates(base: WidgetCurrency, fetcher: typeof fetc
   const url = new URL(UPSTREAM);
   url.searchParams.set('base', base);
   url.searchParams.set('quotes', WIDGET_CURRENCIES.join(','));
+  // Pin the official date query to this request's UTC day. Unqualified "latest"
+  // can include future-dated provider rows; never relabel or accept those rows.
+  // A new UTC day also gets its own upstream cache key. Validate returned dates
+  // independently in case the provider ignores the requested cutoff.
+  url.searchParams.set('date', new Date(now).toISOString().slice(0, 10));
   const response = await fetcher(url.href, {
     method: 'GET',
     headers: { Accept: 'application/json' },
