@@ -3,23 +3,60 @@ name: Quality
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - name: Scan committed files for credentials
+        run: node scripts/scan-secrets.mjs
+      - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run test:db
       - run: npm run build
+
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Audit all locked dependencies (including development tools)
+        run: npm run security:audit
+
+  preview-readiness:
+    name: Preview readiness (Git integration)
+    if: github.event_name == 'pull_request' && vars.VERCEL_GIT_PREVIEW_ENABLED == 'true'
+    needs: [quality, dependency-security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Record readiness without deployment credentials
+        run: |
+          echo 'Quality and security checks passed. Vercel Git integration owns preview creation.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Require these checks in Vercel Deployment Checks before allowing a preview to be promoted.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This job does not deploy, promote, migrate a database, or approve a production release.' >> "$GITHUB_STEP_SUMMARY"
+

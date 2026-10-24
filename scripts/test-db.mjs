@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -6,6 +7,30 @@ import { PGlite } from '@electric-sql/pglite';
 // Only Supabase's auth identity contract is emulated; hosted auth/PostgREST need E2E tests.
 const root = new URL('../', import.meta.url);
 const db = new PGlite();
+
+async function verifyMigrationIntegrity() {
+  const base = new URL('supabase/', root);
+  const manifest = JSON.parse(await readFile(new URL('migration-manifest.json', base), 'utf8'));
+  if (manifest.formatVersion !== 1 || !Array.isArray(manifest.mappings) || !manifest.mappings.length) throw new Error('Invalid migration manifest');
+  const names = (await readdir(new URL('migrations/', base))).filter(name => name.endsWith('.sql'));
+  const versions = new Set();
+  for (const name of names) {
+    const match = /^(\d{14})_.+\.sql$/.exec(name);
+    if (!match || versions.has(match[1])) throw new Error(`Invalid or duplicate migration version: ${name}`);
+    versions.add(match[1]);
+  }
+  const mappedPaths = new Set();
+  for (const entry of manifest.mappings) {
+    for (const field of ['legacy', 'canonical']) {
+      const relative = entry[field];
+      if (typeof relative !== 'string' || !/^(?:legacy-migrations|migrations)\/[\w.-]+\.sql$/.test(relative) || mappedPaths.has(relative)) throw new Error('Invalid migration mapping path');
+      mappedPaths.add(relative);
+      const digest = createHash('sha256').update(await readFile(new URL(relative, base))).digest('hex');
+      if (digest !== entry.sha256) throw new Error(`Migration integrity mismatch: ${relative}`);
+    }
+  }
+  console.log(`PASS migration manifest (${manifest.mappings.length} legacy mappings, ${names.length} canonical migrations)`);
+}
 
 async function runSqlFile(path) {
   let pending = '';
@@ -20,6 +45,8 @@ async function runSqlFile(path) {
         if (!target.href.startsWith(new URL('supabase/', root).href)) throw new Error('SQL include escapes supabase directory');
         await runSqlFile(target);
       } else if (/^\\echo\b/.test(line)) {
+        if (pending.trim()) await db.exec(pending);
+        pending = '';
         console.log(line.slice(6));
       } else {
         if (/^\\/.test(line)) throw new Error(`Unsupported psql directive: ${line}`);
@@ -34,6 +61,7 @@ async function runSqlFile(path) {
 }
 
 try {
+  await verifyMigrationIntegrity();
   await db.exec(`
     CREATE ROLE anon NOLOGIN;
     CREATE ROLE authenticated NOLOGIN;
