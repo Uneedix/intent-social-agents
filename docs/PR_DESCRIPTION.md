@@ -17,8 +17,8 @@ Validation on the integrated branch:
 Review boundaries:
 - Keep this PR unmerged until explicitly approved. No main push, production deployment or hosted Supabase change is authorized by this PR.
 - GitHub private branch protection was refused with HTTP 403 on the current plan. Auto-merge is off, but the local hook is not equivalent to server enforcement.
-- Initial push/PR quality and dependency-security jobs passed remotely. Vercel Git App access and isolated preview Supabase configuration still require setup.
-- Preview creation is blocked by Vercel's first-deployment behavior: an explicit preview request was classified production. That build was immediately canceled before alias assignment; no release occurred. A guard now refuses non-preview Vercel builds. Do not create a production bootstrap or remove the guard without explicit target approval. Official reference: https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting
+- Initial push/PR quality and dependency-security jobs passed remotely. Vercel Git App access is now granted and the Git connection verified. Isolated preview Supabase configuration remains unconfigured.
+- Preview creation is blocked by Vercel's first-deployment behavior: an explicit preview request was classified production. That build was immediately canceled before alias assignment; no release occurred. A guard now refuses non-preview Vercel builds, and automatic previews are paused at project level. A separate empty placeholder is prepared for approval; do not deploy that production bootstrap or remove the app guard without explicit target approval. Official reference: https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting
 - Without Supabase configuration, any future preview verifies only the local-demo shell, not live Auth/database behavior.
 - Existing hosted migration history requires separately approved reconciliation. React tests use experimental Node module mocks and the deprecated React test renderer; full browser/Auth E2E remains a follow-up.
 
