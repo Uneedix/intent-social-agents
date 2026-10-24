@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { clampWidth } from '../lib/panel-layout';
 import styles from './ResizeHandle.module.css';
 
@@ -7,16 +7,16 @@ type Props = { label:string; value:number; min:number; max:number; onChange:(val
 export default function ResizeHandle({label,value,min,max,onChange,onReset,reverse=false,step=16,disabled=false,className='',style}:Props) {
   const drag = useRef<{id:number;x:number;value:number;node:HTMLDivElement;cursor:string;select:string}|null>(null);
   const current = clampWidth(value,min,max,min);
-  const restore = () => {
+  const restore = useCallback(() => {
     const active = drag.current;
     if (!active) return;
     drag.current = null;
     document.body.style.cursor = active.cursor;
     document.body.style.userSelect = active.select;
     if (active.node.hasPointerCapture(active.id)) active.node.releasePointerCapture(active.id);
-  };
-  useEffect(() => () => restore(), []);
-  useEffect(() => { if (disabled) restore(); }, [disabled]);
+  }, []);
+  useEffect(() => () => restore(), [restore]);
+  useEffect(() => { if (disabled) restore(); }, [disabled,restore]);
   const start = (event:PointerEvent<HTMLDivElement>) => {
     if (disabled || event.button !== 0 || !event.isPrimary) return;
     event.preventDefault();
@@ -45,6 +45,6 @@ export default function ResizeHandle({label,value,min,max,onChange,onReset,rever
   };
   return <div role="separator" aria-label={label} aria-orientation="vertical" aria-valuemin={min} aria-valuemax={max} aria-valuenow={current} aria-disabled={disabled||undefined} tabIndex={disabled?-1:0}
     title={label} className={`${styles.handle} ${className}`} style={style} onPointerDown={start} onPointerMove={move}
-    onPointerUp={event=>{if(drag.current?.id===event.pointerId)restore();}} onPointerCancel={cancel} onLostPointerCapture={()=>{if(drag.current)restore();}}
+    onPointerUp={event=>{if(drag.current?.id===event.pointerId)restore();}} onPointerCancel={event=>{if(drag.current?.id===event.pointerId)cancel();}} onLostPointerCapture={event=>{if(drag.current?.id===event.pointerId)restore();}}
     onDoubleClick={()=>{if(!disabled)onReset();}} onKeyDown={key}><span aria-hidden="true" /></div>;
 }
