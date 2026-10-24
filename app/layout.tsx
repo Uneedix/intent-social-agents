@@ -8,5 +8,6 @@ import './polish.css';
 import type { Metadata } from 'next';
 import { I18nProvider } from '../components/I18n';
 import SessionBoundary from '../components/SessionBoundary';
+import Appearance from '../components/Appearance';
 export const metadata: Metadata = { title: 'intent. — Find your people', description: 'People first. Content second.' };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body><SessionBoundary><I18nProvider>{children}</I18nProvider></SessionBoundary></body></html>; }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body><SessionBoundary><I18nProvider><Appearance>{children}</Appearance></I18nProvider></SessionBoundary></body></html>; }

@@ -41,7 +41,7 @@ function GroupMessagesSession({ supabase, userId }: { supabase: DB; userId: stri
  const selectionVersion = useRef(0);
  const olderBusy = useRef(false);
  const oldest = useRef<Message | null>(null);
- useEffect(() => { alive.current = true; return () => { alive.current = false; groupRequest.current++; conversationRequest.current++; }; }, []);
+ useEffect(() => { const counters=[groupRequest,conversationRequest];alive.current = true; return () => { alive.current = false; counters.forEach(counter=>counter.current++); }; }, []);
  const choose = (group: Group | null) => {
   selectionVersion.current++; selection.current = group?.id || null; conversationRequest.current++; olderBusy.current = false; oldest.current = null;
   setSelected(group); setMembers([]); setMessages([]); setDraft(''); setInvite(''); setError(''); setHasOlder(false); setOlderLoading(false); setConversationLoading(!!group); setBusy(false);

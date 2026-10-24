@@ -30,7 +30,7 @@ function CommunitiesSession({db,user}:{db:DB;user:User|null}){
  const selectionVersion=useRef(0);
  const alive=useRef(true),listRequest=useRef(0),detailsRequest=useRef(0),channelRequest=useRef(0);
  const selection=useRef<string|null>(null),channelSelection=useRef<string|null>(null),oldest=useRef<Msg|null>(null),olderBusy=useRef(false);
- useEffect(()=>{alive.current=true;return()=>{alive.current=false;listRequest.current++;detailsRequest.current++;channelRequest.current++;};},[]);
+ useEffect(()=>{const counters=[listRequest,detailsRequest,channelRequest];alive.current=true;return()=>{alive.current=false;counters.forEach(counter=>counter.current++);};},[]);
  const choose=(community:Community|null)=>{
   selectionVersion.current++;selection.current=community?.id||null;channelSelection.current=null;detailsRequest.current++;channelRequest.current++;oldest.current=null;olderBusy.current=false;
   setSelected(community);setMembers([]);setPosts([]);setChannels([]);setRequests([]);setMessageList([]);setActiveChannel(null);setPostDraft('');setChannelName('');setMessageDraft('');setError('');setTab('feed');setHasOlder(false);setOlderLoading(false);setMessagesLoading(false);setDetailsLoading(!!community);setBusy(false);

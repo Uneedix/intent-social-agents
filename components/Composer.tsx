@@ -5,6 +5,7 @@ import { X, ArrowRight, BarChart3, ImagePlus, Plus, Globe, Users, Target, Trash2
 import type { Post, Poll } from '../lib/data';
 import { avatars } from '../lib/data';
 import { MediaPicker } from './ImagePicker';
+import {useStored, useLocalStore} from '../lib/social';
 
 const LIMIT = 500;
 const CATEGORIES = ['Job opportunity', 'Collaboration', 'Meet people', 'Learning', 'Project', 'Service', 'Other'];
@@ -14,7 +15,12 @@ export type Draft = { text: string; images: string[]; poll?: Poll; kind: 'post' 
 export default function Composer({ initialKind, quote, onClose, onPublish }: { initialKind: 'post' | 'intention'; quote?: Post | null; onClose: () => void; onPublish: (d: Draft) => void }) {
   const t = useT();
   const [kind, setKind] = useState(initialKind);
-  const [text, setText] = useState('');
+  const [postDraft,setPostDraft] = useStored('intent-draft-post','');
+  const [intentionDraft,setIntentionDraft] = useStored('intent-draft-intention','');
+  const [quoteText,setQuoteText] = useState('');
+  const {remove} = useLocalStore();
+  const text = quote ? quoteText : kind === 'post' ? postDraft : intentionDraft;
+  const setText = (value:string) => { if(quote)setQuoteText(value);else if(kind==='post')setPostDraft(value);else setIntentionDraft(value); };
   const [images, setImages] = useState<string[]>([]);
   const [showMedia, setShowMedia] = useState(false);
   const [pollOn, setPollOn] = useState(false);
@@ -23,9 +29,6 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [audience, setAudience] = useState<'everyone' | 'followers'>('everyone');
 
-  // restore and autosave drafts per kind
-  useEffect(() => { try { const d = localStorage.getItem('intent-draft-' + initialKind); if (d && !quote) setText(d); } catch { } }, [initialKind, quote]);
-  useEffect(() => { try { if (!quote) localStorage.setItem('intent-draft-' + kind, text); } catch { } }, [kind, text, quote]);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
 
   const left = LIMIT - text.length;
@@ -36,8 +39,8 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
   function publish() {
     if (!can) return;
     const poll: Poll | undefined = pollOn ? { options: options.filter(o => o.trim()).map(o => ({ text: o.trim().slice(0, 40), votes: 0 })), endsAt: Date.now() + days * 86400000 } : undefined;
+    if(!quote)remove('intent-draft-' + kind);
     onPublish({ text: text.trim(), images, poll, kind, category: kind === 'intention' ? category : undefined, audience, quoteOf: quote?.id });
-    try { localStorage.removeItem('intent-draft-' + kind); } catch { }
   }
 
   return <div className="modal-backdrop" onClick={onClose}>

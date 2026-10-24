@@ -1,7 +1,7 @@
 'use client';
 import { useT } from './I18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
-import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, Forward, Copy, BellOff, Bell, ArrowLeft, Check, CheckCheck, MoreHorizontal, Eraser, CornerUpLeft, Video, Phone, MapPin, BadgeCheck, Mic, Pause, Play, Download, FileText, Link2, Plus, Briefcase, Handshake, MessageSquare, Archive, ArchiveRestore, ListPlus, Star, CircleCheck, SquarePen, Camera, Image as ImageIcon, Clapperboard, UserRound, BarChart3, Target, Music, Users, ChevronRight, ChevronLeft, Heart, Info, Settings, Lock, UserPlus, MailOpen, Mail, Share } from 'lucide-react';
+import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, Forward, Copy, BellOff, Bell, Check, CheckCheck, MoreHorizontal, Eraser, CornerUpLeft, Video, Phone, MapPin, BadgeCheck, Mic, Pause, Play, Download, FileText, Link2, Plus, Briefcase, Handshake, MessageSquare, Archive, ArchiveRestore, ListPlus, Star, CircleCheck, SquarePen, Camera, Image as ImageIcon, Clapperboard, UserRound, BarChart3, Target, Music, Users, ChevronRight, ChevronLeft, Heart, Info, Settings, Lock, UserPlus, MailOpen, Mail, Share } from 'lucide-react';
 import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
 import { compressImage, uid, useStored } from '../lib/social';
 import { Avatar, VoicePlayer, Sheet } from './MsgParts';
@@ -40,7 +40,7 @@ function usePress(onLong: () => void) {
   };
 }
 
-function ListItem({ c, active, onOpen, onMenu, label, children }: { c: Chat; active: boolean; onOpen: () => void; onMenu: () => void; label: string; children: ReactNode }) {
+function ListItem({ active, onOpen, onMenu, label, children }: { c: Chat; active: boolean; onOpen: () => void; onMenu: () => void; label: string; children: ReactNode }) {
   const press = usePress(onMenu);
   return <button className={'ms-item ' + (active ? 'on' : '')} aria-label={label} onClick={() => { if (!press.wasLong()) onOpen(); }}
     onPointerDown={press.onPointerDown} onPointerUp={press.onPointerUp} onPointerLeave={press.onPointerLeave} onPointerCancel={press.onPointerCancel} onContextMenu={press.onContextMenu}>{children}</button>;
@@ -112,8 +112,15 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); e.stopPropagation(); listSearch.current?.focus(); } };
     window.addEventListener('keydown', k, true); return () => window.removeEventListener('keydown', k, true);
   }, []);
-  // open chat: mark read, restore draft
-  useEffect(() => { if (!chat) return; if (chat.unread) update(chat.id, c => ({ ...c, unread: 0 })); setDraft(chat.draft || ''); setReplyTo(null); setEditing(null); setFind(null); setImage(''); setFile(null); setHeadMenu(false); setSelected(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active]);
+  // Read the latest chat data without treating incoming messages as a new selection.
+  const openState=useRef({chat,chats,setChats});
+  useEffect(()=>{openState.current={chat,chats,setChats};},[chat,chats,setChats]);
+  useEffect(()=>{
+    const {chat:opened,chats:currentChats,setChats:saveChats}=openState.current;
+    if(!opened)return;
+    if(opened.unread)saveChats(currentChats.map(c=>c.id===opened.id?{...c,unread:0}:c));
+    setDraft(opened.draft||'');setReplyTo(null);setEditing(null);setFind(null);setImage('');setFile(null);setHeadMenu(false);setSelected(null);
+  },[active]);
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [active, chat?.messages.length]);
   useEffect(() => () => { cancelRec.current = true; recorder.current?.stream.getTracks().forEach(tr => tr.stop()); void audioCtx.current?.close(); }, []);
 

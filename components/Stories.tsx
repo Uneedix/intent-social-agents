@@ -1,6 +1,6 @@
 'use client';
 import { useT } from './I18n';
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Plus, X, Heart, Send, Trash2, Pause, Play, Type, Wand2, ImagePlus, ChevronRight, Star, MoreHorizontal, Download, Loader2 } from 'lucide-react';
 import { avatars, sampleStories } from '../lib/data';
 import { compressImage } from '../lib/social';
@@ -132,20 +132,43 @@ function Viewer({ groups, start, onClose, onSeen, onDelete, onAdd, onReply, toas
   const g = groups[pos.g]; const item = g?.items[pos.i];
   const hold = paused || menu;
 
-  const next = () => { setProgress(0); acc.current = 0; t0.current = Date.now(); setLiked(false);
-    if (pos.i < g.items.length - 1) setPos({ g: pos.g, i: pos.i + 1 });
-    else if (pos.g < groups.length - 1) setPos({ g: pos.g + 1, i: 0 }); else onClose(); };
-  const prev = () => { setProgress(0); acc.current = 0; t0.current = Date.now();
-    if (pos.i > 0) setPos({ g: pos.g, i: pos.i - 1 }); else if (pos.g > 0) setPos({ g: pos.g - 1, i: 0 }); };
-
-  useEffect(() => { if (g) onSeen(g.handle); }, [g, onSeen]);
-  useEffect(() => {
-    if (hold) { acc.current += Date.now() - t0.current; return; }
-    t0.current = Date.now();
-    const id = setInterval(() => { const p = (acc.current + Date.now() - t0.current) / DURATION; if (p >= 1) next(); else setProgress(p); }, 50);
-    return () => clearInterval(id);
-  });
-  useEffect(() => { const k = (e: KeyboardEvent) => { if ((e.target as HTMLElement).closest('input')) return; if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') next(); if (e.key === 'ArrowLeft') prev(); if (e.key === ' ') setPaused(p => !p); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); });
+  const groupCount=groups.length;
+  const itemCount=g?.items.length || 0;
+  const next = useCallback(() => {
+    setLiked(false);
+    if(pos.i < itemCount - 1)setPos({g:pos.g,i:pos.i+1});
+    else if(pos.g < groupCount - 1)setPos({g:pos.g+1,i:0});
+    else onClose();
+  },[pos.g,pos.i,itemCount,groupCount,onClose]);
+  const prev = useCallback(() => {
+    setLiked(false);
+    if(pos.i>0)setPos({g:pos.g,i:pos.i-1});
+    else if(pos.g>0)setPos({g:pos.g-1,i:0});
+  },[pos.g,pos.i]);
+  const handle=g?.handle;
+  useEffect(()=>{if(handle)onSeen(handle);},[handle,onSeen]);
+  useEffect(()=>{acc.current=0;setProgress(0);},[pos.g,pos.i]);
+  useEffect(()=>{
+    if(hold)return;
+    t0.current=Date.now();
+    const id=setInterval(()=>{
+      const elapsed=acc.current+Date.now()-t0.current;
+      const p=Math.min(1,elapsed/DURATION);
+      setProgress(p);
+      if(p>=1){clearInterval(id);next();}
+    },50);
+    return ()=>{clearInterval(id);acc.current+=Date.now()-t0.current;};
+  },[hold,next]);
+  useEffect(()=>{
+    const k=(e:KeyboardEvent)=>{
+      if((e.target as HTMLElement).closest('input,textarea,select,[contenteditable]'))return;
+      if(e.key==='Escape')onClose();
+      if(e.key==='ArrowRight'){e.preventDefault();next();}
+      if(e.key==='ArrowLeft'){e.preventDefault();prev();}
+      if(e.key===' '){e.preventDefault();setPaused(p=>!p);}
+    };
+    window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);
+  },[next,prev,onClose]);
   if (!g || !item) return null;
 
   const download = () => { const a = document.createElement('a'); a.href = item.image; a.download = 'intent-story.jpg'; a.click(); setMenu(false); };
@@ -158,8 +181,8 @@ function Viewer({ groups, start, onClose, onSeen, onDelete, onAdd, onReply, toas
         <button className="icon-button" onClick={onClose} aria-label={t("Close")}><X /></button></div>
       <img className="sv-img" src={item.image} alt="Story" draggable={false} style={{ filter: css(item.filter) }} />
       <div className="sv-overlays"><Overlays texts={item.texts} /></div>
-      <button className="sv-tap l" aria-label="Previous" onClick={prev} onPointerDown={() => setPaused(true)} onPointerUp={() => setPaused(false)} />
-      <button className="sv-tap r" aria-label="Next" onClick={next} onPointerDown={() => setPaused(true)} onPointerUp={() => setPaused(false)} />
+      <button className="sv-tap l" aria-label="Previous" onClick={prev} onPointerDown={() => setPaused(true)} onPointerUp={() => setPaused(false)} onPointerCancel={() => setPaused(false)} />
+      <button className="sv-tap r" aria-label="Next" onClick={next} onPointerDown={() => setPaused(true)} onPointerUp={() => setPaused(false)} onPointerCancel={() => setPaused(false)} />
       {item.caption && <p className="sv-cap">{item.caption}</p>}
       <div className="sv-foot">{g.mine ? <>
         <button className="pill-btn glass" onClick={onAdd}><Plus size={15} /> {t("Add to story")}</button>
