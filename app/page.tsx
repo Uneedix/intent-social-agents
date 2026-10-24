@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, Search, Target, Users, ShoppingBag, MessageCircle, Bell, UserCircle, Bookmark, Clock3, Settings, Plus, Image as ImageIcon, Video, List, BarChart3, X, ArrowRight, MapPin, Megaphone, Trash2, Heart, UserPlus, AtSign, CheckCheck } from 'lucide-react';
 import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
+import WidgetRail from '../components/WidgetRail';
 import Communities from '../components/Communities';
 import PostCard, { type Comment, Lightbox } from '../components/PostCard';
 import Composer, { type Draft } from '../components/Composer';
@@ -206,7 +207,7 @@ export default function Page() {
       <div className="topbar"><div className="global-search"><Search size={22} /><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => go('Explore')} placeholder={t("Search people, posts, intentions, communities...")} aria-label={t("Search")} /></div>
         {topActions}</div>
       <div className="content">{content}</div></main>
-    {showRight && sidebar}
+    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : sidebar)}
     <nav className="mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4]].map(({ name, Icon }) => <button className={section === name ? 'active' : ''} key={name} onClick={() => go(name)}><Icon size={24} /><small>{t(name)}</small></button>)}<button className="mobile-create" onClick={() => setComposer({ kind: 'post' })} aria-label={t("Create")}><Plus /></button></nav>
 
     {composer && <Composer initialKind={composer.kind} quote={composer.quote} onClose={() => setComposer(null)} onPublish={publish} />}
