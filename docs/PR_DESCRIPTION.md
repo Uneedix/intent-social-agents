@@ -1,4 +1,4 @@
-INTENT had no Git history, isolated agent workflow or verified quality pipeline. This bootstraps a private-repository PR workflow and stabilizes the interrupted local prototype setup.
+INTENT had no Git history, isolated agent workflow or verified quality pipeline. This bootstraps a reviewed GitHub PR workflow and stabilizes the interrupted local prototype setup.
 
 Changes:
 - Separate agent worktrees/branches, five role contracts, documented approval boundaries and a local hook blocking direct main pushes/deletions.
@@ -16,11 +16,11 @@ Validation on the integrated branch:
 
 Review boundaries:
 - Keep this PR unmerged until explicitly approved. No main push, production deployment or hosted Supabase change is authorized by this PR.
-- GitHub private branch protection was refused with HTTP 403 on the current plan. Auto-merge is off, but the local hook is not equivalent to server enforcement.
+- After explicit user approval and a full-history secret scan, the repository was made public. Main protection is now enforced server-side for administrators too: PR, strict quality/security/preview checks and resolved conversations required; force-push and deletion prohibited. Auto-merge is off. The approval count is zero because the PR author shares the user's identity; AGENTS.md still requires explicit user merge approval, and independent GitHub approval requires another identity.
 - Initial push/PR quality and dependency-security jobs passed remotely. Vercel Git App access is now granted and the Git connection verified. Isolated preview Supabase configuration remains unconfigured.
 - Vercel's first-deployment issue was resolved by the user's separate one-time approval of an empty static production bootstrap. The placeholder is READY, contains no app/database/secrets, and its automatically created alias was removed. Approval is consumed; the INTENT application remains blocked from production builds. Official reference: https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting
 - Preview is READY and verified HTTP 200: https://intent-social-agents-r2d3cfaof-uneedix.vercel.app . Production URL is null; Vercel Authentication remains enabled. Git integration and automatic previews are enabled; results of the Git-triggered documentation push will be recorded here.
 - Without Supabase configuration, preview verifies only the local-demo shell, not live Auth/database behavior.
-- Existing hosted migration history requires separately approved reconciliation. React tests use experimental Node module mocks and the deprecated React test renderer; full browser/Auth E2E remains a follow-up.
+- Supabase plugin installation is confirmed but its tools are not exposed in this session; official CLI login is awaiting the user's local browser completion. No hosted database was selected or modified. Existing hosted migration history requires separately approved reconciliation. React tests use experimental Node module mocks and the deprecated React test renderer; full browser/Auth E2E remains a follow-up.
 
 See docs/WORKFLOW_STATUS.md for configuration state and limitations. Preview and remote CI results will be attached to this PR after publication.

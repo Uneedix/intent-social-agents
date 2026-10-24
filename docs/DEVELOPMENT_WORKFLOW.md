@@ -17,7 +17,9 @@ No production/remote-migration workflow is included. An empty private repository
 Worktrees live in ignored `.worktrees/`. Never remove one before preserving its work. Credentials, `.env*`, generated artifacts and temporary tooling stay ignored.
 
 ## GitHub
-Keep the repository private and application changes behind PRs. Require quality/security checks, resolved conversations and review where the plan supports it. Prevent force-push/delete and agent bypass. Disable auto-merge. If private-repository protection is unavailable, disclose it; do not publish source or purchase a plan to work around it.
+Visibility changes require explicit user approval. This repository is public by the user's informed choice after a full-history secret scan; never apply that choice automatically to another repository. Application changes require PRs, successful quality/security/preview checks and resolved conversations. Force-push/delete and administrator bypass are disabled; auto-merge remains disabled.
+
+GitHub requires the quality, dependency-security, Preview readiness (Git integration) and Vercel contexts to pass against an up-to-date branch. Required approving-review count is zero because the PR author and current user share the Uneedix GitHub identity; a person cannot approve their own PR. This does not authorize automatic merge: explicit user approval is still mandatory under AGENTS.md. To enforce a separate human review at GitHub level, introduce a distinct bot author or another reviewer first.
 
 Actions permissions are read-only by default. Untrusted PR code receives no production/deployment secrets. CI checks the actual PR commit, not merely an earlier local version. Run `npm run hooks:install` in a new clone to install the local main-push guard; this is not server-side protection.
 
