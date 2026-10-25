@@ -25,3 +25,11 @@
 .ms-field textarea::-webkit-scrollbar{display:none;width:0;height:0}
 .ms-field textarea::-webkit-scrollbar-button{display:none}
 @media(max-width:900px){.ms-stack:has(.ms-text){max-width:90%}}
+/* Phone header: brand on the left, account menu pinned to the right; Messages logo matches Home. */
+@media(max-width:900px){.topbar>.mobile-brand{margin-right:auto}.topbar>.top-actions{margin-left:auto}
+ .ms-title .ms-home-logo,.gm-unified .ms-home-logo{font:800 36px/1 Inter,sans-serif!important;letter-spacing:-2px!important}}
+/* Folder chips: no options button; hold to reorder (or open the menu if you release without moving). */
+.ms-folder-chip>button[role="tab"]{padding-right:16px!important}
+.ms-folder-chip.lifted{transform:scale(1.06);box-shadow:0 6px 18px #000a;z-index:2;border-radius:999px}
+.ms-folder-chip.lifted>button{cursor:grabbing}
+.ms-folder-tabs.reordering{touch-action:none;overflow:visible}

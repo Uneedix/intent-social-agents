@@ -64,7 +64,6 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const ui=lang==='Русский'?{left:'Переместить влево',right:'Переместить вправо',options:'Настроить папку',selected:'Выбранные участники',search:'Поиск людей…',group:'Создать группу',hint:'Папки можно перетаскивать или перемещать через меню.'}:lang==='Polski'?{left:'Przenieś w lewo',right:'Przenieś w prawo',options:'Opcje folderu',selected:'Wybrane osoby',search:'Szukaj osób…',group:'Utwórz grupę',hint:'Przeciągnij folder lub przesuń go w menu.'}:{left:'Move left',right:'Move right',options:'Folder options',selected:'Selected people',search:'Search people…',group:'Create group',hint:'Drag folders or move them using their menu.'};
   const [folderOrder,setFolderOrder]=useStored<string[]>('intent-chat-folder-order',[]);
   const [folderMenu,setFolderMenu]=useState<string|null>(null);
-  const draggingFolder=useRef<string|null>(null);
   const [lists, setLists] = useStored<ChatList[]>('intent-chat-lists', []);
   const [folder, setFolder] = useState<string>('all');
   const [q, setQ] = useState('');
@@ -324,6 +323,29 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const links = live.flatMap(m => (m.text.match(URL_RE) || []).map((u, i) => ({ key: m.id + '-' + i, url: u, m })));
   const starred = live.filter(m => m.starred);
   const sharedTop = [...files.map(m => ({ k: 'f' + m.id, at: m.at, m, url: '' })), ...links.map(l => ({ k: 'l' + l.key, at: l.m.at, m: l.m, url: l.url }))].sort((a, b) => b.at - a.at);
+  // Folder chips: press and hold ~450ms to pick a chip up, then slide over others to reorder.
+  // Releasing without moving opens the folder menu (replaces the old "⋯" button).
+  const [lifted, setLifted] = useState<string | null>(null);
+  const suppressClick = useRef(false);
+  const holdStart = (e: RPointerEvent, k: string) => {
+    if (e.button !== 0) return;
+    const x0 = e.clientX, y0 = e.clientY; let moved = false, armed = false, lastTarget: string | null = null;
+    const timer = window.setTimeout(() => { armed = true; setLifted(k); suppressClick.current = true; navigator.vibrate?.(15); }, 450);
+    const move = (ev: PointerEvent) => {
+      if (!armed) { if (Math.abs(ev.clientX - x0) > 8 || Math.abs(ev.clientY - y0) > 8) cleanup(); return; }
+      ev.preventDefault(); moved = true;
+      const over = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest?.('[data-folder]') as HTMLElement | null;
+      const target = over?.dataset.folder;
+      // Swap once per newly entered chip; chips differ in width, so re-swapping on the same chip would oscillate.
+      if (target && target !== k && target !== lastTarget) { lastTarget = target; setFolderOrder(current => reorderFolder(current, folderIds, k, target)); }
+    };
+    // On touch screens, stop the chip row from scrolling once a chip is picked up.
+    const touch = (ev: TouchEvent) => { if (armed) ev.preventDefault(); };
+    const up = () => { const wasArmed = armed; cleanup(); if (wasArmed && !moved) setFolderMenu(k); };
+    const cleanup = () => { clearTimeout(timer); setLifted(null); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cleanup); window.removeEventListener('touchmove', touch); };
+    window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cleanup);
+    window.addEventListener('touchmove', touch, { passive: false });
+  };
   const menuMsg = msgMenu != null ? chat?.messages.find(m => m.id === msgMenu) : null;
   const closeMenu = () => { setMsgMenu(null); setRxPicker(false); };
   const msgQuick = (m: ChatMsg) => <div className="ms-inl-rx" onClick={e => e.stopPropagation()}>{QUICK.map(e => <button key={e} type="button" onClick={() => { react(m, e); closeMenu(); }}>{e}</button>)}<button type="button" className="more" onClick={() => setRxPicker(!rxPicker)} aria-label={t('More reactions')}><Plus size={18} /></button></div>;
@@ -405,9 +427,8 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <div className="ms-title"><h1>{t('Messages')}</h1><button type="button" className="ms-logo ms-home-logo" onClick={onHome} aria-label={t('Home')}>intent<span>.</span></button><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
       <div className="ms-search-row"><label className="ms-search"><Search size={20} /><input ref={listSearch} value={q} onChange={e => setQ(e.target.value)} placeholder={t('Search messages...')} aria-label={t('Search messages...')} /></label>
         <button className="ms-new ms-hide-m" onClick={() => setNewChat('people')} aria-label={t('New chat')} title={t('New chat')}><SquarePen size={20} /></button></div>
-      <div className="ms-chips ms-folder-tabs" role="tablist" aria-label={t('Chats')} title={ui.hint}>{folders.map(([k,l])=><span className={'ms-folder-chip '+(folder===k?'active':'')} key={k} draggable onDragStart={e=>{draggingFolder.current=k;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',k);}} onDragEnd={()=>{draggingFolder.current=null;}} onDragOver={e=>{if(draggingFolder.current&&draggingFolder.current!==k){e.preventDefault();e.dataTransfer.dropEffect='move';}}} onDrop={e=>{e.preventDefault();const source=draggingFolder.current;if(source)setFolderOrder(current=>reorderFolder(current,folderIds,source,k));draggingFolder.current=null;}} onContextMenu={e=>{e.preventDefault();setFolderMenu(k);}}>
-        <button type="button" role="tab" aria-selected={folder===k} className={folder===k?'on':''} onClick={()=>setFolder(k)}>{l}{k==='unread'&&unreadCount>0&&<em>{unreadCount}</em>}</button>
-        <button type="button" className="ms-folder-options" aria-label={`${ui.options}: ${l}`} aria-haspopup="dialog" onClick={()=>setFolderMenu(k)}><MoreHorizontal size={13}/></button>
+      <div className={'ms-chips ms-folder-tabs'+(lifted?' reordering':'')} role="tablist" aria-label={t('Chats')} title={ui.hint}>{folders.map(([k,l])=><span className={'ms-folder-chip '+(folder===k?'active':'')+(lifted===k?' lifted':'')} key={k} data-folder={k} onPointerDown={e=>holdStart(e,k)} onContextMenu={e=>{e.preventDefault();setFolderMenu(k);}}>
+        <button type="button" role="tab" aria-selected={folder===k} className={folder===k?'on':''} onClick={()=>{if(suppressClick.current){suppressClick.current=false;return;}setFolder(k);}} onKeyDown={e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();setFolderMenu(k);}}}>{l}{k==='unread'&&unreadCount>0&&<em>{unreadCount}</em>}</button>
       </span>)}<button type="button" className="ms-chip-add" onClick={()=>setListEdit({id:String(uid()),name:'',chats:[]})} aria-label={t('New chat list')}><Plus size={16}/></button></div>
       <div className="ms-chats">{list.map(c => { const l = last(c); const cat = categoryOf(c); const p = chatProfiles[c.handle];
         return <ListItem key={c.id} c={c} active={active === c.id} onOpen={() => setActive(c.id)} onMenu={() => setItemMenu(c.id)} label={chatTitle(c)}>
