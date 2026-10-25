@@ -27,6 +27,10 @@
     {
       "path": "migrations/20261024120000_private_function_implementations.sql",
       "sha256": "f796b17f244b44e50a0bfbf037b9173acc928115e9c0c84d44775993e857ce5a"
+    },
+    {
+      "path": "migrations/20261025100000_community_roles.sql",
+      "sha256": "141f228f669a692e3b89ba07dc66aba592edc3f093c2b1d5923210614b8cbc02"
     }
   ]
 }
