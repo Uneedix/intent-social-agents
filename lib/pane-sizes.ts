@@ -22,7 +22,7 @@ export const PANE_STORAGE_KEY = 'intent-pane-sizes';
 export const PANE_MEDIA = '(min-width: 1051px)';
 
 export const PANES: Record<PaneId, PaneSpec> = {
-  chatList: { id: 'chatList', cssVar: '--pane-chat-list', min: 320, max: 560, neighborMin: 380, step: 16, bigStep: 64 },
+  chatList: { id: 'chatList', cssVar: '--pane-chat-list', min: 260, max: 560, neighborMin: 380, step: 16, bigStep: 64 },
   chatSide: { id: 'chatSide', cssVar: '--pane-chat-side', min: 260, max: 420, neighborMin: 380, step: 16, bigStep: 64 },
   widgetRail: { id: 'widgetRail', cssVar: '--pane-rail', min: 280, max: 520, neighborMin: 520, step: 16, bigStep: 64 },
   groupList: { id: 'groupList', cssVar: '--pane-group-list', min: 200, max: 420, neighborMin: 320, step: 16, bigStep: 64 },

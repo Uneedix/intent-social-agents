@@ -317,3 +317,6 @@
 .ms-who-group b{display:block;overflow:hidden;text-overflow:ellipsis}
 .ms-who-group small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* ===== end groups & topics ===== */
+/* Narrow chat list: folder tags give way so names stay readable */
+.ms-list{container-type:inline-size;container-name:mslist}
+@container mslist (max-width:330px){.ms-item .ms-tag{display:none}}
