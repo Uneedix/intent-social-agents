@@ -8,6 +8,10 @@ export type LangName = keyof typeof LANG_CODES;
 type Row = [string, string, string, string, string, string, string];
 
 export const DICT: Record<string, Row> = {
+  'Chat list width': ['Ширина списка чатов','Ширина списку чатів','Szerokość listy czatów','Csevegéslista szélessége','Breite der Chatliste','Largeur de la liste des discussions','Ancho de la lista de chats'],
+  'Chat details width': ['Ширина информации о чате','Ширина інформації про чат','Szerokość informacji o czacie','Csevegésadatok szélessége','Breite der Chatdetails','Largeur des détails de discussion','Ancho de los detalles del chat'],
+  'Group list width': ['Ширина списка групп','Ширина списку груп','Szerokość listy grup','Csoportlista szélessége','Breite der Gruppenliste','Largeur de la liste des groupes','Ancho de la lista de grupos'],
+  'Group chats are temporarily unavailable. Please try again later.': ['Групповые чаты временно недоступны. Попробуйте позже.','Групові чати тимчасово недоступні. Спробуйте пізніше.','Czaty grupowe są chwilowo niedostępne. Spróbuj ponownie później.','A csoportos csevegések átmenetileg nem érhetők el. Próbáld újra később.','Gruppenchats sind vorübergehend nicht verfügbar. Bitte später erneut versuchen.','Les discussions de groupe sont momentanément indisponibles. Réessayez plus tard.','Los chats de grupo no están disponibles temporalmente. Inténtalo más tarde.'],
   'Home': ['Главная', 'Головна', 'Strona główna', 'Kezdőlap', 'Startseite', 'Accueil', 'Inicio'],
   'Explore': ['Обзор', 'Огляд', 'Odkrywaj', 'Felfedezés', 'Entdecken', 'Explorer', 'Explorar'],
   'Intentions': ['Намерения', 'Наміри', 'Intencje', 'Szándékok', 'Absichten', 'Intentions', 'Intenciones'],

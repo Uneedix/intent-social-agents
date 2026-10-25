@@ -5,6 +5,7 @@ import { Home, Search, Target, Users, ShoppingBag, MessageCircle, Bell, UserCirc
 import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
 import WidgetRail from '../components/WidgetRail';
+import FeedPanels from '../components/FeedPanels';
 import Communities from '../components/Communities';
 import PostCard, { type Comment, Lightbox } from '../components/PostCard';
 import Composer, { type Draft } from '../components/Composer';
@@ -197,7 +198,7 @@ export default function Page() {
     <div className="widget"><div className="widget-heading"><strong>{t("Trending now")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{['#Warsaw', '#Technology', '#Art', '#Startups', '#Music'].map((tag, i) => <button className="trend" key={tag} onClick={() => tagSearch(tag)}><span>#{i + 1}</span><div><strong>{tag.slice(1)}</strong><small>{t("Trending topic")}</small></div><ArrowRight size={16} /></button>)}</div>
     <div className="widget promo"><strong>{t("Find your people.")}<br />{t("Build what matters.")}</strong><button onClick={() => go('Intentions')} aria-label="Open intentions"><ArrowRight /></button></div></aside>;
 
-  return <div className="app">
+  return <FeedPanels enabled={showRight}>
     {storageError && <div className="storage-warning" role="alert">{t('Changes could not be saved on this device. Free up browser storage before reloading.')} <button onClick={() => setStorageError(false)}>{t('Dismiss')}</button></div>}
     <aside className="leftbar"><button className="logo" onClick={() => go('Home')}>intent<span>.</span></button>
       <nav>{nav.map(({ name, Icon }) => <button key={name} className={section === name ? 'active' : ''} onClick={() => go(name)}><Icon size={24} />{t(name)}{name === 'Messages' && unreadChats > 0 && <em>{unreadChats}</em>}{name === 'Notifications' && unreadNotifs > 0 && <em>{unreadNotifs}</em>}</button>)}
@@ -222,5 +223,5 @@ export default function Page() {
       <p className="disclaimer">{t("Local listing only. Shipping and checkout are not connected.")}</p></div></div>}
     {lightbox && <Lightbox images={lightbox.images} start={lightbox.i} onClose={() => setLightbox(null)} />}
     {toastMsg && <div className="toast" role="status">{toastMsg}</div>}
-  </div>;
+  </FeedPanels>;
 }

@@ -8,6 +8,10 @@ type Result = { data: unknown; error: null };
 
 test('group chat keeps new messages after 200, pages timestamp ties and ignores stale selections', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const store=new Map<string,string>();
+  Object.defineProperty(globalThis,'window',{configurable:true,value:new EventTarget()});
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>store.get(key)??null,setItem:(key:string,value:string)=>{store.set(key,value);}}});
+  const mockedResizeCss=mock.module('../components/ResizeHandle.module.css',{cache:true,defaultExport:{}});
   const created_at = '2026-10-24T12:00:00.000Z';
   const messages: Message[] = Array.from({ length: 250 }, (_, i) => ({
     id: String(i + 1).padStart(8, '0'), sender_id: 'alice', body: `message-${i + 1}`, created_at,
@@ -82,6 +86,11 @@ test('group chat keeps new messages after 200, pages timestamp ties and ignores 
   };
   try {
     await act(async () => { renderer = create(createElement(GroupMessages)); });
+    const separator=()=>renderer!.root.findByProps({role:'separator'});
+    assert.equal(separator().props['aria-valuenow'],300);
+    await act(async()=>{separator().props.onKeyDown({key:'ArrowRight',shiftKey:false,preventDefault(){}});});
+    assert.equal(separator().props['aria-valuenow'],316,'resizing the group list updates the rendered panel');
+    assert.equal(store.get('intent:v1:alice:intent-group-list-width'),'316','group width is saved in the current account scope');
     await choose('alpha');
     assert.equal(bodies().length, 100);
     assert.equal(bodies().at(-1), 'message-250', 'initial page contains newest messages even beyond 200');
@@ -109,6 +118,7 @@ test('group chat keeps new messages after 200, pages timestamp ties and ignores 
     assert.equal(bodies().at(-1), 'new-message-251');
   } finally {
     await act(async () => { renderer?.unmount(); });
-    mockedSession.restore(); mockedClient.restore();
+    mockedSession.restore(); mockedClient.restore(); mockedResizeCss.restore();
+    Reflect.deleteProperty(globalThis,'window');Reflect.deleteProperty(globalThis,'localStorage');
   }
 });
