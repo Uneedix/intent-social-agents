@@ -36,6 +36,7 @@ unique 14-digit canonical version prefixes.
 3. `20261023010000_message_groups_v06.sql`
 4. `20261024000000_access_hardening.sql`
 5. `20261024120000_private_function_implementations.sql`
+6. `20261025100000_community_roles.sql` (pending owner review; not applied anywhere)
 
 The fifth migration moves nine elevated RPC/helper implementations into
 `intent_private`. Public functions become SECURITY INVOKER wrappers, retaining
@@ -154,3 +155,16 @@ collisions fail without replacing existing users. Custom `auth.users` triggers m
 need additional fixture fields on your local Supabase instance. `fresh_install.sql`
 requires no preexisting INTENT tables and intentionally persists only the new
 schema. It should run only in a disposable database.
+
+## Community roles v0.7 (`20261025100000_community_roles.sql`)
+
+Additive. Adds the `moderator` role (legacy `editor` stays valid and equals moderator),
+`communities.category/tags`, and owner-controlled thresholds
+`manage_channels_role`, `approve_requests_role`, `remove_members_role` (`admin` by
+default = previous behaviour, or `moderator`). New RPCs `intent_decline_request`,
+`intent_set_member_role`, `intent_remove_member` are SECURITY INVOKER wrappers over
+`intent_private` definers. Policies `requests_read`, `channels_create`, `posts_delete`
+are replaced; `channels_delete` and `messages_delete` are new. Image columns get a
+`NOT VALID` check (https or small inline data URL). `tests/community_roles.sql`
+covers every role, then the earlier suites rerun for compatibility. Do not replay
+`20261024000000_access_hardening.sql` afterwards: its policy whitelist predates v0.7.

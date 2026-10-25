@@ -27,3 +27,9 @@ END $$;
 \ir ../migrations/20261024120000_private_function_implementations.sql
 \ir private_function_security.sql
 \ir access_control.sql
+-- v0.7 roles: apply twice (idempotent), test it, then rerun earlier suites for compatibility.
+\ir ../migrations/20261025100000_community_roles.sql
+\ir ../migrations/20261025100000_community_roles.sql
+\ir community_roles.sql
+\ir private_function_security.sql
+\ir access_control.sql
