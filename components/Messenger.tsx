@@ -5,9 +5,11 @@ import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, 
 import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
 import { compressImage, uid, useStored } from '../lib/social';
 import { Avatar, VoicePlayer, Sheet } from './MsgParts';
+import { EmojiPicker } from './EmojiPicker';
+import { GifPicker, toGifAttachment } from './GifPicker';
+import { GifView } from './GifView';
 
 const QUICK = ['❤️', '👍', '🔥', '😂', '😮', '😢'];
-const EMOJI = ['😀', '😂', '😍', '🥲', '😎', '🤔', '🙌', '👏', '🙏', '🔥', '✨', '🎉', '💯', '👍', '👀', '❤️', '😅', '😢', '😡', '🚀', '☕', '🎧', '📍', '✅'];
 const BASE_FOLDERS = [['all', 'All'], ['unread', 'Unread'], ['job', 'Jobs'], ['collab', 'Collaborations'], ['group', 'Groups'], ['other', 'Other'], ['archived', 'Archived']] as const;
 const TAG: Record<ChatCategory, string> = { job: 'Job', collab: 'Collab', other: '' };
 const MAX_FILE = 2 * 1024 * 1024; // chats live in this browser's storage, so files must stay small
@@ -64,6 +66,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const [forward, setForward] = useState<ChatMsg[] | null>(null);
   const [selected, setSelected] = useState<number[] | null>(null);
   const [emoji, setEmoji] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
   const [side, setSide] = useState(false);
   const [find, setFind] = useState<string | null>(null);
   const [image, setImage] = useState('');
@@ -100,7 +103,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
   const update = (id: string, fn: (c: Chat) => Chat) => setChats(chats.map(c => c.id === id ? fn(c) : c));
   const last = (c: Chat) => [...c.messages].reverse().find(m => !m.deleted);
-  const preview = (m?: ChatMsg | null) => !m ? t('No messages yet') : m.text || (m.voice ? '🎤 ' + t('Voice message') : m.poll ? '📊 ' + m.poll.question : m.contact ? '👤 ' + m.contact.name : m.location ? '📍 ' + t('Location') : m.file ? '📎 ' + m.file.name : '📷 ' + t('Photo'));
+  const preview = (m?: ChatMsg | null) => !m ? t('No messages yet') : m.text || (m.voice ? '🎤 ' + t('Voice message') : m.poll ? '📊 ' + m.poll.question : m.contact ? '👤 ' + m.contact.name : m.location ? '📍 ' + t('Location') : m.file ? '📎 ' + m.file.name : m.gif ? 'GIF' : '📷 ' + t('Photo'));
   const listTime = (ts: number) => { const d = daysAgo(ts); return d <= 0 ? hhmm(ts) : d === 1 ? t('Yesterday') : d < 7 ? t('{n} days ago', { n: d }) : new Date(ts).toLocaleDateString([], { day: 'numeric', month: 'short' }); };
   const dayLabel = (ts: number) => { const d = daysAgo(ts); return d <= 0 ? t('Today') : d === 1 ? t('Yesterday') : new Date(ts).toLocaleDateString([], { day: 'numeric', month: 'long' }); };
   const chatTitle = (c: Chat) => c.kind === 'saved' ? t(c.name) : c.name;
@@ -311,6 +314,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {m.forwardedFrom && <span className="ms-fwd">{t('Forwarded from {name}', { name: m.forwardedFrom })}</span>}
     {isGroup && !mine && m.from !== 'system' && <span className="ms-sender">{sender(m)?.name}</span>}
     {m.replyTo != null && (() => { const rq = chat!.messages.find(x => x.id === m.replyTo); return rq && <span className="ms-rq"><b>{rq.from === 'me' ? t('You') : sender(rq)?.name}</b>{rq.deleted ? t('Deleted message') : preview(rq)}</span>; })()}
+    {m.gif && <GifView gif={m.gif} maxWidth={280} />}
     {m.image && <img src={m.image} alt={t('Photo')} onClick={e => { e.stopPropagation(); if (!selected) setViewer(m.id); }} />}
     {m.file && (m.file.type.startsWith('video/') ? <video className="ms-video" src={m.file.data} controls preload="metadata" onClick={e => e.stopPropagation()} />
       : m.file.type.startsWith('audio/') ? <span className="ms-music"><Music size={18} /><span className="ms-file-txt"><b>{m.file.name}</b><audio controls preload="metadata" src={m.file.data} onClick={e => e.stopPropagation()} /></span></span>
@@ -381,7 +385,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         {shown.map((m, i) => { const prevM = shown[i - 1]; const showDay = !prevM || startOf(prevM.at) !== startOf(m.at); const mine = m.from === 'me'; const s = sender(m);
           if (m.from === 'system') return <div key={m.id}>{showDay && <div className="ms-day"><span>{dayLabel(m.at)}</span></div>}<div className="ms-day sys"><span>{m.text}</span></div></div>;
           const meta = <span className="ms-meta">{m.starred && <Star size={12} fill="currentColor" />}{m.edited && t('edited') + ' '}{hhmm(m.at)}{mine && chat.kind !== 'saved' && (m.read ? <CheckCheck size={16} className="ms-read" /> : <Check size={16} />)}</span>;
-          const media = !!(m.image || m.voice || m.poll || m.contact || m.location || m.file);
+          const media = !!(m.gif || m.image || m.voice || m.poll || m.contact || m.location || m.file);
           return <div key={m.id}>{showDay && <div className="ms-day"><span>{dayLabel(m.at)}</span></div>}
             <MsgRow m={m} mine={mine} selecting={!!selected} sel={!!selected?.includes(m.id)} onTap={() => selected ? toggleSel(m.id) : !m.deleted && setMsgMenu(m.id)} onLong={() => !m.deleted && setMsgMenu(m.id)} onDouble={() => !m.deleted && react(m, '❤️')}>
               {!mine && s && <Avatar chat={{ kind: 'personal', avatar: s.avatar, name: s.name, online: 'online' in s ? !!s.online : false }} size={42} dot />}
@@ -397,14 +401,16 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <div className="ms-compose">
         {(replyTo || editing) && <div className="ms-ctx">{editing ? <Pencil size={16} /> : <CornerUpLeft size={16} />}<span><b>{editing ? t('Edit message') : t('Reply to {name}', { name: replyTo!.from === 'me' ? t('yourself') : sender(replyTo!)?.name || '' })}</b><small>{preview(editing || replyTo)}</small></span><button className="icon-button" onClick={() => { setReplyTo(null); if (editing) { setEditing(null); setDraft(''); } }} aria-label={t('Cancel')}><X size={16} /></button></div>}
         {(image || file) && <div className="ms-attach">{image ? <img src={image} alt={t('Photo')} /> : file && <span className="ms-file"><span className="ms-file-ic"><FileText size={20} /></span><span className="ms-file-txt"><b>{file.name}</b><small>{size(file.size)}</small></span></span>}<button className="icon-button" onClick={() => { setImage(''); setFile(null); }} aria-label={t('Remove')}><X size={16} /></button></div>}
-        {emoji && <div className="ms-emoji">{EMOJI.map(e => <button key={e} onClick={() => setDraft(d => d + e)}>{e}</button>)}</div>}
+        {emoji && <EmojiPicker onPick={e => setDraft(d => d + e)} onClose={() => setEmoji(false)} />}
+        {gifOpen && <GifPicker onPick={g => { push({ gif: toGifAttachment(g) }); setGifOpen(false); }} onClose={() => setGifOpen(false)} />}
         <form className="ms-form" onSubmit={e => { e.preventDefault(); send(); }}>
           <button type="button" className="ms-clip" onClick={() => setAttachOpen(!attachOpen)} aria-label={t('Attach')} aria-expanded={attachOpen} disabled={!!editing}><Paperclip size={22} className="ms-hide-m" /><Plus size={24} className="ms-show-m" /></button>
           <div className="ms-field">
             <textarea ref={input} rows={1} value={draft} maxLength={4000} placeholder={t('Type a message...')} aria-label={t('Message')}
               onChange={e => { setDraft(e.target.value); update(chat.id, c => ({ ...c, draft: e.target.value })); }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } if (e.key === 'Escape') { setReplyTo(null); setEditing(null); } if (e.key === 'ArrowUp' && !draft) { const lm = [...chat.messages].reverse().find(x => x.from === 'me' && !x.deleted && x.text); if (lm) { setEditing(lm); setDraft(lm.text); } } }} />
-            <button type="button" className="icon-button" onClick={() => setEmoji(!emoji)} aria-label={t('Emoji')}><Smile size={24} /></button>
+            <button type="button" className="icon-button" onClick={() => { setGifOpen(false); setEmoji(!emoji); }} aria-label={t('Emoji')}><Smile size={24} /></button>
+            <button type="button" className="icon-button ms-gif-btn" onClick={() => { setEmoji(false); setGifOpen(!gifOpen); }} aria-label="GIF">GIF</button>
             <button type="button" className="icon-button" onClick={() => void startRec()} disabled={!!editing} aria-label={t('Record voice message')}><Mic size={24} /></button>
           </div>
           <button type="submit" className="ms-send" disabled={!draft.trim() && !image && !file} aria-label={t(editing ? 'Save' : 'Send')}>{editing ? <Check size={22} /> : <Send size={22} />}</button>
@@ -500,7 +506,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <div className={'ms-ctx-box ' + (menuMsg.from === 'me' ? 'mine' : '')} onClick={e => e.stopPropagation()}>
         <div className="ms-ctx-preview">{preview(menuMsg)}</div>
         <div className="ms-quick">{QUICK.map(e => <button key={e} onClick={() => { react(menuMsg, e); setMsgMenu(null); }}>{e}</button>)}<button className="more" onClick={() => setRxPicker(!rxPicker)} aria-label={t('More reactions')}><Plus size={20} /></button></div>
-        {rxPicker && <div className="ms-emoji">{EMOJI.map(e => <button key={e} onClick={() => { react(menuMsg, e); setMsgMenu(null); setRxPicker(false); }}>{e}</button>)}</div>}
+        {rxPicker && <EmojiPicker variant="inline" keepOpen={false} onPick={e => { react(menuMsg, e); setMsgMenu(null); setRxPicker(false); }} onClose={() => setRxPicker(false)} />}
         <div className="ms-menu-list">
           <button onClick={() => { setReplyTo(menuMsg); setEditing(null); setMsgMenu(null); input.current?.focus(); }}><Reply size={18} /> {t('Reply')}</button>
           {menuMsg.text && <button onClick={() => { void navigator.clipboard?.writeText(menuMsg.text).then(() => toast(t('Copied'))); setMsgMenu(null); }}><Copy size={18} /> {t('Copy')}</button>}
