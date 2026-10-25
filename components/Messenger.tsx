@@ -267,7 +267,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
   /* ---------- derived ---------- */
   const pinned = chat?.pinnedMsg ? chat.messages.find(m => m.id === chat.pinnedMsg && !m.deleted) : null;
-  const shown = chat ? chat.messages.filter(m => !find || m.text.toLowerCase().includes(find.toLowerCase())) : [];
+  const shown = chat ? chat.messages.filter(m => !m.deleted).filter(m => !find || m.text.toLowerCase().includes(find.toLowerCase())) : [];
   const live = chat ? chat.messages.filter(m => !m.deleted) : [];
   const images = live.filter(m => m.image);
   const files = live.filter(m => m.file);
@@ -392,10 +392,13 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
             <MsgRow m={m} mine={mine} selecting={!!selected} sel={!!selected?.includes(m.id)} onTap={() => selected ? toggleSel(m.id) : !m.deleted && setMsgMenu(m.id)} onLong={() => !m.deleted && setMsgMenu(m.id)} onDouble={() => !m.deleted && react(m, '❤️')}>
               {!mine && s && <Avatar chat={{ kind: 'personal', avatar: s.avatar, name: s.name, online: 'online' in s ? !!s.online : false }} size={42} dot />}
               <div className="ms-stack">
-                <div className={'ms-bub ' + (m.deleted ? 'del ' : '') + (media && !m.text ? 'media ' : '') + (m.image && !m.text ? 'photo' : '')}>{body(m, mine)}{mine && meta}</div>
+                <div className="ms-bub-wrap">
+                  <div className={'ms-bub ' + (m.deleted ? 'del ' : '') + (media && !m.text ? 'media ' : '') + (m.image && !m.text ? 'photo' : '')}>{body(m, mine)}{mine && meta}</div>
+                </div>
                 {m.reactions && Object.keys(m.reactions).length > 0 && <span className="ms-rx">{Object.entries(m.reactions).map(([e, u]) => <button key={e} className={u.includes('me') ? 'on' : ''} onClick={ev => { ev.stopPropagation(); react(m, e); }}>{e}{u.length > 1 ? ' ' + u.length : ''}</button>)}</span>}
               </div>
               {!mine && meta}
+              {!m.deleted && !selected && <button type="button" className="ms-reply-btn" onClick={e => { e.stopPropagation(); setReplyTo(m); setEditing(null); input.current?.focus(); }} aria-label={t('Reply')} title={t('Reply')}><Reply size={16} /></button>}
             </MsgRow></div>; })}
         {!shown.length && <p className="muted ms-empty">{t(find ? 'No messages match your search.' : 'No messages yet. Say hi 👋')}</p>}
       </div>
@@ -628,9 +631,11 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
 function MsgRow({ m, mine, selecting, sel, onTap, onLong, onDouble, children }: { m: ChatMsg; mine: boolean; selecting: boolean; sel: boolean; onTap: () => void; onLong: () => void; onDouble: () => void; children: ReactNode }) {
   const press = usePress(onLong);
-  const tap = useCallback(() => { if (!press.wasLong()) onTap(); }, [onTap, press]);
-  return <div id={'m' + m.id} className={'ms-row ' + (mine ? 'mine ' : '') + (selecting ? 'selecting ' : '') + (sel ? 'sel' : '')} onClick={tap} onDoubleClick={onDouble}
-    onPointerDown={press.onPointerDown} onPointerUp={press.onPointerUp} onPointerLeave={press.onPointerLeave} onPointerCancel={press.onPointerCancel} onContextMenu={press.onContextMenu}>
+  // Only the message bubble itself opens the menu (the whole row still works in multi-select mode).
+  const onBubble = (e: { target: EventTarget }) => !!(e.target as HTMLElement).closest?.('.ms-bub');
+  const tap = useCallback((e: React.MouseEvent) => { if (press.wasLong()) return; if (selecting || onBubble(e)) onTap(); }, [onTap, press, selecting]);
+  return <div id={'m' + m.id} className={'ms-row ' + (mine ? 'mine ' : '') + (selecting ? 'selecting ' : '') + (sel ? 'sel' : '')} onClick={tap} onDoubleClick={e => { if (onBubble(e)) onDouble(); }}
+    onPointerDown={e => { if (onBubble(e)) press.onPointerDown(e); }} onPointerUp={press.onPointerUp} onPointerLeave={press.onPointerLeave} onPointerCancel={press.onPointerCancel} onContextMenu={e => { if (onBubble(e)) press.onContextMenu(e); }}>
     {selecting && <i className={'np-check ' + (sel ? 'on' : '')}>{sel && <Check size={14} strokeWidth={3} />}</i>}
     {children}
   </div>;
