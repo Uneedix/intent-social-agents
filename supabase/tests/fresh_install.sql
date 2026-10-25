@@ -27,3 +27,9 @@ END $$;
 \ir ../migrations/20261024120000_private_function_implementations.sql
 \ir private_function_security.sql
 \ir access_control.sql
+-- Telegram-style groups: topics, avatar and roles. Repeatable; older clients
+-- (no topic_id) keep working, so the legacy suite is rerun on the new schema.
+\ir ../migrations/20261025110000_group_topics_avatar.sql
+\ir ../migrations/20261025110000_group_topics_avatar.sql
+\ir access_control.sql
+\ir group_topics.sql
