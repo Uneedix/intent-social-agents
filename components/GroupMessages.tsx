@@ -1,6 +1,9 @@
 'use client';
 import { useT } from './I18n';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useStored } from '../lib/social';
+import { clampWidth } from '../lib/panel-layout';
+import ResizeHandle from './ResizeHandle';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
 import { useSession } from './SessionBoundary';
 import { Plus, Send, Users, UserPlus, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -12,13 +15,20 @@ const PAGE_SIZE = 100;
 const chronological = (a: Message, b: Message) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
 const mergeMessages = (old: Message[], next: Message[]) => [...new Map([...old, ...next].map(m => [m.id, m])).values()].sort(chronological);
 export default function GroupMessages() {
+ const t=useT();
  const {user,scope} = useSession();
  const [db] = useState<DB | null>(() => { try { return isSupabaseConfigured() ? createClient() : null; } catch { return null; } });
- if (!db) return <p role="alert">Supabase is not configured. Set the public environment variables.</p>;
+ if (!db) return <div className="group-messages"><div className="group-signin-card" role="alert"><Users size={34}/><h2>{t('Group chats')}</h2><p>{t('Group chats are temporarily unavailable. Please try again later.')}</p></div></div>;
  return <GroupMessagesSession key={scope} supabase={db} userId={user?.id || null} />;
 }
 function GroupMessagesSession({ supabase, userId }: { supabase: DB; userId: string | null }) {
  const t = useT();
+ const [preferredWidth,setPreferredWidth]=useStored('intent-group-list-width',300);
+ const [groupWidth,setGroupWidth]=useState(960);
+ const frame=useRef<HTMLDivElement>(null);
+ const listMaximum=Math.max(220,Math.min(420,groupWidth-362));
+ const listWidth=clampWidth(preferredWidth,220,listMaximum,300);
+ useEffect(()=>{const node=frame.current;if(!node)return;const measure=()=>{const width=node.getBoundingClientRect().width;if(width)setGroupWidth(width);};measure();const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);observer?.observe(node);window.addEventListener('resize',measure);return()=>{observer?.disconnect();window.removeEventListener('resize',measure);};},[userId]);
  const [groups,setGroups]=useState<Group[]>([]);
  const [selected,setSelected]=useState<Group|null>(null);
  const [members,setMembers]=useState<Member[]>([]);
@@ -120,12 +130,12 @@ function GroupMessagesSession({ supabase, userId }: { supabase: DB; userId: stri
   const id=selected.id;
   await mutate(()=>supabase.from('message_group_messages').insert({group_id:id,body:draft.trim()}),async()=>{setDraft('');await refreshConversation(id);});
  }
- if(!userId)return <div className="group-messages"><h2>{t("Group chats")}</h2><p className="muted">{t("Sign in to create group chats and invite participants.")}</p><a href="/login" className="primary" style={{display:'inline-block',padding:'10px 16px',textDecoration:'none'}}>{t("Sign in")}</a></div>;
+ if(!userId)return <div className="group-messages"><div className="group-signin-card"><Users size={34}/><h2>{t("Group chats")}</h2><p className="muted">{t("Sign in to create group chats and invite participants.")}</p><a href="/login" className="primary" style={{display:'inline-block',padding:'10px 16px',textDecoration:'none'}}>{t("Sign in")}</a></div></div>;
  return <div className="group-messages">
   <div className="group-messages-header"><div><h2><Users size={21}/> {t("Group chats")}</h2><p className="muted">{t("Private conversations, separate from Communities.")}</p></div><button className="primary" onClick={()=>setCreating(!creating)}><Plus size={17}/> {t("New group")}</button></div>
   {error&&<div role="alert" className="group-error">{error} <button onClick={()=>{setError('');if(selected)void refreshConversation(selected.id);else void refreshGroups();}}>{t("Retry")}</button> <button onClick={()=>setError('')}>{t("Dismiss")}</button></div>}
   {creating&&<form className="group-create" onSubmit={createGroup}><h3>{t("Create group")}</h3><label>{t("Group name")}<input required minLength={3} maxLength={80} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Design team"/></label><label>{t("Description (optional)")}<input maxLength={300} value={description} onChange={e=>setDescription(e.target.value)}/></label><div className="group-actions"><button type="button" className="outline" onClick={()=>setCreating(false)}>{t("Cancel")}</button><button className="primary" disabled={busy||title.trim().length<3}>{t("Create")}</button></div></form>}
-  <div className="group-messages-grid"><aside className="group-list"><div className="group-list-head"><strong>{t("Your groups")}</strong><button className="icon-button" onClick={()=>void refreshGroups()} aria-label="Refresh groups"><RefreshCw size={16}/></button></div>{loading?<p role="status">{t("Loading…")}</p>:groups.length===0?<p className="muted">{t("No groups yet. Create your first group.")}</p>:groups.map(g=><button key={g.id} className={'group-list-item '+(selected?.id===g.id?'current':'')} onClick={()=>choose(g)}><span className="group-avatar"><Users size={20}/></span><span><strong>{g.title}</strong><small>{g.description||t('Group conversation')}</small></span></button>)}</aside>
+  <div ref={frame} className={"group-messages-grid"+(groupWidth<582?" group-stacked":"")} style={{"--group-list-width":`${listWidth}px`} as CSSProperties}><ResizeHandle label={t("Group list width")} value={listWidth} min={220} max={listMaximum} onChange={setPreferredWidth} onReset={()=>setPreferredWidth(300)} disabled={groupWidth<582} className="group-list-resizer"/><aside className="group-list"><div className="group-list-head"><strong>{t("Your groups")}</strong><button className="icon-button" onClick={()=>void refreshGroups()} aria-label="Refresh groups"><RefreshCw size={16}/></button></div>{loading?<p role="status">{t("Loading…")}</p>:groups.length===0?<p className="muted">{t("No groups yet. Create your first group.")}</p>:groups.map(g=><button key={g.id} className={'group-list-item '+(selected?.id===g.id?'current':'')} onClick={()=>choose(g)}><span className="group-avatar"><Users size={20}/></span><span><strong>{g.title}</strong><small>{g.description||t('Group conversation')}</small></span></button>)}</aside>
   <section className="group-conversation">{!selected?<div className="group-empty"><Users size={36}/><p>{t("Select a group to view messages.")}</p></div>:<><header className="group-conversation-head"><div><strong>{selected.title}</strong><small>{t('{n} members', { n: members.length })}</small></div><button className="outline" onClick={()=>choose(null)}><ArrowLeft size={16}/> {t("Back")}</button></header><div className="group-member-row">{members.map(m=><span key={m.user_id} title={m.user_id}>{m.user_id===userId?'You':m.user_id.slice(0,8)} · {m.role}</span>)}</div>{(members.some(m=>m.user_id===userId&&(m.role==='owner'||m.role==='admin')))&&<form className="group-invite" onSubmit={addMember}><UserPlus size={17}/><input aria-label="User ID to invite" placeholder="Participant UUID (from Supabase Auth)" value={invite} onChange={e=>setInvite(e.target.value)}/><button disabled={busy||!invite.trim()} className="outline">{t("Add")}</button></form>}
   <div className="group-message-history">{conversationLoading&&<p role="status">{t("Loading…")}</p>}{hasOlder&&<button className="outline" disabled={olderLoading} onClick={()=>void loadOlder()}>{t(olderLoading ? "Loading…" : "Load older messages")}</button>}{!conversationLoading&&messages.length===0&&<p className="muted">{t("No messages yet. Start the conversation.")}</p>}{messages.map(m=><div key={m.id} className={'group-message '+(m.sender_id===userId?'mine':'other')}><small>{m.sender_id===userId?'You':m.sender_id.slice(0,8)}</small><p>{m.body}</p><time>{new Date(m.created_at).toLocaleString()}</time></div>)}</div><form className="group-send" onSubmit={sendMessage}><input value={draft} maxLength={4000} onChange={e=>setDraft(e.target.value)} placeholder={t("Message the group...")} aria-label="Group message"/><button disabled={busy||!draft.trim()} type="submit" aria-label={t("Send")}><Send size={19}/></button></form></>}</section></div>
   <p className="disclaimer">Group chats are stored in Supabase and restricted to members by RLS. To add a participant in this first version, an administrator needs their account UUID. Message updates refresh every five seconds. End-to-end encryption is not implemented.</p>

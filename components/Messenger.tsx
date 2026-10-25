@@ -1,6 +1,8 @@
 'use client';
 import { useT } from './I18n';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
+import ResizeHandle from './ResizeHandle';
+import { fitChatWidths } from '../lib/panel-layout';
 import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, Forward, Copy, BellOff, Bell, Check, CheckCheck, MoreHorizontal, Eraser, CornerUpLeft, Video, Phone, MapPin, BadgeCheck, Mic, Pause, Play, Download, FileText, Link2, Plus, Briefcase, Handshake, MessageSquare, Archive, ArchiveRestore, ListPlus, Star, CircleCheck, SquarePen, Camera, Image as ImageIcon, Clapperboard, UserRound, BarChart3, Target, Music, Users, ChevronRight, ChevronLeft, Heart, Info, Settings, Lock, UserPlus, MailOpen, Mail, Share } from 'lucide-react';
 import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
 import { compressImage, uid, useStored } from '../lib/social';
@@ -52,6 +54,11 @@ type Props = { chats: Chat[]; setChats: (c: Chat[]) => void; active: string | nu
 
 export default function Messenger({ chats, setChats, active, setActive, toast, modeSwitch, people = [], onViewProfile, onShareIntention, onCommunities }: Props) {
   const t = useT();
+  const [listWidth,setListWidth]=useStored('intent-chat-list-width',360);
+  const [infoWidth,setInfoWidth]=useStored('intent-chat-info-width',300);
+  const [containerWidth,setContainerWidth]=useState(960);
+  const [desktop,setDesktop]=useState(false);
+  const container=useRef<HTMLDivElement>(null);
   const [lists, setLists] = useStored<ChatList[]>('intent-chat-lists', []);
   const [folder, setFolder] = useState<string>('all');
   const [q, setQ] = useState('');
@@ -110,6 +117,17 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const status = (c: Chat) => c.kind === 'saved' ? t('Only you can see this chat') : c.kind === 'group' ? t('{n} members', { n: (c.members?.length || 0) + 1 }) : t(c.online ? 'Online' : 'last seen recently');
 
   useEffect(() => { setSide(window.matchMedia('(min-width: 1280px)').matches); }, []);
+  useEffect(()=>{
+    const measure=()=>{setDesktop(window.innerWidth>900);const width=container.current?.getBoundingClientRect().width;if(width)setContainerWidth(width);};
+    measure();window.addEventListener('resize',measure);
+    const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);if(container.current)observer?.observe(container.current);
+    return()=>{window.removeEventListener('resize',measure);observer?.disconnect();};
+  },[]);
+  const fitted=fitChatWidths(containerWidth,listWidth,infoWidth,!!chat&&side);
+  const inlineInfo=desktop&&fitted.inlineInfo;
+  const resizable=desktop&&fitted.resizable;
+  const maxList=Math.max(260,Math.min(520,containerWidth-360-(inlineInfo?fitted.info+32:16)));
+  const maxInfo=Math.max(240,Math.min(400,containerWidth-fitted.list-360-32));
   // ⌘K / Ctrl+K focuses the chat search while Messages is open
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); e.stopPropagation(); listSearch.current?.focus(); } };
@@ -125,6 +143,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     setDraft(opened.draft||'');setReplyTo(null);setEditing(null);setFind(null);setImage('');setFile(null);setHeadMenu(false);setSelected(null);
   },[active]);
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [active, chat?.messages.length]);
+  useEffect(()=>{const textarea=input.current;if(!textarea)return;textarea.style.height='auto';textarea.style.height=`${Math.min(144,Math.max(48,textarea.scrollHeight))}px`;textarea.style.overflowY=textarea.scrollHeight>144?'auto':'hidden';},[draft,active,containerWidth,side,fitted.list,fitted.info]);
   useEffect(() => () => { cancelRec.current = true; recorder.current?.stream.getTracks().forEach(tr => tr.stop()); void audioCtx.current?.close(); }, []);
 
   /* ---------- people & folders ---------- */
@@ -331,7 +350,10 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {m.deleted ? <i>{t('Message deleted')}</i> : m.text && <span className="ms-text">{m.text}</span>}
   </>;
 
-  return <div className={'ms ' + (chat ? 'has-chat ' : '') + (chat && side ? 'side-open' : '')}>
+  return <div ref={container} className={'ms resizable-ms ' + (chat ? 'has-chat ' : '') + (chat && side ? 'side-open ' : '') + (inlineInfo?'inline-info ':'')+(desktop&&!resizable?'narrow-ms':'')}
+    style={{'--chat-list-width':`${fitted.list}px`,'--chat-info-width':`${fitted.info}px`} as CSSProperties}>
+    <ResizeHandle label={t('Chat list width')} value={fitted.list} min={260} max={maxList} onChange={setListWidth} onReset={()=>setListWidth(360)} disabled={!resizable} className="ms-list-resizer"/>
+    {inlineInfo&&<ResizeHandle label={t('Chat details width')} value={fitted.info} min={240} max={maxInfo} onChange={setInfoWidth} onReset={()=>setInfoWidth(300)} reverse className="ms-info-resizer"/>}
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
       <div className="ms-title"><h1>{t('Messages')}</h1><span className="ms-logo">intent<span>.</span></span><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
