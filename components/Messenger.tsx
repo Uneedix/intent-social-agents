@@ -2,13 +2,18 @@
 import { useT } from './I18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
 import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, Forward, Copy, BellOff, Bell, Check, CheckCheck, MoreHorizontal, Eraser, CornerUpLeft, Video, Phone, MapPin, BadgeCheck, Mic, Pause, Play, Download, FileText, Link2, Plus, Briefcase, Handshake, MessageSquare, Archive, ArchiveRestore, ListPlus, Star, CircleCheck, SquarePen, Camera, Image as ImageIcon, Clapperboard, UserRound, BarChart3, Target, Music, Users, ChevronRight, ChevronLeft, Heart, Info, Settings, Lock, UserPlus, MailOpen, Mail, Share } from 'lucide-react';
-import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
+import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory, type GroupRole } from '../lib/data';
 import { compressImage, uid, useStored } from '../lib/social';
 import { Avatar, VoicePlayer, Sheet } from './MsgParts';
 import { EmojiPicker } from './EmojiPicker';
 import { GifPicker, toGifAttachment } from './GifPicker';
 import { GifView } from './GifView';
 import ResizeHandle from './ResizeHandle';
+import CreateGroupModal, { AddMembersModal, type GroupDraft } from './groups/CreateGroupModal';
+import GroupInfoModal, { type InfoMember } from './groups/GroupInfoModal';
+import { TopicList, TopicBar, TopicModal, ClosedTopic, topicTitle, type TopicRow } from './groups/Topics';
+import { GENERAL_ID, withGeneral, sortTopics } from './groups/model';
+import gs from './groups/groups.module.css';
 
 const QUICK = ['❤️', '👍', '🔥', '😂', '😮', '😢'];
 const BASE_FOLDERS = [['all', 'All'], ['unread', 'Unread'], ['job', 'Jobs'], ['collab', 'Collaborations'], ['group', 'Groups'], ['other', 'Other'], ['archived', 'Archived']] as const;
@@ -78,9 +83,11 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const [newChat, setNewChat] = useState<'people' | 'groups' | 'communities' | null>(null);
   const [pick, setPick] = useState<string[]>([]);
   const [pickQ, setPickQ] = useState('');
-  const [groupName, setGroupName] = useState('');
+  const [wizard, setWizard] = useState(false);
   const [addMembers, setAddMembers] = useState(false);
-  const [rename, setRename] = useState<string | null>(null);
+  const [groupInfo, setGroupInfo] = useState(false);
+  const [topicId, setTopicId] = useState<string | null>(null);
+  const [topicEdit, setTopicEdit] = useState<TopicRow | 'new' | null>(null);
   const [listEdit, setListEdit] = useState<ChatList | null>(null);
   const [listPick, setListPick] = useState<string | null>(null);
   const [contactPick, setContactPick] = useState(false);
@@ -123,9 +130,9 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     const {chat:opened,chats:currentChats,setChats:saveChats}=openState.current;
     if(!opened)return;
     if(opened.unread)saveChats(currentChats.map(c=>c.id===opened.id?{...c,unread:0}:c));
-    setDraft(opened.draft||'');setReplyTo(null);setEditing(null);setFind(null);setImage('');setFile(null);setHeadMenu(false);setSelected(null);
+    setDraft(opened.draft||'');setTopicId(null);setTopicEdit(null);setGroupInfo(false);setReplyTo(null);setEditing(null);setFind(null);setImage('');setFile(null);setHeadMenu(false);setSelected(null);
   },[active]);
-  useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [active, chat?.messages.length]);
+  useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [active, chat?.messages.length, topicId]);
   useEffect(() => () => { cancelRec.current = true; recorder.current?.stream.getTracks().forEach(tr => tr.stop()); void audioCtx.current?.close(); }, []);
 
   /* ---------- people & folders ---------- */
@@ -163,22 +170,43 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     const c: Chat = { id: p.handle + '-' + uid(), name: p.name, handle: p.handle, avatar: p.avatar, kind: 'personal', messages: [] };
     setChats([c, ...chats]); setActive(c.id);
   };
-  const createGroup = () => {
-    const name = groupName.trim(); const members = contacts.filter(p => pick.includes(p.handle));
-    if (name.length < 2 || members.length < 2) return;
-    const c: Chat = { id: 'g-' + uid(), name: name.slice(0, 60), handle: 'group', avatar: '', kind: 'group', members, messages: [{ id: uid(), from: 'system', text: t('You created the group “{name}”', { name: name.slice(0, 60) }), at: Date.now() }] };
-    setChats([c, ...chats]); setActive(c.id); setNewChat(null); setPick([]); setGroupName(''); toast(t('Group created on this device'));
+  const createGroup = (d: GroupDraft) => {
+    const name = d.name.slice(0, 60); const ids = d.members.map(m => m.id); const members = contacts.filter(p => ids.includes(p.handle));
+    if (name.length < 2 || members.length < 1) return;
+    const c: Chat = { id: 'g-' + uid(), name, handle: 'group', avatar: d.avatar, kind: 'group', members, description: d.description || undefined, color: d.color,
+      topicsEnabled: d.topics, topics: d.topics ? withGeneral([]) : undefined, roles: Object.fromEntries(members.map(m => [m.handle, 'member' as GroupRole])),
+      messages: [{ id: uid(), from: 'system', text: t('You created the group “{name}”', { name }), at: Date.now() }] };
+    setChats([c, ...chats]); setActive(c.id); setWizard(false); toast(t('Group created on this device'));
   };
-  const closeNew = () => { setNewChat(null); setPick([]); setPickQ(''); setGroupName(''); };
+  const closeNew = () => { setNewChat(null); setPick([]); setPickQ(''); };
+
+  /* ---------- topics (local groups) ---------- */
+  const topicsOn = !!(isGroup && chat?.topicsEnabled);
+  const topicList = topicsOn ? withGeneral(chat!.topics) : [];
+  const curTopicId = topicsOn ? (topicList.some(x => x.id === topicId) ? topicId! : GENERAL_ID) : undefined;
+  const curTopic = topicList.find(x => x.id === curTopicId);
+  const inTopic = (m: ChatMsg, id: string) => (m.topicId && topicList.some(x => x.id === m.topicId) ? m.topicId : GENERAL_ID) === id;
+  const nameOf = (h: string) => h === 'me' ? t('You') : chat?.members?.find(p => p.handle === h)?.name || h;
+  const topicRows: TopicRow[] = topicsOn ? sortTopics(topicList.map(x => { const lm = [...chat!.messages].reverse().find(m => !m.deleted && inTopic(m, x.id));
+    return { ...x, last: lm ? preview(lm) : undefined, lastWho: lm && lm.from !== 'system' ? nameOf(lm.from) : undefined, lastAt: lm?.at }; }), r => r.lastAt || 0) : [];
+  const setTopics = (fn: (list: ReturnType<typeof withGeneral>) => ReturnType<typeof withGeneral>) => chat && update(chat.id, c => ({ ...c, topics: fn(withGeneral(c.topics)) }));
+  const openTopic = (id: string) => { setTopicId(id); setFind(null); setReplyTo(null); setEditing(null); setTopics(list => list.map(x => x.id === id ? { ...x, unread: 0 } : x)); };
+  const saveTopic = (v: { title: string; icon: string; color: number }) => {
+    if (!chat) return;
+    if (topicEdit === 'new') { const id = 't-' + uid(); update(chat.id, c => ({ ...c, topics: [...withGeneral(c.topics), { id, ...v, createdAt: Date.now() }], messages: [...c.messages, { id: uid(), from: 'system', text: t('You created the topic “{name}”', { name: v.title }), at: Date.now(), topicId: id }] })); setTopicId(id); }
+    else if (topicEdit) setTopics(list => list.map(x => x.id === topicEdit.id ? { ...x, ...v, title: x.general ? x.title : v.title } : x));
+    setTopicEdit(null);
+  };
+  const myRole: GroupRole = 'owner'; // local groups: the creator on this device is always the owner
 
   /* ---------- sending ---------- */
   function push(msg: Partial<ChatMsg>, target = chat) {
     if (!target) return;
-    const m: ChatMsg = { id: uid(), from: 'me', text: '', at: Date.now(), read: target.kind === 'saved', ...msg };
+    const m: ChatMsg = { id: uid(), from: 'me', text: '', at: Date.now(), read: target.kind === 'saved', ...(target.id === chat?.id && curTopicId ? { topicId: curTopicId } : {}), ...msg };
     setChats(chats.map(c => c.id === target.id ? { ...c, draft: '', messages: [...c.messages, m] } : c));
   }
   function send() {
-    if (!chat) return; const text = draft.trim(); if (!text && !image && !file) return;
+    if (!chat) return; const text = draft.trim(); if (!text && !image && !file) return; if (topicsOn && curTopic?.closed) return;
     if (editing) { update(chat.id, c => ({ ...c, draft: '', messages: c.messages.map(m => m.id === editing.id ? { ...m, text, edited: true } : m) })); setEditing(null); setDraft(''); return; }
     push({ text, replyTo: replyTo?.id, image: image || undefined, file: file || undefined });
     setDraft(''); setReplyTo(null); setImage(''); setFile(null); setEmoji(false);
@@ -216,7 +244,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const r = new MediaRecorder(stream); chunks.current = []; cancelRec.current = false;
       try { const ctx = new AudioContext(); const an = ctx.createAnalyser(); an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an); audioCtx.current = ctx; analyser.current = an; } catch { analyser.current = null; }
-      const target = chat;
+      const target = chat; const voiceTopic = curTopicId;
       r.ondataavailable = e => { if (e.data.size) chunks.current.push(e.data); };
       r.onstop = async () => {
         stream.getTracks().forEach(tr => tr.stop()); void audioCtx.current?.close(); audioCtx.current = null; analyser.current = null;
@@ -225,7 +253,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         const blob = new Blob(chunks.current, { type: r.mimeType || 'audio/webm' });
         if (blob.size > MAX_FILE) { toast(t('This voice message is too long to save.')); return; }
         const data = await readData(blob);
-        setChatsRef.current(cur => cur.map(c => c.id === target.id ? { ...c, messages: [...c.messages, { id: uid(), from: 'me', text: '', at: Date.now(), voice: { data, duration: Math.round(secs) } }] } : c));
+        setChatsRef.current(cur => cur.map(c => c.id === target.id ? { ...c, messages: [...c.messages, { id: uid(), from: 'me', text: '', at: Date.now(), voice: { data, duration: Math.round(secs) }, ...(voiceTopic ? { topicId: voiceTopic } : {}) }] } : c));
       };
       recorder.current = r; recClock.current = { acc: 0, since: Date.now() }; r.start(); setRec({ secs: 0, paused: false, levels: [] });
     } catch { toast(t('Microphone access was blocked.')); }
@@ -267,7 +295,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
   /* ---------- derived ---------- */
   const pinned = chat?.pinnedMsg ? chat.messages.find(m => m.id === chat.pinnedMsg && !m.deleted) : null;
-  const shown = chat ? chat.messages.filter(m => !find || m.text.toLowerCase().includes(find.toLowerCase())) : [];
+  const shown = chat ? chat.messages.filter(m => (!curTopicId || inTopic(m, curTopicId)) && (!find || m.text.toLowerCase().includes(find.toLowerCase()))) : [];
   const live = chat ? chat.messages.filter(m => !m.deleted) : [];
   const images = live.filter(m => m.image);
   const files = live.filter(m => m.file);
@@ -348,11 +376,11 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         return <ListItem key={c.id} c={c} active={active === c.id} onOpen={() => setActive(c.id)} onMenu={() => setItemMenu(c.id)} label={chatTitle(c)}>
           <Avatar chat={c} size={52} dot />
           <span className="ms-mid"><b><span className="ms-name">{chatTitle(c)}</span>{p?.verified && <BadgeCheck size={17} className="ms-verified" fill="#fff" color="#000" />}{c.kind !== 'group' && TAG[cat] && <span className="ms-tag">{t(TAG[cat])}</span>}{c.muted && <BellOff size={13} className="ms-dim" />}</b>
-            <small>{l?.from === 'me' && c.kind !== 'saved' ? t('You: ') : ''}{preview(l)}</small></span>
+            <small>{c.topicsEnabled && l ? <span className="ms-topic-tag">{(() => { const tp = withGeneral(c.topics).find(x => x.id === (l.topicId || GENERAL_ID)) || withGeneral(c.topics)[0]; return (tp.icon === '#' ? '# ' : tp.icon + ' ') + topicTitle(t, tp); })()}</span> : null}{l?.from === 'me' && c.kind !== 'saved' ? t('You: ') : ''}{preview(l)}</small></span>
           <span className="ms-end"><small>{l ? listTime(l.at) : ''}</small>{c.unread ? <em className={c.muted ? 'muted' : ''}>{c.unread}</em> : c.pinned ? <Pin size={14} className="ms-dim" /> : l?.from === 'me' && c.kind !== 'saved' ? (l.read ? <CheckCheck size={16} className="ms-read" /> : <Check size={16} className="ms-dim" />) : null}</span>
         </ListItem>; })}
         {!list.length && <p className="muted ms-empty">{t(folder.startsWith('list:') ? 'This list is empty. Long-press a chat and choose “Add to list”.' : 'No chats found.')}</p>}
-        <p className="ms-local-note">{t('Direct chats and groups are stored on this device only and are not delivered to other people yet.')}</p></div>
+        <p className="ms-local-note">{t('Direct chats and groups — including group photos, topics and roles — are stored on this device only and are not delivered to other people yet.')}</p></div>
     </aside>
 
     {/* ---------- conversation ---------- */}
@@ -367,7 +395,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         </div></header>
       : <header className="ms-head">
         <button className="icon-button ms-back" onClick={() => setActive(null)} aria-label={t('Back')}><ChevronLeft size={28} /></button>
-        <button className="ms-who" onClick={() => setSide(!side)} aria-label={t('Info')}>
+        <button className="ms-who" onClick={() => isGroup ? setGroupInfo(true) : setSide(!side)} aria-label={t(isGroup ? 'Group info' : 'Info')}>
           <Avatar chat={chat} size={60} dot />
           <span><b>{chatTitle(chat)}{prof?.verified && <BadgeCheck size={20} className="ms-verified" fill="#fff" color="#000" />}</b><small className={chat.online ? 'online' : ''}>{status(chat)}</small></span>
         </button>
@@ -380,7 +408,13 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         </div>
       </header>}
       {(prof?.title || prof?.location) && !selected && <div className="ms-sub">{prof.title && <p>{prof.title}</p>}{prof.location && <small><MapPin size={16} /> {prof.location}</small>}</div>}
-      {find != null && <div className="ms-find"><Search size={16} /><input autoFocus value={find} onChange={e => setFind(e.target.value)} placeholder={t('Search in this chat')} /><span>{find ? shown.length : ''}</span><button className="icon-button" onClick={() => setFind(null)} aria-label={t('Close')}><X size={16} /></button></div>}
+      <div className={topicsOn ? gs.split + (topicId === null ? ' ' + gs.listMode : '') : 'gt-contents'}>
+      {topicsOn && <div className={gs.rail}><TopicList topics={topicRows} active={topicId === null ? null : curTopicId!} onOpen={openTopic} manage onNew={() => setTopicEdit('new')} /></div>}
+      <div className={topicsOn ? gs.pane : 'gt-contents'}>
+      {topicsOn && curTopic && !selected && <TopicBar topic={topicRows.find(x => x.id === curTopic.id) || curTopic} onBack={() => setTopicId(null)} manage onEdit={() => setTopicEdit(curTopic)}
+        onClosed={closed => { setTopics(list => list.map(x => x.id === curTopic.id ? { ...x, closed } : x)); toast(t(closed ? 'Topic closed' : 'Topic reopened')); }}
+        onPin={pinned => setTopics(list => list.map(x => x.id === curTopic.id ? { ...x, pinned } : x))} onSearch={() => setFind('')} />}
+      {find != null && <div className="ms-find"><Search size={16} /><input autoFocus value={find} onChange={e => setFind(e.target.value)} placeholder={t(topicsOn ? 'Search in this topic' : 'Search in this chat')} /><span>{find ? shown.length : ''}</span><button className="icon-button" onClick={() => setFind(null)} aria-label={t('Close')}><X size={16} /></button></div>}
       {pinned && <button className="ms-pinned" onClick={() => jump(pinned.id)}><Pin size={15} /><span><b>{t('Pinned message')}</b><small>{preview(pinned)}</small></span><span className="icon-button" role="button" tabIndex={0} aria-label={t('Unpin')} onClick={e => { e.stopPropagation(); update(chat.id, c => ({ ...c, pinnedMsg: undefined })); }}><X size={15} /></span></button>}
 
       <div className="ms-msgs" ref={box}>
@@ -400,7 +434,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         {!shown.length && <p className="muted ms-empty">{t(find ? 'No messages match your search.' : 'No messages yet. Say hi 👋')}</p>}
       </div>
 
-      <div className="ms-compose">
+      {topicsOn && curTopic?.closed ? <ClosedTopic manage onReopen={() => setTopics(list => list.map(x => x.id === curTopic.id ? { ...x, closed: false } : x))} /> : <div className="ms-compose">
         {(replyTo || editing) && <div className="ms-ctx">{editing ? <Pencil size={16} /> : <CornerUpLeft size={16} />}<span><b>{editing ? t('Edit message') : t('Reply to {name}', { name: replyTo!.from === 'me' ? t('yourself') : sender(replyTo!)?.name || '' })}</b><small>{preview(editing || replyTo)}</small></span><button className="icon-button" onClick={() => { setReplyTo(null); if (editing) { setEditing(null); setDraft(''); } }} aria-label={t('Cancel')}><X size={16} /></button></div>}
         {(image || file) && <div className="ms-attach">{image ? <img src={image} alt={t('Photo')} /> : file && <span className="ms-file"><span className="ms-file-ic"><FileText size={20} /></span><span className="ms-file-txt"><b>{file.name}</b><small>{size(file.size)}</small></span></span>}<button className="icon-button" onClick={() => { setImage(''); setFile(null); }} aria-label={t('Remove')}><X size={16} /></button></div>}
         {emoji && <EmojiPicker onPick={e => setDraft(d => d + e)} onClose={() => setEmoji(false)} />}
@@ -423,7 +457,8 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         <input ref={inputs.camera} type="file" accept="image/*" capture="environment" hidden onChange={e => void pickFile(e.target.files?.[0], e.target)} />
         <input ref={inputs.gallery} type="file" accept="image/*,video/*" hidden onChange={e => void pickFile(e.target.files?.[0], e.target)} />
         <input ref={inputs.video} type="file" accept="video/*" hidden onChange={e => void pickFile(e.target.files?.[0], e.target)} />
-      </div>
+      </div>}
+      </div></div>
 
       {rec && <div className="ms-rec">
         <div className="ms-rec-stage">
@@ -455,15 +490,16 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
           <h3>{chatTitle(chat)}{prof?.verified && <BadgeCheck size={22} className="ms-verified" fill="#fff" color="#000" />}</h3>
           {chat.kind !== 'saved' && !isGroup && <p className="ms-handle">@{chat.handle}</p>}
           {isGroup && <p className="ms-handle">{status(chat)}</p>}
+          {isGroup && chat.description && <p className="ms-role ms-group-desc">{chat.description}</p>}
           {prof?.title && <p className="ms-role">{prof.title}</p>}
           {prof?.location && <p className="ms-loc"><MapPin size={16} /> {prof.location}</p>}
           <div className="ms-profile-btns">
-            {isGroup ? <button className="ms-outline" onClick={() => { setPick([]); setAddMembers(true); }}><UserPlus size={16} /> {t('Add members')}</button>
+            {isGroup ? <button className="ms-outline" onClick={() => setGroupInfo(true)}><Info size={16} /> {t('Group info')}</button>
               : chat.kind !== 'saved' && <button className="ms-outline" onClick={() => onViewProfile?.(chat.handle)}>{t('View profile')}</button>}
             <button className="ms-outline" onClick={() => setOptionsSheet(true)}>{t('More options')} <MoreHorizontal size={16} /></button>
           </div>
         </div>
-        {isGroup && <div className="ms-card"><div className="ms-card-head"><b>{t('Members')}</b><small>{(chat.members?.length || 0) + 1}</small></div>{members(chat)}</div>}
+        {isGroup && <div className="ms-card"><div className="ms-card-head"><b>{t('Members')}</b><button onClick={() => setAddMembers(true)}><UserPlus size={14} /> {t('Add')}</button></div>{members(chat)}</div>}
         <div className="ms-card">
           <div className="ms-card-head"><b>{t('Shared')}</b>{(sharedTop.length + images.length) > 0 && <button onClick={() => setMediaTab(files.length ? 'files' : links.length ? 'links' : 'media')}>{t('View all')}</button>}</div>
           {sharedTop.slice(0, 4).map(s => s.url ? <a key={s.k} className="ms-shared" href={s.url} target="_blank" rel="noopener noreferrer nofollow"><span className="ms-file-ic link"><Link2 size={18} /></span><span className="ms-file-txt"><b>{host(s.url)}</b><small>{s.url.replace(/^https:\/\//, '')}</small></span></a>
@@ -481,7 +517,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
       {/* phone */}
       <div className="ms-side-mob">
-        <div className="ms-mob-top"><button className="icon-button" onClick={() => setSide(false)} aria-label={t('Back')}><ChevronLeft size={28} /></button>{isGroup && <button className="ms-link" onClick={() => setRename(chat.name)}>{t('Edit')}</button>}</div>
+        <div className="ms-mob-top"><button className="icon-button" onClick={() => setSide(false)} aria-label={t('Back')}><ChevronLeft size={28} /></button>{isGroup && <button className="ms-link" onClick={() => setGroupInfo(true)}>{t('Edit')}</button>}</div>
         <div className="ms-mob-hero"><Avatar chat={chat} size={112} dot /><h3>{chatTitle(chat)}</h3>{chat.kind !== 'saved' && !isGroup && <p>@{chat.handle}</p>}<small className={chat.online ? 'online' : ''}>{status(chat)}</small></div>
         <div className="ms-mob-actions">
           {chat.kind !== 'saved' && <><button onClick={notYet}><span><Phone size={20} /></span>{t('Call')}</button><button onClick={notYet}><span><Video size={20} /></span>{t('Video')}</button></>}
@@ -495,7 +531,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
           <button className="ms-row-btn" onClick={() => setMediaTab('files')}><FileText size={18} /> {t('Shared Files')}<em>{files.length}</em><ChevronRight size={16} /></button>
           <button className="ms-row-btn" onClick={() => setMediaTab('starred')}><Star size={18} /> {t('Starred Messages')}<em>{starred.length}</em><ChevronRight size={16} /></button>
         </div>
-        {isGroup && <div className="ms-mob-card"><div className="ms-card-head"><b>{t('Members')}</b><button onClick={() => { setPick([]); setAddMembers(true); }}><UserPlus size={14} /> {t('Add')}</button></div>{members(chat)}</div>}
+        {isGroup && <div className="ms-mob-card"><div className="ms-card-head"><b>{t('Members')}</b><button onClick={() => setAddMembers(true)}><UserPlus size={14} /> {t('Add')}</button></div>{members(chat)}</div>}
         <div className="ms-mob-card">
           {chat.kind !== 'saved' && <div className="ms-row-btn"><Bell size={18} /> {t('Notifications')}<button className={'toggle ' + (chat.muted ? '' : 'on')} onClick={() => update(chat.id, c => ({ ...c, muted: !c.muted }))} aria-label={t('Notifications')} aria-pressed={!chat.muted} /></div>}
           <button className="ms-row-btn" onClick={() => setOptionsSheet(true)}><Settings size={18} /> {t('Chat Settings')}<ChevronRight size={16} /></button>
@@ -544,24 +580,31 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
     {newChat && <Sheet title={t('New chat')} onClose={closeNew} className="np">
       <label className="ms-search sm"><Search size={18} /><input autoFocus value={pickQ} onChange={e => setPickQ(e.target.value)} placeholder={t('Search people, communities...')} /></label>
-      <div className="ms-chips np-tabs">{(['people', 'communities', 'groups'] as const).map(k => <button key={k} className={newChat === k ? 'on' : ''} onClick={() => { setNewChat(k); setPick([]); }}>{t(k === 'people' ? 'People' : k === 'groups' ? 'Groups' : 'Communities')}</button>)}</div>
-      {newChat === 'people' && <>{peoplePicker(false)}<button className="np-cta" disabled={pick.length !== 1} onClick={() => { const p = contacts.find(x => x.handle === pick[0]); if (p) openPerson(p); closeNew(); }}><MessageSquare size={18} /> {t('Start chat')}</button></>}
-      {newChat === 'groups' && <><input className="np-name" value={groupName} maxLength={60} onChange={e => setGroupName(e.target.value)} placeholder={t('Group name')} aria-label={t('Group name')} />
-        <p className="muted ms-note">{t('Choose at least 2 people · {n} selected', { n: pick.length })}</p>{peoplePicker(true)}
-        <button className="np-cta" disabled={pick.length < 2 || groupName.trim().length < 2} onClick={createGroup}><Users size={18} /> {t('Create group')}</button></>}
+      <div className="ms-chips np-tabs">{(['people', 'communities', 'groups'] as const).map(k => <button key={k} className={newChat === k ? 'on' : ''} onClick={() => { if (k === 'groups') { closeNew(); setWizard(true); return; } setNewChat(k); setPick([]); }}>{t(k === 'people' ? 'People' : k === 'groups' ? 'Groups' : 'Communities')}</button>)}</div>
+      {newChat === 'people' && <><button className="np-row ms-new-group" onClick={() => { closeNew(); setWizard(true); }}><span className="ms-new-group-ic"><Users size={20} /></span><span><b>{t('New group')}</b><small>{t('Photo, members and topics')}</small></span><ChevronRight size={18} /></button>{peoplePicker(false)}<button className="np-cta" disabled={pick.length !== 1} onClick={() => { const p = contacts.find(x => x.handle === pick[0]); if (p) openPerson(p); closeNew(); }}><MessageSquare size={18} /> {t('Start chat')}</button></>}
       {newChat === 'communities' && <div className="np-empty"><Users size={34} /><p>{t('Communities have their own feed and channels.')}</p><button className="np-cta" onClick={() => { closeNew(); onCommunities?.(); }}>{t('Open Communities')}</button></div>}
       <p className="ms-local-note">{t('Only people from this device are listed until public profiles are connected.')}</p>
     </Sheet>}
 
-    {addMembers && chat && isGroup && <Sheet title={t('Add members')} onClose={() => { setAddMembers(false); setPick([]); }} className="np">
-      {peoplePicker(true, chat.members?.map(p => p.handle))}
-      <button className="np-cta" disabled={!pick.length} onClick={() => { const add = contacts.filter(p => pick.includes(p.handle)); update(chat.id, c => ({ ...c, members: [...(c.members || []), ...add], messages: [...c.messages, { id: uid(), from: 'system', text: t('You added {names}', { names: add.map(p => p.name).join(', ') }), at: Date.now() }] })); setAddMembers(false); setPick([]); }}><UserPlus size={18} /> {t('Add')}</button>
-    </Sheet>}
+    {wizard && <CreateGroupModal candidates={contacts.map(p => ({ id: p.handle, name: p.name, sub: '@' + p.handle, avatar: p.avatar }))} minMembers={1} minName={2}
+      onClose={() => setWizard(false)} onCreate={createGroup} note={t('This group, its photo, topics and roles are saved on this device only. Members are not notified yet.')} />}
 
-    {rename != null && chat && <Sheet title={t('Edit group')} onClose={() => setRename(null)}>
-      <input className="np-name" autoFocus value={rename} maxLength={60} onChange={e => setRename(e.target.value)} aria-label={t('Group name')} />
-      <button className="np-cta" disabled={rename.trim().length < 2} onClick={() => { update(chat.id, c => ({ ...c, name: rename.trim() })); setRename(null); }}>{t('Save')}</button>
-    </Sheet>}
+    {addMembers && chat && isGroup && <AddMembersModal candidates={contacts.map(p => ({ id: p.handle, name: p.name, sub: '@' + p.handle, avatar: p.avatar }))} exclude={chat.members?.map(p => p.handle) || []}
+      onClose={() => setAddMembers(false)} onAdd={people => { const ids = people.map(x => x.id); const add = contacts.filter(p => ids.includes(p.handle));
+        update(chat.id, c => ({ ...c, members: [...(c.members || []), ...add], roles: { ...(c.roles || {}), ...Object.fromEntries(add.map(p => [p.handle, 'member' as GroupRole])) }, messages: [...c.messages, { id: uid(), from: 'system', text: t('You added {names}', { names: add.map(p => p.name).join(', ') }), at: Date.now() }] })); setAddMembers(false); }} />}
+
+    {groupInfo && chat && isGroup && <GroupInfoModal name={chat.name} description={chat.description || ''} avatar={chat.avatar} color={chat.color ?? 0} topicsEnabled={!!chat.topicsEnabled} myRole={myRole}
+      members={[{ id: 'me', name: t('You'), role: 'owner', you: true } as InfoMember, ...(chat.members || []).map(p => ({ id: p.handle, name: p.name, sub: '@' + p.handle, avatar: p.avatar, role: chat.roles?.[p.handle] || 'member' } as InfoMember))]}
+      onClose={() => setGroupInfo(false)}
+      onSave={pr => update(chat.id, c => ({ ...c, name: pr.name.slice(0, 60), description: pr.description || undefined, avatar: pr.avatar, color: pr.color, topicsEnabled: pr.topicsEnabled, topics: pr.topicsEnabled ? withGeneral(c.topics) : c.topics }))}
+      onAddMembers={() => { setGroupInfo(false); setAddMembers(true); }}
+      onInvite={() => toast(t('Invite links need a server connection. Device-only groups cannot be joined from other devices yet.'))}
+      onRole={(m, role) => update(chat.id, c => ({ ...c, roles: { ...(c.roles || {}), [m.id]: role }, messages: [...c.messages, { id: uid(), from: 'system', text: t(role === 'admin' ? '{name} is now an admin' : '{name} is no longer an admin', { name: m.name }), at: Date.now() }] }))}
+      onRemove={m => update(chat.id, c => ({ ...c, members: c.members?.filter(x => x.handle !== m.id), messages: [...c.messages, { id: uid(), from: 'system', text: t('You removed {name}', { name: m.name }), at: Date.now() }] }))}
+      onDelete={() => { setGroupInfo(false); deleteChat(chat); }}
+      note={t('Photo, description, topics and roles of this group are stored on this device only.')} />}
+
+    {topicEdit && chat && <TopicModal initial={topicEdit === 'new' ? undefined : topicRows.find(x => x.id === topicEdit.id) || topicEdit} onClose={() => setTopicEdit(null)} onSave={saveTopic} />}
 
     {listEdit && <Sheet title={t(lists.some(l => l.id === listEdit.id) ? 'Edit list' : 'New chat list')} onClose={() => setListEdit(null)} className="np">
       <input className="np-name" autoFocus value={listEdit.name} maxLength={24} onChange={e => setListEdit({ ...listEdit, name: e.target.value })} placeholder={t('List name, e.g. Family')} aria-label={t('List name')} />
@@ -620,7 +663,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   function members(c: Chat) {
     return <div className="ms-members">
       <div className="ms-member"><Avatar chat={{ kind: 'personal', avatar: '', name: t('You') }} size={36} /><span><b>{t('You')}</b><small>{t('Owner')}</small></span></div>
-      {c.members?.map(p => <div key={p.handle} className="ms-member"><Avatar chat={{ kind: 'personal', avatar: p.avatar, name: p.name }} size={36} /><span><b>{p.name}</b><small>@{p.handle}</small></span>
+      {c.members?.map(p => <div key={p.handle} className="ms-member"><Avatar chat={{ kind: 'personal', avatar: p.avatar, name: p.name }} size={36} /><span><b>{p.name}</b><small>@{p.handle}{c.roles?.[p.handle] === 'admin' ? ' · ' + t('Admin') : ''}</small></span>
         <button className="icon-button" onClick={() => update(c.id, x => ({ ...x, members: x.members?.filter(m => m.handle !== p.handle), messages: [...x.messages, { id: uid(), from: 'system', text: t('You removed {name}', { name: p.name }), at: Date.now() }] }))} aria-label={t('Remove {name}', { name: p.name })}><X size={16} /></button></div>)}
     </div>;
   }
