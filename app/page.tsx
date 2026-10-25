@@ -6,7 +6,7 @@ import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
 import WidgetRail from '../components/WidgetRail';
 import ResizeHandle from '../components/ResizeHandle';
-import Communities from '../components/Communities';
+import Communities, { CommunitiesRail } from '../components/Communities';
 import PostCard, { type Comment, Lightbox } from '../components/PostCard';
 import Composer, { type Draft } from '../components/Composer';
 import Stories, { type MyStory } from '../components/Stories';
@@ -217,7 +217,7 @@ export default function Page() {
       <div className="topbar"><div className="global-search"><Search size={22} /><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => go('Explore')} placeholder={t("Search people, posts, intentions, communities...")} aria-label={t("Search")} /></div>
         {topActions}</div>
       <div className="content">{content}</div></main>
-    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : sidebar)}
+    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : section === 'Communities' ? <aside className="rightbar">{topActions}<CommunitiesRail /></aside> : sidebar)}
     <nav className="mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4]].map(({ name, Icon }) => <button className={section === name ? 'active' : ''} key={name} onClick={() => go(name)}><Icon size={24} /><small>{t(name)}</small></button>)}<button className="mobile-create" onClick={() => setComposer({ kind: 'post' })} aria-label={t("Create")}><Plus /></button></nav>
 
     {composer && <Composer initialKind={composer.kind} quote={composer.quote} onClose={() => setComposer(null)} onPublish={publish} />}

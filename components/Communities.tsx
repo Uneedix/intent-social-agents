@@ -1,108 +1,168 @@
 'use client';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { useT } from './I18n';
-import {useCallback,useEffect,useRef,useState} from 'react';
-import {createClient,isSupabaseConfigured} from '../lib/supabase/client';
-import {useSession} from './SessionBoundary';
-import type {User} from '@supabase/supabase-js';
+import { useSession } from './SessionBoundary';
+import { useProfile } from './Experience';
+import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
+import { demoCommunities, demoPeople } from '../lib/demo/communities';
+import { createCommunity, joinCommunity, leaveCommunity, loadDirectory, schemaOf, type DB, type Schema } from './communities/api';
+import { can, errorText, filterCards, recentlyActive, shortId, type CardItem, type Community, type Draft, type JoinState } from './communities/model';
+import { useLiveCommunity } from './communities/useLiveCommunity';
+import Directory from './communities/Directory';
+import CreateWizard from './communities/CreateWizard';
+import CommunityView, { type Person, type ViewActions, type ViewModel } from './communities/CommunityView';
+import SettingsModal from './communities/SettingsModal';
+import { setRailState } from './communities/store';
+import s from './communities/communities.module.css';
 
-type Community={id:string;owner_id:string;name:string;description:string;privacy:'public'|'request'|'private';channels_enabled:boolean;posting_permission:'members'|'staff';comments_permission:string;cover_url:string|null;avatar_url:string|null};
-type Member={user_id:string;role:string};
-type Post={id:string;body:string;author_id:string;created_at:string};
-type Channel={id:string;name:string;category:string};
-type Msg={id:string;body:string;author_id:string;created_at:string};
-type DB = ReturnType<typeof createClient>;
-const PAGE_SIZE = 100;
-const chronological = (a: Msg, b: Msg) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
-const mergeMessages = (old: Msg[], next: Msg[]) => [...new Map([...old,...next].map(m=>[m.id,m])).values()].sort(chronological);
+export { default as CommunitiesRail } from './communities/Rail';
+
+type Selected = { kind: 'real' | 'demo'; id: string } | null;
+const DEMO_KEY = 'demo:', REAL_KEY = 'real:';
+
 export default function Communities() {
- const {user,scope}=useSession();
- const [db]=useState<DB|null>(()=>{try{return isSupabaseConfigured()?createClient():null;}catch{return null;}});
- if(!db)return <p role="alert">Supabase is not configured. Set the public environment variables.</p>;
- return <CommunitiesSession key={scope} db={db} user={user}/>;
+  const { user, scope } = useSession();
+  const [db] = useState<DB | null>(() => { try { return isSupabaseConfigured() ? createClient() : null; } catch { return null; } });
+  return <CommunitiesApp key={scope} db={db} user={user} />;
 }
-function CommunitiesSession({db,user}:{db:DB;user:User|null}){
- const t = useT();
- const [items,setItems]=useState<Community[]>([]),[selected,setSelected]=useState<Community|null>(null);
- const [form,setForm]=useState(false),[name,setName]=useState(''),[description,setDescription]=useState(''),[privacy,setPrivacy]=useState<Community['privacy']>('public'),[channelsEnabled,setChannelsEnabled]=useState(false),[posting,setPosting]=useState<Community['posting_permission']>('members');
- const [tab,setTab]=useState<'feed'|'channels'|'members'>('feed'),[members,setMembers]=useState<Member[]>([]),[posts,setPosts]=useState<Post[]>([]),[channels,setChannels]=useState<Channel[]>([]),[requests,setRequests]=useState<{user_id:string;status:string}[]>([]),[messageList,setMessageList]=useState<Msg[]>([]);
- const [postDraft,setPostDraft]=useState(''),[channelName,setChannelName]=useState(''),[activeChannel,setActiveChannel]=useState<string|null>(null),[messageDraft,setMessageDraft]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const [loading,setLoading]=useState(true),[detailsLoading,setDetailsLoading]=useState(false),[messagesLoading,setMessagesLoading]=useState(false),[olderLoading,setOlderLoading]=useState(false),[hasOlder,setHasOlder]=useState(false);
- const selectionVersion=useRef(0);
- const alive=useRef(true),listRequest=useRef(0),detailsRequest=useRef(0),channelRequest=useRef(0);
- const selection=useRef<string|null>(null),channelSelection=useRef<string|null>(null),oldest=useRef<Msg|null>(null),olderBusy=useRef(false);
- useEffect(()=>{const counters=[listRequest,detailsRequest,channelRequest];alive.current=true;return()=>{alive.current=false;counters.forEach(counter=>counter.current++);};},[]);
- const choose=(community:Community|null)=>{
-  selectionVersion.current++;selection.current=community?.id||null;channelSelection.current=null;detailsRequest.current++;channelRequest.current++;oldest.current=null;olderBusy.current=false;
-  setSelected(community);setMembers([]);setPosts([]);setChannels([]);setRequests([]);setMessageList([]);setActiveChannel(null);setPostDraft('');setChannelName('');setMessageDraft('');setError('');setTab('feed');setHasOlder(false);setOlderLoading(false);setMessagesLoading(false);setDetailsLoading(!!community);setBusy(false);
- };
- const reload=useCallback(async()=>{
-  const request=++listRequest.current;setLoading(true);
-  try{const {data,error}=await db.from('communities').select('*').order('created_at',{ascending:false}).order('id',{ascending:false});if(!alive.current||request!==listRequest.current)return;if(error)setError(error.message);else setItems(data||[]);}
-  catch(e){if(alive.current&&request===listRequest.current)setError(e instanceof Error?e.message:'Could not load communities');}
-  finally{if(alive.current&&request===listRequest.current)setLoading(false);}
- },[db]);
- const loadDetails=useCallback(async(c:Community)=>{
-  const request=++detailsRequest.current;setDetailsLoading(true);
-  const current=()=>alive.current&&selection.current===c.id&&request===detailsRequest.current;
-  try{
-   const [a,b,d,e]=await Promise.all([db.from('community_members').select('user_id,role').eq('community_id',c.id),db.from('community_posts').select('id,body,author_id,created_at').eq('community_id',c.id).order('created_at',{ascending:false}).order('id',{ascending:false}),db.from('community_channels').select('id,name,category').eq('community_id',c.id),db.from('community_join_requests').select('user_id,status').eq('community_id',c.id).eq('status','pending')]);
-   if(!current())return;
-   const errors=[a.error,b.error,d.error,e.error].filter(Boolean);
-   if(errors.length){setError(errors.map(e=>e!.message).join('; '));setMembers([]);setPosts([]);setChannels([]);setRequests([]);channelSelection.current=null;channelRequest.current++;setMessageList([]);setActiveChannel(null);setMessageDraft('');setHasOlder(false);return;}
-   setMembers(a.data||[]);setPosts(b.data||[]);setChannels(d.data||[]);setRequests(e.data||[]);setError('');
-  }catch(e){if(current()){setError(e instanceof Error?e.message:'Could not load community details');setMembers([]);setPosts([]);setChannels([]);setRequests([]);channelSelection.current=null;channelRequest.current++;setMessageList([]);setActiveChannel(null);setMessageDraft('');setHasOlder(false);}}
-  finally{if(current())setDetailsLoading(false);}
- },[db]);
- useEffect(()=>{void reload();},[reload]);
- useEffect(()=>{if(selected)void loadDetails(selected);},[selected,loadDetails]);
- const perform=async(fn:(current:()=>boolean)=>Promise<void>)=>{
-  if(busy)return;const id=selection.current,version=selectionVersion.current;const current=()=>alive.current&&selection.current===id&&selectionVersion.current===version;
-  setBusy(true);setError('');try{await fn(current);}catch(e){if(current())setError(e&&typeof e==='object'&&'message' in e?String(e.message):'Something went wrong.');}finally{if(current())setBusy(false);}
- };
- const create=()=>perform(async(current)=>{if(!user)throw Error('Log in to create a community');const {data,error}=await db.from('communities').insert({owner_id:user.id,name:name.trim(),description:description.trim(),privacy,channels_enabled:channelsEnabled,posting_permission:posting}).select('*').single();if(!current())return;if(error)throw error;setForm(false);setName('');setDescription('');choose(data);setBusy(false);await reload();});
- const update=async(patch:Partial<Community>)=>perform(async(current)=>{if(!selected)return;const {data,error}=await db.from('communities').update(patch).eq('id',selected.id).select('*').single();if(!current())return;if(error)throw error;setSelected(data);if(!data.channels_enabled){channelSelection.current=null;channelRequest.current++;setActiveChannel(null);setMessageList([]);setMessageDraft('');setHasOlder(false);}await reload();});
- const join=()=>perform(async(current)=>{if(!user||!selected)throw Error('Log in first');if(selected.privacy==='private')throw Error('This community requires an invitation');
-  const result=selected.privacy==='public'
-   ?await db.from('community_members').insert({community_id:selected.id,user_id:user.id,role:'member'})
-   :await db.from('community_join_requests').upsert({community_id:selected.id,user_id:user.id,status:'pending'},{onConflict:'community_id,user_id',ignoreDuplicates:true});
-  if(!current())return;if(result.error)throw result.error;await loadDetails(selected);
- });
- const publish=()=>perform(async(current)=>{if(!user||!selected)return;const {error}=await db.from('community_posts').insert({community_id:selected.id,author_id:user.id,body:postDraft.trim()});if(!current())return;if(error)throw error;setPostDraft('');await loadDetails(selected);});
- const createChannel=()=>perform(async(current)=>{if(!selected)return;const {error}=await db.from('community_channels').insert({community_id:selected.id,name:channelName.trim()});if(!current())return;if(error)throw error;setChannelName('');await loadDetails(selected);});
- const approve=(id:string)=>perform(async(current)=>{if(!selected)return;const {error}=await db.rpc('intent_approve_request',{cid:selected.id,applicant:id});if(!current())return;if(error)throw error;await loadDetails(selected);});
- const loadMessages=async(id:string,older=false)=>{
-  const communityId=selection.current,cursor=older?oldest.current:null;
-  if(older&&(!cursor||olderBusy.current||!hasOlder))return;
-  const request=older?channelRequest.current:++channelRequest.current;
-  if(older){olderBusy.current=true;setOlderLoading(true);}else {olderBusy.current=false;setOlderLoading(false);setMessagesLoading(true);}
-  const current=()=>alive.current&&selection.current===communityId&&channelSelection.current===id&&request===channelRequest.current;
-  try{
-   let query=db.from('community_messages').select('id,body,author_id,created_at').eq('channel_id',id);
-   if(cursor)query=query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`);
-   const {data,error}=await query.order('created_at',{ascending:false}).order('id',{ascending:false}).limit(PAGE_SIZE);
-   if(!current())return;if(error){setError(error.message);return;}
-   const next=(data||[]) as Msg[];setMessageList(old=>mergeMessages(old,next));
-   if(older||!oldest.current){oldest.current=[...next].sort(chronological)[0]||cursor;setHasOlder(next.length===PAGE_SIZE);}setError('');
-  }catch(e){if(current())setError(e instanceof Error?e.message:'Could not load channel messages');}
-  finally{if(current()){if(older){olderBusy.current=false;setOlderLoading(false);}else setMessagesLoading(false);}}
- };
- const openChannel=async(id:string)=>{
-  channelSelection.current=id;channelRequest.current++;oldest.current=null;olderBusy.current=false;
-  setActiveChannel(id);setMessageList([]);setMessageDraft('');setHasOlder(false);setOlderLoading(false);setError('');await loadMessages(id);
- };
- const send=()=>perform(async(current)=>{if(!activeChannel||!user)return;const channel=activeChannel;const request=channelRequest.current;
-  const {error}=await db.from('community_messages').insert({channel_id:channel,author_id:user.id,body:messageDraft.trim()});
-  if(!current()||channelSelection.current!==channel||request!==channelRequest.current)return;if(error)throw error;setMessageDraft('');await loadMessages(channel);
- });
- const owner=!!user&&selected?.owner_id===user.id,member=members.some(m=>m.user_id===user?.id),staff=members.some(m=>m.user_id===user?.id&&['owner','admin','editor'].includes(m.role));
- return <div className="communities-live"><div className="page-heading"><div><h1>{t("Communities")}</h1><p>{t("Every community has a feed. Channels are optional.")}</p></div><button className="primary" onClick={()=>setForm(!form)}>{t("+ Create")}</button></div>
- {error&&<p role="alert" className="community-error">{error} <button className="outline" onClick={()=>{if(activeChannel)void loadMessages(activeChannel);else if(selected)void loadDetails(selected);else void reload();}}>{t("Retry")}</button></p>}{loading&&<p role="status">{t("Loading...")}</p>}{detailsLoading&&<p role="status">{t("Loading community...")}</p>}
- {form&&<section className="community-panel"><h2>{t("Create a community")}</h2>{!user&&<p><a href="/login">{t('Log in')}</a></p>}<label>{t("Name")}<input maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label><label>{t("Description")}<textarea value={description} onChange={e=>setDescription(e.target.value)}/></label><label>{t("Privacy")}<select value={privacy} onChange={e=>setPrivacy(e.target.value as Community['privacy'])}><option value="public">{t("Open — anyone can join")}</option><option value="request">{t("Approval required")}</option><option value="private">{t("Private — invitation only")}</option></select></label><label>{t("Who can post")}<select value={posting} onChange={e=>setPosting(e.target.value as Community['posting_permission'])}><option value="members">{t("All members")}</option><option value="staff">{t("Administration and editors")}</option></select></label><label className="community-check"><input type="checkbox" checked={channelsEnabled} onChange={e=>setChannelsEnabled(e.target.checked)}/> {t("Enable channels")}</label><button className="primary" disabled={busy||!user||name.trim().length<3} onClick={create}>{t("Create community")}</button></section>}
- {!selected?<div className="community-list">{items.map(c=><button key={c.id} className="community community-select" onClick={()=>choose(c)}><div className="community-icon">{c.name.slice(0,1).toUpperCase()}</div><div><strong>{c.name}</strong><p>{c.description}</p><small>{t(c.privacy==='private'?'Private':c.privacy==='request'?'Approval required':'Open')} · {t('Feed')} {c.channels_enabled?'· '+t('Channels'):''}</small></div><span>{t("Open →")}</span></button>)}{!loading&&items.length===0&&<p className="muted">{t("No communities visible yet. Create the first one.")}</p>}</div>:<><button className="outline" onClick={()=>choose(null)}>{t("← All communities")}</button><section className="community-panel"><div className="community-cover"/><h1>{selected.name}</h1><p>{selected.description}</p><small>{selected.privacy} · {t('{n} members', { n: members.length })}</small>{!member&&user&&selected.privacy!=='private'&&<button className="primary" disabled={busy} onClick={join}>{t(selected.privacy==='request'?'Request to join':'Join community')}</button>}{!user&&<a href="/login">{t("Log in to join")}</a>}
- {owner&&<div className="community-owner"><h3>{t("Community settings")}</h3><label className="community-check"><input type="checkbox" checked={selected.channels_enabled} onChange={e=>void update({channels_enabled:e.target.checked})}/> Enable channels (turning off hides messages, does not delete them)</label><label>{t("Posting permissions")}<select value={selected.posting_permission} onChange={e=>void update({posting_permission:e.target.value as Community['posting_permission']})}><option value="members">{t("All members")}</option><option value="staff">{t("Administration and editors")}</option></select></label><label>{t("Privacy")}<select value={selected.privacy} onChange={e=>void update({privacy:e.target.value as Community['privacy']})}><option value="public">{t("Open")}</option><option value="request">{t("Approval required")}</option><option value="private">{t("Private")}</option></select></label>{requests.map(r=><div key={r.user_id} className="community-request">Join request: {r.user_id.slice(0,8)} <button className="outline" onClick={()=>approve(r.user_id)}>{t("Approve")}</button></div>)}</div>}</section>
- <div className="community-tabs"><button className={tab==='feed'?'selected':''} onClick={()=>setTab('feed')}>{t("Feed")}</button>{selected.channels_enabled&&<button className={tab==='channels'?'selected':''} onClick={()=>setTab('channels')}>{t("Channels")}</button>}<button className={tab==='members'?'selected':''} onClick={()=>setTab('members')}>{t("Members")}</button></div>
- {tab==='feed'&&<div className="community-feed">{member&&(selected.posting_permission==='members'||staff)&&<div className="community-panel"><textarea placeholder={t("Share something with your community...")} value={postDraft} onChange={e=>setPostDraft(e.target.value)} maxLength={10000}/><button className="primary" disabled={busy||!postDraft.trim()} onClick={publish}>{t("Publish")}</button></div>}{posts.map(p=><article className="community-panel" key={p.id}><small>{p.author_id===user?.id?'You':`Member ${p.author_id.slice(0,8)}`} · {new Date(p.created_at).toLocaleString()}</small><p>{p.body}</p></article>)}{!detailsLoading&&posts.length===0&&<p className="muted">{t("No posts yet.")}</p>}</div>}
- {tab==='members'&&<div className="community-panel">{members.map(m=><p key={m.user_id}>{m.user_id===user?.id?'You':m.user_id.slice(0,8)} · {m.role}</p>)}</div>}
- {tab==='channels'&&selected.channels_enabled&&<div className="community-panel">{owner&&<div className="community-inline"><input placeholder={t("Channel name")} value={channelName} onChange={e=>setChannelName(e.target.value)}/><button className="outline" disabled={busy||!channelName.trim()} onClick={createChannel}>{t("Add channel")}</button></div>}{channels.map(ch=><button key={ch.id} className="outline" onClick={()=>openChannel(ch.id)}># {ch.name}</button>)}{activeChannel&&<div className="community-chat">{messagesLoading&&<p role="status">{t("Loading...")}</p>}{hasOlder&&<button className="outline" disabled={olderLoading} onClick={()=>void loadMessages(activeChannel,true)}>{t(olderLoading?"Loading...":"Load older messages")}</button>}{!messagesLoading&&!messageList.length&&<p className="muted">{t("No messages yet.")}</p>}{messageList.map(m=><p key={m.id}><small>{m.author_id===user?.id?'You':m.author_id.slice(0,8)}:</small> {m.body}</p>)}{member&&<div className="community-inline"><input placeholder={t("Message")} value={messageDraft} onChange={e=>setMessageDraft(e.target.value)}/><button className="primary" disabled={busy||!messageDraft.trim()} onClick={send}>{t("Send")}</button></div>}</div>}</div>}
- </>}</div>;
+
+const interestWords = (raw: string) => raw.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+
+function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
+  const t = useT();
+  const { profile } = useProfile();
+  const interests = useMemo(() => interestWords(profile.interests || ''), [profile.interests]);
+  const [rows, setRows] = useState<Community[]>([]), [counts, setCounts] = useState<Record<string, number> | null>(null);
+  const [mine, setMine] = useState<Record<string, { join: JoinState; role?: string }>>({});
+  const [schema, setSchema] = useState<Schema>('unknown');
+  const [loading, setLoading] = useState(!!db), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const [chip, setChip] = useState('foryou'), [hidden, setHidden] = useState<string[]>([]);
+  const [demoJoined, setDemoJoined] = useState<string[]>([]), [demoChannel, setDemoChannel] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Selected>(null), [wizard, setWizard] = useState(false), [busyKey, setBusyKey] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!db) return;
+    setLoading(true);
+    try { const r = await loadDirectory(db, user?.id || null); setRows(r.rows); setCounts(r.counts); setMine(r.mine); setSchema(x => schemaOf(r.rows, x)); setError(''); }
+    catch (e) { setError(errorText(e, t('Could not load communities'))); }
+    finally { setLoading(false); }
+  }, [db, user, t]);
+  useEffect(() => { void reload(); }, [reload]);
+  const flash = useCallback((m: string) => { setNotice(m); window.setTimeout(() => setNotice(n => n === m ? '' : n), 4000); }, []);
+
+  const showDemo = !db || (!loading && !error && rows.length === 0);
+  const cards = useMemo<CardItem[]>(() => {
+    const real: CardItem[] = rows.map(c => { const n = counts?.[c.id] ?? null; return { key: REAL_KEY + c.id, name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url, icon: c.avatar_url, members: n, privacy: c.privacy, demo: false, join: mine[c.id]?.join || 'none', avatars: n ? Array(Math.min(3, n)).fill('') : [] }; });
+    const demo: CardItem[] = showDemo ? demoCommunities.map(d => ({ key: DEMO_KEY + d.id, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, members: d.members, privacy: 'public', demo: true, join: demoJoined.includes(d.id) ? 'member' : 'none', avatars: demoPeople.slice(0, 3).map(p => p.avatar) })) : [];
+    return [...real, ...demo].filter(c => !hidden.includes(c.key));
+  }, [rows, counts, mine, showDemo, demoJoined, hidden]);
+  const visible = useMemo(() => filterCards(cards, chip, interests), [cards, chip, interests]);
+
+  const open = useCallback((key: string) => { setSelected({ kind: key.startsWith(DEMO_KEY) ? 'demo' : 'real', id: key.replace(/^(demo|real):/, '') }); window.scrollTo({ top: 0 }); }, []);
+  const openWizard = useCallback(() => setWizard(true), []);
+  const closeWizard = useCallback(() => setWizard(false), []);
+  const join = useCallback(async (key: string) => {
+    const id = key.replace(/^(demo|real):/, '');
+    if (key.startsWith(DEMO_KEY)) { setDemoJoined(j => j.includes(id) ? j.filter(x => x !== id) : [...j, id]); flash(t('This is an example community — joining is shown here but not saved.')); return; }
+    const c = rows.find(r => r.id === id); if (!c || !db) return;
+    if (!user) { flash(t('Log in to join communities.')); return; }
+    if (mine[id]?.join && mine[id].join !== 'none') { open(key); return; }
+    setBusyKey(key);
+    try { const state = await joinCommunity(db, user.id, c); setMine(m => ({ ...m, [id]: { join: state, role: state === 'member' ? 'member' : undefined } })); flash(t(state === 'member' ? 'You joined {name}.' : 'Request sent to {name}.', { name: c.name })); void reload(); }
+    catch (e) { setError(errorText(e)); }
+    finally { setBusyKey(null); }
+  }, [rows, db, user, mine, flash, t, reload, open]);
+  const discover = useCallback(() => { setSelected(null); setChip('foryou'); window.scrollTo({ top: 0, behavior: 'smooth' }); }, []);
+  useEffect(() => { setRailState({ items: cards, open, join: k => void join(k), create: openWizard, discover, busyKey }); }, [cards, open, join, openWizard, discover, busyKey]);
+  useEffect(() => () => setRailState({ items: [] }), []);
+
+  const create = async (d: Draft) => {
+    if (!db) return t('The database is not configured here, so new communities cannot be saved.');
+    if (!user) return t('Log in to create a community.');
+    try {
+      const r = await createCommunity(db, user.id, d, schema);
+      if (r.legacy) setSchema('legacy');
+      setWizard(false); setRows(x => [r.community, ...x.filter(y => y.id !== r.community.id)]); setMine(m => ({ ...m, [r.community.id]: { join: 'member', role: 'owner' } }));
+      setSelected({ kind: 'real', id: r.community.id });
+      flash([t('Community created.'), r.legacy ? t('Category and tags were not saved: the database update for communities is not applied yet.') : '', r.channelError ? t('Starter channels could not be created: {e}', { e: r.channelError }) : ''].filter(Boolean).join(' '));
+      void reload(); return null;
+    } catch (e) { return errorText(e); }
+  };
+
+  const real = selected?.kind === 'real' ? rows.find(r => r.id === selected.id) : undefined;
+  const demo = selected?.kind === 'demo' ? demoCommunities.find(d => d.id === selected.id) : undefined;
+  return <div className={s.root}>
+    {real && db ? <LiveCommunityPage key={real.id} db={db} user={user} community={real} mine={mine[real.id]} count={counts?.[real.id] ?? null} notice={notice}
+      onBack={() => setSelected(null)} onChanged={() => void reload()} onJoin={() => void join(REAL_KEY + real.id)}
+      onLeft={() => { setMine(m => { const n = { ...m }; delete n[real.id]; return n; }); void reload(); }} />
+      : demo ? <CommunityView v={demoModel(demo.id, demoJoined.includes(demo.id), interests, notice, demoChannel)} a={{
+        back: () => setSelected(null), join: () => void join(DEMO_KEY + demo.id), leave: () => void join(DEMO_KEY + demo.id), retry: () => {}, openSettings: () => {},
+        publish: async () => { flash(t('This is an example community — posts are not saved. Create your own community to start.')); return false; },
+        send: async () => { flash(t('This is an example community — messages are not saved.')); return false; },
+        deletePost: () => {}, openChannel: id => setDemoChannel(id), loadOlder: () => {},
+      }} />
+      : <Directory cards={visible} chip={chip} onChip={setChip} onCreate={openWizard} onOpen={open} onJoin={k => void join(k)} busyKey={busyKey}
+        onHide={k => { setHidden(h => [...h, k]); flash(t('Hidden from this list until you reload.')); }} onReport={() => flash(t('Reporting is not available yet.'))}
+        loading={loading} error={error} onRetry={() => void reload()}
+        notice={notice || (!db ? t('The database is not configured here. Showing example communities; nothing you do is saved.') : '')} />}
+    {wizard && <CreateWizard signedIn={!!user} configured={!!db} onClose={closeWizard} onCreate={create} />}
+  </div>;
+}
+
+function demoModel(id: string, joined: boolean, interests: string[], notice: string, demoChannel: string | null): ViewModel {
+  const d = demoCommunities.find(x => x.id === id)!;
+  const person = (i: number): Person => ({ id: 'demo-person-' + i, name: demoPeople[i].name, avatar: demoPeople[i].avatar, role: demoPeople[i].role || 'member' });
+  const channels = d.channels.map(n => ({ id: d.id + '#' + n, name: n }));
+  const active = channels.some(c => c.id === demoChannel) ? demoChannel : null;
+  const now = Date.now();
+  return {
+    demo: true, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, privacy: 'public',
+    memberCount: d.members, join: joined ? 'member' : 'none', role: null, signedIn: true, channelsEnabled: true, canPost: joined, canManage: false,
+    posts: d.posts.map((p, i) => ({ id: d.id + '-p' + i, author: person(p.author), body: p.text, at: now - p.hoursAgo * 3600e3, canDelete: false })),
+    members: demoPeople.map((_, i) => person(i)), channels, activeChannel: active,
+    messages: active ? d.chat.map((m, i) => ({ id: d.id + '-m' + i, author: person(m.author), body: m.text, at: now - m.minutesAgo * 60e3 })) : [],
+    recent: demoPeople.map((_, i) => person(i)), activeNow: d.activeNow,
+    sharedInterest: demoPeople.map((p, i) => ({ ...person(i), shared: p.interests.filter(x => interests.some(w => w.includes(x) || x.includes(w))) })).filter(p => p.shared!.length),
+    hasIntroduced: false, loading: false, busy: false, error: '', notice, messagesLoading: false, hasOlder: false, olderLoading: false,
+  };
+}
+
+function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, onChanged, onJoin, onLeft }: {
+  db: DB; user: User | null; community: Community; mine?: { join: JoinState; role?: string }; count: number | null; notice: string;
+  onBack: () => void; onChanged: () => void; onJoin: () => void; onLeft: () => void;
+}) {
+  const t = useT();
+  const live = useLiveCommunity(db, community, user, onChanged);
+  const [settings, setSettings] = useState(false);
+  const closeSettings = useCallback(() => setSettings(false), []);
+  const c = live.community;
+  const meRow = live.members.find(m => m.user_id === user?.id);
+  const role = meRow?.role || (mine?.join === 'member' ? mine.role || 'member' : null);
+  const join: JoinState = meRow ? 'member' : mine?.join || 'none';
+  const person = (id: string, roleName?: string): Person => ({ id, name: t('Member {id}', { id: shortId(id) }), me: id === user?.id, role: roleName });
+  const roleOf = (id: string) => live.members.find(m => m.user_id === id)?.role;
+  const recent = recentlyActive([...live.posts, ...live.messages], Date.now()).map(id => person(id, roleOf(id)));
+  const v: ViewModel = {
+    demo: false, name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url, icon: c.avatar_url, privacy: c.privacy,
+    memberCount: user ? live.members.length || count : count, join, role, signedIn: !!user, channelsEnabled: c.channels_enabled,
+    canPost: can(c, role, 'post'), canManage: can(c, role, 'moderate') || can(c, role, 'approve'),
+    posts: live.posts.map(p => ({ id: p.id, author: person(p.author_id, roleOf(p.author_id)), body: p.body, at: Date.parse(p.created_at), canDelete: p.author_id === user?.id || can(c, role, 'moderate') })),
+    members: user ? live.members.map(m => person(m.user_id, m.role)) : null, channels: live.channels, activeChannel: live.activeChannel,
+    messages: live.messages.map(m => ({ id: m.id, author: person(m.author_id), body: m.body, at: Date.parse(m.created_at) })),
+    recent, activeNow: null, sharedInterest: null, hasIntroduced: live.posts.some(p => p.author_id === user?.id),
+    loading: live.loading, busy: live.busy, error: live.error, notice: notice || (live.needsMigration ? t('Some management features need the database update for communities. Ask the project owner to apply it.') : ''),
+    messagesLoading: live.messagesLoading, hasOlder: live.hasOlder, olderLoading: live.olderLoading,
+  };
+  const a: ViewActions = {
+    back: onBack, retry: () => void live.reload(), openSettings: () => setSettings(true),
+    join: () => { onJoin(); setTimeout(() => void live.reload(), 600); },
+    leave: () => void live.perform(async () => { if (!user) return; await leaveCommunity(db, user.id, c.id, join === 'pending'); await live.reload(); onLeft(); }),
+    publish: body => live.publish(body), deletePost: id => void live.deletePost(id),
+    openChannel: live.openChannel, send: body => live.send(body), loadOlder: () => void live.loadOlder(),
+  };
+  return <>
+    <CommunityView v={v} a={a} />
+    {settings && <SettingsModal live={live} role={role} userId={user?.id || null} onClose={closeSettings} />}
+  </>;
 }
