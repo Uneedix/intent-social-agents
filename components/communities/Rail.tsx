@@ -24,9 +24,10 @@ function Row({ c, onOpen, onJoin, busy }: { c: CardItem; onOpen: () => void; onJ
 export default function CommunitiesRail() {
   const t = useT();
   const { items, open, join, discover, busyKey } = useRailState();
-  const popular = [...items].sort((a, b) => (b.members ?? -1) - (a.members ?? -1)).slice(0, 5);
+  const discoverable = items.filter(c => !c.owned);
+  const popular = [...discoverable].sort((a, b) => (b.members ?? -1) - (a.members ?? -1)).slice(0, 5);
   const shown = new Set(popular.map(c => c.key));
-  const suggested = items.filter(c => !shown.has(c.key) && c.join === 'none').slice(0, 5);
+  const suggested = discoverable.filter(c => !shown.has(c.key) && c.join === 'none').slice(0, 5);
   return <div className={s.rail}>
     {popular.length > 0 && <section className={s.railCard}><div className={s.railHead}><strong>{t('Popular communities')}</strong>{popular.some(c => c.demo) && <ExampleBadge label={t('Example')} />}</div>
       {popular.map(c => <Row key={c.key} c={c} busy={busyKey === c.key} onOpen={() => open(c.key)} onJoin={() => join(c.key)} />)}</section>}

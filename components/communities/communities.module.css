@@ -13,6 +13,7 @@
 
 /* chips */
 .settingsTabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.deleteZone{margin-top:28px;padding-top:20px;border-top:1px solid #623737;display:flex;flex-direction:column;gap:12px}.deleteZone h3{margin:0;color:#ff9b9b;font-size:16px}.deleteZone>p{margin:0;font-size:13px;line-height:1.5;color:#bdb7b7}.deleteActions{display:flex;flex-wrap:wrap;gap:8px}
 .chipBar{display:flex;gap:8px;align-items:center;min-width:0}
 .chips{display:flex;gap:8px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px 0}.chips::-webkit-scrollbar{display:none}
 .chips>*{flex:none}

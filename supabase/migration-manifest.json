@@ -31,6 +31,10 @@
     {
       "path": "migrations/20261025100000_community_roles.sql",
       "sha256": "141f228f669a692e3b89ba07dc66aba592edc3f093c2b1d5923210614b8cbc02"
+    },
+    {
+      "path": "migrations/20261025110000_owner_community_delete.sql",
+      "sha256": "c2e168a177c49e050ec9cbaf15edbbd113d2ca0c512df6f535d36731a3680856"
     }
   ]
 }

@@ -18,7 +18,7 @@ export default function Directory({ cards, chip, onChip, onCreate, onOpen, onJoi
   const { t, lang } = useI18n();
   const locale = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   const moreActive = (MORE_CATEGORIES as readonly string[]).includes(chip);
-  const chips: [string, string][] = [['foryou', 'For you'], ['trending', 'Trending'], ...MAIN_CATEGORIES.map(c => [c, CATEGORY_LABEL[c]] as [string, string])];
+  const chips: [string, string][] = [['foryou', 'For you'], ['mine', 'My communities'], ['trending', 'Trending'], ...MAIN_CATEGORIES.map(c => [c, CATEGORY_LABEL[c]] as [string, string])];
   const hasDemo = cards.some(c => c.demo);
   return <section className={s.directory} data-lang={lang}>
     <header className={s.head}>
@@ -53,7 +53,7 @@ export default function Directory({ cards, chip, onChip, onCreate, onOpen, onJoi
         </div>
       </article>)}
     </div>
-    {!loading && !cards.length && <div className={s.empty}><p>{t('No communities in this category yet.')}</p><Button variant="primary" onClick={onCreate}><Plus size={16} /> {t('Create the first one')}</Button></div>}
+    {!loading && !cards.length && <div className={s.empty}><p>{t(chip === 'mine' ? 'You do not own any communities yet.' : 'No communities in this category yet.')}</p><Button variant="primary" onClick={onCreate}><Plus size={16} /> {t('Create the first one')}</Button></div>}
     {hasDemo && <p className={s.footnote}><Info size={14} /> {t('Communities marked “Example” are illustrative: their members, counts and posts are invented and nothing you do there is saved.')}</p>}
   </section>;
 }

@@ -22,7 +22,7 @@ export type JoinState = 'none' | 'member' | 'pending';
 export type CardItem = {
   key: string; name: string; description: string; category: string; tags: string[];
   cover: string | null; icon: string | null; members: number | null; privacy: Privacy;
-  demo: boolean; join: JoinState; avatars: string[];
+  demo: boolean; join: JoinState; avatars: string[]; owned?: boolean;
 };
 
 export const MAIN_CATEGORIES = ['business', 'technology', 'lifestyle', 'self-improvement', 'travel', 'creative'] as const;
@@ -120,10 +120,17 @@ export function recentlyActive(items: { author_id: string; created_at: string }[
 export function filterCards(cards: CardItem[], chip: string, interests: string[] = []) {
   const words = interests.map(i => i.toLowerCase());
   const score = (c: CardItem) => words.filter(w => c.category.includes(w) || c.tags.some(t => t.toLowerCase().includes(w)) || c.name.toLowerCase().includes(w)).length;
-  let list = cards;
-  if (chip !== 'foryou' && chip !== 'trending') list = cards.filter(c => c.category === chip);
+  // Ownership comes exclusively from a real row's owner_id, never join/role hints.
+  let list = cards.filter(c => chip === 'mine' ? !c.demo && c.owned === true : !c.owned);
+  if (!['foryou', 'trending', 'mine'].includes(chip)) list = list.filter(c => c.category === chip);
   const real = list.filter(c => !c.demo), demo = list.filter(c => c.demo);
   if (chip === 'trending') demo.sort((a, b) => (b.members ?? 0) - (a.members ?? 0));
   if (chip === 'foryou') demo.sort((a, b) => score(b) - score(a));
   return [...real, ...demo];
+}
+
+/** Own rows must not hide discovery examples when no other real community exists. */
+export function shouldShowExamples(rows: Pick<Community, 'owner_id'>[], userId: string | null,
+  state: { configured: boolean; loading: boolean; error: string }): boolean {
+  return !state.configured || (!state.loading && !state.error && !rows.some(row => row.owner_id !== userId));
 }

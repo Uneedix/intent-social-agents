@@ -31,5 +31,9 @@ END $$;
 \ir ../migrations/20261025100000_community_roles.sql
 \ir ../migrations/20261025100000_community_roles.sql
 \ir community_roles.sql
+-- Owner deletion: current schema plus exact target/id and role-boundary regressions.
+\ir ../migrations/20261025110000_owner_community_delete.sql
+\ir ../migrations/20261025110000_owner_community_delete.sql
+\ir owner_community_delete.sql
 \ir private_function_security.sql
 \ir access_control.sql

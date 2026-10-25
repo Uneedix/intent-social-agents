@@ -1,13 +1,13 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { useT } from './I18n';
 import { useSession } from './SessionBoundary';
 import { useProfile } from './Experience';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
 import { demoCommunities, demoPeople } from '../lib/demo/communities';
-import { createCommunity, joinCommunity, leaveCommunity, loadDirectory, schemaOf, type DB, type Schema } from './communities/api';
-import { can, errorText, filterCards, recentlyActive, shortId, type CardItem, type Community, type Draft, type JoinState } from './communities/model';
+import { createCommunity, deleteCommunity, joinCommunity, leaveCommunity, loadDirectory, schemaOf, type DB, type Schema } from './communities/api';
+import { can, errorText, filterCards, recentlyActive, shortId, shouldShowExamples, type CardItem, type Community, type Draft, type JoinState } from './communities/model';
 import { useLiveCommunity } from './communities/useLiveCommunity';
 import Directory from './communities/Directory';
 import CreateWizard from './communities/CreateWizard';
@@ -40,23 +40,24 @@ function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
   const [chip, setChip] = useState('foryou'), [hidden, setHidden] = useState<string[]>([]);
   const [demoJoined, setDemoJoined] = useState<string[]>([]), [demoChannel, setDemoChannel] = useState<string | null>(null);
   const [selected, setSelected] = useState<Selected>(null), [wizard, setWizard] = useState(false), [busyKey, setBusyKey] = useState<string | null>(null);
+  const directoryRequest = useRef(0);
 
   const reload = useCallback(async () => {
     if (!db) return;
-    setLoading(true);
-    try { const r = await loadDirectory(db, user?.id || null); setRows(r.rows); setCounts(r.counts); setMine(r.mine); setSchema(x => schemaOf(r.rows, x)); setError(''); }
-    catch (e) { setError(errorText(e, t('Could not load communities'))); }
-    finally { setLoading(false); }
+    const request = ++directoryRequest.current; setLoading(true);
+    try { const r = await loadDirectory(db, user?.id || null); if (request !== directoryRequest.current) return; setRows(r.rows); setCounts(r.counts); setMine(r.mine); setSchema(x => schemaOf(r.rows, x)); setError(''); }
+    catch (e) { if (request === directoryRequest.current) setError(errorText(e, t('Could not load communities'))); }
+    finally { if (request === directoryRequest.current) setLoading(false); }
   }, [db, user, t]);
   useEffect(() => { void reload(); }, [reload]);
   const flash = useCallback((m: string) => { setNotice(m); window.setTimeout(() => setNotice(n => n === m ? '' : n), 4000); }, []);
 
-  const showDemo = !db || (!loading && !error && rows.length === 0);
+  const showDemo = shouldShowExamples(rows, user?.id ?? null, { configured: !!db, loading, error });
   const cards = useMemo<CardItem[]>(() => {
-    const real: CardItem[] = rows.map(c => { const n = counts?.[c.id] ?? null; return { key: REAL_KEY + c.id, name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url, icon: c.avatar_url, members: n, privacy: c.privacy, demo: false, join: mine[c.id]?.join || 'none', avatars: n ? Array(Math.min(3, n)).fill('') : [] }; });
-    const demo: CardItem[] = showDemo ? demoCommunities.map(d => ({ key: DEMO_KEY + d.id, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, members: d.members, privacy: 'public', demo: true, join: demoJoined.includes(d.id) ? 'member' : 'none', avatars: demoPeople.slice(0, 3).map(p => p.avatar) })) : [];
+    const real: CardItem[] = rows.map(c => { const n = counts?.[c.id] ?? null; return { key: REAL_KEY + c.id, name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url, icon: c.avatar_url, members: n, privacy: c.privacy, demo: false, owned: !!user && c.owner_id === user.id, join: mine[c.id]?.join || 'none', avatars: n ? Array(Math.min(3, n)).fill('') : [] }; });
+    const demo: CardItem[] = showDemo ? demoCommunities.map(d => ({ key: DEMO_KEY + d.id, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, members: null, privacy: 'public', demo: true, owned: false, join: demoJoined.includes(d.id) ? 'member' : 'none', avatars: [] })) : [];
     return [...real, ...demo].filter(c => !hidden.includes(c.key));
-  }, [rows, counts, mine, showDemo, demoJoined, hidden]);
+  }, [rows, counts, mine, showDemo, demoJoined, hidden, user]);
   const visible = useMemo(() => filterCards(cards, chip, interests), [cards, chip, interests]);
 
   const open = useCallback((key: string) => { setSelected({ kind: key.startsWith(DEMO_KEY) ? 'demo' : 'real', id: key.replace(/^(demo|real):/, '') }); window.scrollTo({ top: 0 }); }, []);
@@ -95,7 +96,14 @@ function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
   return <div className={s.root}>
     {real && db ? <LiveCommunityPage key={real.id} db={db} user={user} community={real} mine={mine[real.id]} count={counts?.[real.id] ?? null} notice={notice}
       onBack={() => setSelected(null)} onChanged={() => void reload()} onJoin={() => void join(REAL_KEY + real.id)}
-      onLeft={() => { setMine(m => { const n = { ...m }; delete n[real.id]; return n; }); void reload(); }} />
+      onLeft={() => { setMine(m => { const n = { ...m }; delete n[real.id]; return n; }); void reload(); }}
+      onDeleted={id => {
+        directoryRequest.current++;
+        setRows(current => current.filter(row => row.id !== id));
+        setMine(current => { const next = { ...current }; delete next[id]; return next; });
+        setSelected(current => current?.kind === 'real' && current.id === id ? null : current);
+        flash(t('Community deleted.')); void reload();
+      }} />
       : demo ? <CommunityView v={demoModel(demo.id, demoJoined.includes(demo.id), interests, notice, demoChannel)} a={{
         back: () => setSelected(null), join: () => void join(DEMO_KEY + demo.id), leave: () => void join(DEMO_KEY + demo.id), retry: () => {}, openSettings: () => {},
         publish: async () => { flash(t('This is an example community — posts are not saved. Create your own community to start.')); return false; },
@@ -118,19 +126,19 @@ function demoModel(id: string, joined: boolean, interests: string[], notice: str
   const now = Date.now();
   return {
     demo: true, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, privacy: 'public',
-    memberCount: d.members, join: joined ? 'member' : 'none', role: null, signedIn: true, channelsEnabled: true, canPost: joined, canManage: false,
+    memberCount: null, join: joined ? 'member' : 'none', role: null, signedIn: true, channelsEnabled: true, canPost: joined, canManage: false,
     posts: d.posts.map((p, i) => ({ id: d.id + '-p' + i, author: person(p.author), body: p.text, at: now - p.hoursAgo * 3600e3, canDelete: false })),
     members: demoPeople.map((_, i) => person(i)), channels, activeChannel: active,
     messages: active ? d.chat.map((m, i) => ({ id: d.id + '-m' + i, author: person(m.author), body: m.text, at: now - m.minutesAgo * 60e3 })) : [],
-    recent: demoPeople.map((_, i) => person(i)), activeNow: d.activeNow,
+    recent: demoPeople.map((_, i) => person(i)), activeNow: null,
     sharedInterest: demoPeople.map((p, i) => ({ ...person(i), shared: p.interests.filter(x => interests.some(w => w.includes(x) || x.includes(w))) })).filter(p => p.shared!.length),
     hasIntroduced: false, loading: false, busy: false, error: '', notice, messagesLoading: false, hasOlder: false, olderLoading: false,
   };
 }
 
-function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, onChanged, onJoin, onLeft }: {
+function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, onChanged, onJoin, onLeft, onDeleted }: {
   db: DB; user: User | null; community: Community; mine?: { join: JoinState; role?: string }; count: number | null; notice: string;
-  onBack: () => void; onChanged: () => void; onJoin: () => void; onLeft: () => void;
+  onBack: () => void; onChanged: () => void; onJoin: () => void; onLeft: () => void; onDeleted: (id: string) => void;
 }) {
   const t = useT();
   const live = useLiveCommunity(db, community, user, onChanged);
@@ -138,7 +146,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
   const closeSettings = useCallback(() => setSettings(false), []);
   const c = live.community;
   const meRow = live.members.find(m => m.user_id === user?.id);
-  const role = meRow?.role || (mine?.join === 'member' ? mine.role || 'member' : null);
+  const role = user?.id === c.owner_id ? 'owner' : meRow?.role || (mine?.join === 'member' ? mine.role || 'member' : null);
   const join: JoinState = meRow ? 'member' : mine?.join || 'none';
   const person = (id: string, roleName?: string): Person => ({ id, name: t('Member {id}', { id: shortId(id) }), me: id === user?.id, role: roleName });
   const roleOf = (id: string) => live.members.find(m => m.user_id === id)?.role;
@@ -163,6 +171,9 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
   };
   return <>
     <CommunityView v={v} a={a} />
-    {settings && <SettingsModal live={live} role={role} userId={user?.id || null} onClose={closeSettings} />}
+    {settings && <SettingsModal live={live} role={role} userId={user?.id || null} onClose={closeSettings} onDelete={async () => {
+      if (!user || c.owner_id !== user.id) throw new Error(t('Only the community owner can delete it.'));
+      await deleteCommunity(db, c.id); onDeleted(c.id);
+    }} />}
   </>;
 }

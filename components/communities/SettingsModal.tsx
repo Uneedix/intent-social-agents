@@ -1,17 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Check, Globe, Hash, Lock, MoreHorizontal, Plus, ShieldCheck, Trash2, UserMinus, X } from 'lucide-react';
 import { Button, Choice, Field, Menu, Modal, Toggle, inputClass } from '../ui';
 import { useT } from '../I18n';
 import ImagePicker from '../ImagePicker';
 import { CATEGORIES, CATEGORY_LABEL, DESCRIPTION_MAX, NAME_MAX, NAME_MIN, addTag, assignableRoles, can, canRemove, displayRole, shortId, type Community, type Threshold } from './model';
 import type { Live } from './useLiveCommunity';
+import DeleteCommunityControl from './DeleteCommunityControl';
 import s from './communities.module.css';
 
 type Section = 'general' | 'privacy' | 'structure' | 'members' | 'requests';
 const roleLabel = (r: string) => displayRole(r).replace(/^./, c => c.toUpperCase());
 
-export default function SettingsModal({ live, role, userId, onClose }: { live: Live; role: string | null; userId: string | null; onClose: () => void }) {
+export default function SettingsModal({ live, role, userId, onClose, onDelete }: { live: Live; role: string | null; userId: string | null; onClose: () => void; onDelete?: () => Promise<void> }) {
   const t = useT();
   const c = live.community;
   const v2 = 'category' in c;
@@ -22,6 +23,8 @@ export default function SettingsModal({ live, role, userId, onClose }: { live: L
   const [tag, setTag] = useState('');
   const [p, setP] = useState({ privacy: c.privacy, posting_permission: c.posting_permission, comments_permission: c.comments_permission || 'members', manage_channels_role: c.manage_channels_role || 'admin', approve_requests_role: c.approve_requests_role || 'admin', remove_members_role: c.remove_members_role || 'admin' });
   const [channel, setChannel] = useState(''), [confirmChannel, setConfirmChannel] = useState<string | null>(null), [saved, setSaved] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const requestClose = useCallback(() => { if (!deleting) onClose(); }, [deleting, onClose]);
   const done = (ok: boolean) => { if (ok) { setSaved(t('Saved')); setTimeout(() => setSaved(''), 1800); } };
   const saveGeneral = async () => {
     if (g.name.trim().length < NAME_MIN) { live.setError(t('Name must be at least 3 characters.')); return; }
@@ -38,9 +41,9 @@ export default function SettingsModal({ live, role, userId, onClose }: { live: L
     <div className={s.seg} role="radiogroup" aria-label={t(label)}>{(['admin', 'moderator'] as Threshold[]).map(r => <Button key={r} size="sm" role="radio" aria-checked={p[k] === r} disabled={!v2} variant={p[k] === r ? 'primary' : 'outline'} onClick={() => setP({ ...p, [k]: r })}>{t(r === 'admin' ? 'Admins' : 'Moderators+')}</Button>)}</div></div>;
   const migrationNote = <p className={s.notice} role="status"><Lock size={16} /> {t('Moderator role, role changes, removing members, declining requests and these permissions need the database update (community roles migration). Ask the project owner to apply it.')}</p>;
 
-  return <Modal width={680} title={t('Community settings')} subtitle={c.name} onClose={onClose}
-    footer={saved ? <span className={s.saved}><Check size={16} /> {saved}</span> : <Button onClick={onClose}>{t('Close')}</Button>}>
-    <nav className={s.settingsTabs} role="tablist">{sections.map(([k, l]) => <button key={k} role="tab" aria-selected={section === k} className={section === k ? s.chipOn : s.chip} onClick={() => setSection(k)}>{t(l)}{k === 'requests' && live.requests.length > 0 && <em className={s.count}>{live.requests.length}</em>}</button>)}</nav>
+  return <Modal width={680} title={t('Community settings')} subtitle={c.name} onClose={requestClose}
+    footer={saved ? <span className={s.saved}><Check size={16} /> {saved}</span> : <Button disabled={deleting} onClick={requestClose}>{t('Close')}</Button>}>
+    <nav className={s.settingsTabs} role="tablist">{sections.map(([k, l]) => <button key={k} role="tab" disabled={deleting} aria-selected={section === k} className={section === k ? s.chipOn : s.chip} onClick={() => setSection(k)}>{t(l)}{k === 'requests' && live.requests.length > 0 && <em className={s.count}>{live.requests.length}</em>}</button>)}</nav>
     {(live.needsMigration || (!v2 && (section === 'privacy' || section === 'members'))) && migrationNote}
     {live.error && <p className={s.error} role="alert">{live.error}</p>}
 
@@ -53,7 +56,8 @@ export default function SettingsModal({ live, role, userId, onClose }: { live: L
         <input value={tag} disabled={!v2} onChange={e => setTag(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); setG({ ...g, tags: addTag(g.tags, tag) }); setTag(''); } }} /></div></Field>
       <ImagePicker label={t('Cover image')} value={g.cover} onChange={v => setG({ ...g, cover: v })} shape="wide" maxSide={960} />
       <ImagePicker label={t('Icon')} value={g.icon} onChange={v => setG({ ...g, icon: v })} shape="circle" maxSide={256} />
-      <Button variant="primary" disabled={live.busy} onClick={() => void saveGeneral()}>{t('Save changes')}</Button>
+      <Button variant="primary" disabled={live.busy || deleting} onClick={() => void saveGeneral()}>{t('Save changes')}</Button>
+      {userId !== null && userId === c.owner_id && onDelete && <DeleteCommunityControl name={c.name} onDelete={onDelete} onBusy={setDeleting} />}
     </>}
 
     {section === 'privacy' && <>

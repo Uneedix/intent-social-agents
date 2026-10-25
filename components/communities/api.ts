@@ -72,3 +72,22 @@ export async function leaveCommunity(db: DB, userId: string, communityId: string
     : await db.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId);
   if (result.error) throw result.error;
 }
+
+/** Owner authorization and cascades happen in the server RPC, never client DELETE. */
+export async function deleteCommunity(db: DB, communityId: string): Promise<void> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(communityId)) {
+    throw new Error('Invalid community id.');
+  }
+  let result;
+  try { result = await db.rpc('delete_community', { cid: communityId }); }
+  catch { throw new Error('Could not delete the community. Please retry.'); }
+  const { data, error } = result;
+  if (error) {
+    if (isMissingSchema(error)) throw new Error('Community deletion needs the database update. Ask the project owner to apply it.');
+    if (error.code === '42501') throw new Error('Only the community owner can delete it, or it no longer exists.');
+    throw new Error('Could not delete the community. Please retry.');
+  }
+  if (typeof data !== 'string' || data.toLowerCase() !== communityId.toLowerCase()) {
+    throw new Error('Deletion was not confirmed by the server. Reload before trying again.');
+  }
+}
