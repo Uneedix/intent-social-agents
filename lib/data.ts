@@ -17,8 +17,11 @@ export const sampleStories:{handle:string;name:string;avatar:string;items:{image
  {handle:'alex',name:'Alex',avatar:avatars.alex,items:[{image:photo('photo-1517336714731-489689fd1ca8',900),caption:'Working on something exciting',ago:'8h'}]}
 ];
 export type ChatFile={name:string;size:number;type:string;data:string};
-export type ChatMsg={id:number;from:string;text:string;at:number;image?:string;file?:ChatFile;voice?:{data:string;duration:number};starred?:boolean;poll?:{question:string;options:{text:string;votes:string[]}[]};contact?:{name:string;handle:string;avatar:string};location?:{lat:number;lon:number};replyTo?:number;edited?:boolean;deleted?:boolean;reactions?:Record<string,string[]>;read?:boolean;forwardedFrom?:string;gif?:GifAttachment};
-export type Chat={id:string;name:string;handle:string;avatar:string;online?:boolean;pinned?:boolean;muted?:boolean;kind:'personal'|'work'|'saved'|'group';messages:ChatMsg[];members?:{name:string;handle:string;avatar:string}[];archived?:boolean;draft?:string;pinnedMsg?:number;unread?:number;category?:ChatCategory};
+export type ChatMsg={id:number;from:string;text:string;at:number;image?:string;file?:ChatFile;voice?:{data:string;duration:number};starred?:boolean;poll?:{question:string;options:{text:string;votes:string[]}[]};contact?:{name:string;handle:string;avatar:string};location?:{lat:number;lon:number};replyTo?:number;edited?:boolean;deleted?:boolean;reactions?:Record<string,string[]>;read?:boolean;forwardedFrom?:string;gif?:GifAttachment;topicId?:string};
+export type Chat={id:string;name:string;handle:string;avatar:string;online?:boolean;pinned?:boolean;muted?:boolean;kind:'personal'|'work'|'saved'|'group';messages:ChatMsg[];members?:{name:string;handle:string;avatar:string}[];archived?:boolean;draft?:string;pinnedMsg?:number;unread?:number;category?:ChatCategory;description?:string;color?:number;topicsEnabled?:boolean;topics?:GroupTopic[];roles?:Record<string,GroupRole>};
+/** Telegram-style group roles and topics (subgroups). Local groups keep these on this device only. */
+export type GroupRole='owner'|'admin'|'member';
+export type GroupTopic={id:string;title:string;icon:string;color:number;general?:boolean;closed?:boolean;pinned?:boolean;unread?:number;createdAt?:number};
 export type ChatCategory='job'|'collab'|'other';
 /** Illustrative profile details for the sample contacts (demo data). */
 export const chatProfiles:Record<string,{title?:string;location?:string;verified?:boolean;cover?:string;category?:ChatCategory}>={
