@@ -1,5 +1,6 @@
 'use client';
-import { useT } from './I18n';
+import { useT, useI18n } from './I18n';
+import {normalizeFolderOrder,moveFolder,reorderFolder} from '../lib/chat-folders';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
 import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, Forward, Copy, BellOff, Bell, Check, CheckCheck, MoreHorizontal, Eraser, CornerUpLeft, Video, Phone, MapPin, BadgeCheck, Mic, Pause, Play, Download, FileText, Link2, Plus, Briefcase, Handshake, MessageSquare, Archive, ArchiveRestore, ListPlus, Star, CircleCheck, SquarePen, Camera, Image as ImageIcon, Clapperboard, UserRound, BarChart3, Target, Music, Users, ChevronRight, ChevronLeft, Heart, Info, Settings, Lock, UserPlus, MailOpen, Mail, Share } from 'lucide-react';
 import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
@@ -49,10 +50,15 @@ function ListItem({ active, onOpen, onMenu, label, children }: { c: Chat; active
     onPointerDown={press.onPointerDown} onPointerUp={press.onPointerUp} onPointerLeave={press.onPointerLeave} onPointerCancel={press.onPointerCancel} onContextMenu={press.onContextMenu}>{children}</button>;
 }
 
-type Props = { chats: Chat[]; setChats: (c: Chat[]) => void; active: string | null; setActive: (id: string | null) => void; toast: (m: string) => void; modeSwitch?: ReactNode; people?: [string, string, string][]; onViewProfile?: (handle: string) => void; onShareIntention?: () => void; onCommunities?: () => void };
+type Props = { chats: Chat[]; setChats: (c: Chat[]) => void; active: string | null; setActive: (id: string | null) => void; toast: (m: string) => void; modeSwitch?: ReactNode; onHome?:()=>void; people?: [string, string, string][]; onViewProfile?: (handle: string) => void; onShareIntention?: () => void; onCommunities?: () => void };
 
-export default function Messenger({ chats, setChats, active, setActive, toast, modeSwitch, people = [], onViewProfile, onShareIntention, onCommunities }: Props) {
+export default function Messenger({ chats, setChats, active, setActive, toast, modeSwitch, onHome, people = [], onViewProfile, onShareIntention }: Props) {
   const t = useT();
+  const {lang}=useI18n();
+  const ui=lang==='Русский'?{left:'Переместить влево',right:'Переместить вправо',options:'Настроить папку',selected:'Выбранные участники',search:'Поиск людей…',group:'Создать группу',hint:'Папки можно перетаскивать или перемещать через меню.'}:lang==='Polski'?{left:'Przenieś w lewo',right:'Przenieś w prawo',options:'Opcje folderu',selected:'Wybrane osoby',search:'Szukaj osób…',group:'Utwórz grupę',hint:'Przeciągnij folder lub przesuń go w menu.'}:{left:'Move left',right:'Move right',options:'Folder options',selected:'Selected people',search:'Search people…',group:'Create group',hint:'Drag folders or move them using their menu.'};
+  const [folderOrder,setFolderOrder]=useStored<string[]>('intent-chat-folder-order',[]);
+  const [folderMenu,setFolderMenu]=useState<string|null>(null);
+  const draggingFolder=useRef<string|null>(null);
   const [lists, setLists] = useStored<ChatList[]>('intent-chat-lists', []);
   const [folder, setFolder] = useState<string>('all');
   const [q, setQ] = useState('');
@@ -75,7 +81,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const [attachOpen, setAttachOpen] = useState(false);
   const [viewer, setViewer] = useState<number | null>(null);
   const [mediaTab, setMediaTab] = useState<'media' | 'links' | 'files' | 'starred' | null>(null);
-  const [newChat, setNewChat] = useState<'people' | 'groups' | 'communities' | null>(null);
+  const [newChat, setNewChat] = useState<'people' | 'groups' | null>(null);
   const [pick, setPick] = useState<string[]>([]);
   const [pickQ, setPickQ] = useState('');
   const [groupName, setGroupName] = useState('');
@@ -143,7 +149,11 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     chats.forEach(c => { if (c.kind !== 'saved' && c.kind !== 'group' && !m.has(c.handle)) m.set(c.handle, { name: c.name, handle: c.handle, avatar: c.avatar }); });
     return [...m.values()];
   }, [people, chats]);
-  const folders: [string, string][] = [...BASE_FOLDERS.map(f => [f[0], t(f[1])] as [string, string]), ...lists.map(l => ['list:' + l.id, l.name] as [string, string])];
+  const availableFolders: [string,string][]=[...BASE_FOLDERS.map(f=>[f[0],t(f[1])] as [string,string]),...lists.map(l=>['list:'+l.id,l.name] as [string,string])];
+  const folderIds=availableFolders.map(([id])=>id);
+  const orderedIds=normalizeFolderOrder(folderOrder,folderIds);
+  const folders=orderedIds.map(id=>availableFolders.find(([key])=>key===id)!);
+  const moveFolderInMenu=(direction:-1|1)=>{if(folderMenu)setFolderOrder(current=>moveFolder(current,folderIds,folderMenu,direction));};
   const inFolder = (c: Chat, f: string) => {
     if (f === 'archived') return !!c.archived;
     if (c.archived) return false;
@@ -323,7 +333,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     const s = pickQ.trim().toLowerCase();
     const ppl = contacts.filter(p => !exclude.includes(p.handle) && (!s || p.name.toLowerCase().includes(s) || p.handle.includes(s)));
     return <div className="np-list">{ppl.map(p => { const on = pick.includes(p.handle);
-      return <button key={p.handle} className={'np-row ' + (on ? 'on' : '')} onClick={() => setPick(multi ? (on ? pick.filter(x => x !== p.handle) : [...pick, p.handle]) : (on ? [] : [p.handle]))}>
+      return <button type="button" aria-pressed={on} key={p.handle} className={'np-row ' + (on ? 'on' : '')} onClick={() => setPick(multi ? (on ? pick.filter(x => x !== p.handle) : [...pick, p.handle]) : (on ? [] : [p.handle]))}>
         <Avatar chat={{ kind: 'personal', avatar: p.avatar, name: p.name, online: chats.find(c => c.handle === p.handle)?.online }} size={44} dot />
         <span><b>{p.name}</b><small>@{p.handle}</small></span><i className="np-check">{on && <Check size={15} strokeWidth={3} />}</i></button>; })}
       {!ppl.length && <p className="muted ms-note">{t('No people found.')}</p>}</div>;
@@ -360,14 +370,13 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
       <ResizeHandle pane="chatList" edge="end" container=".ms" label="Resize chat list" />
-      <div className="ms-title"><h1>{t('Messages')}</h1><span className="ms-logo">intent<span>.</span></span><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
+      <div className="ms-title"><h1>{t('Messages')}</h1><button type="button" className="ms-logo ms-home-logo" onClick={onHome} aria-label={t('Home')}>intent<span>.</span></button><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
       <div className="ms-search-row"><label className="ms-search"><Search size={20} /><input ref={listSearch} value={q} onChange={e => setQ(e.target.value)} placeholder={t('Search messages...')} aria-label={t('Search messages...')} /></label>
         <button className="ms-new ms-hide-m" onClick={() => setNewChat('people')} aria-label={t('New chat')} title={t('New chat')}><SquarePen size={20} /></button></div>
-      <div className="ms-chips" role="tablist">{folders.map(([k, l]) => <button key={k} role="tab" aria-selected={folder === k} className={folder === k ? 'on' : ''} onClick={() => setFolder(k)}
-          onContextMenu={e => { if (!k.startsWith('list:')) return; e.preventDefault(); const li = lists.find(x => 'list:' + x.id === k); if (li) setListEdit(li); }}>
-          {l}{k === 'unread' && unreadCount > 0 && <em>{unreadCount}</em>}
-          {k.startsWith('list:') && folder === k && <span role="button" tabIndex={0} className="ms-chip-edit" aria-label={t('Edit list')} onClick={e => { e.stopPropagation(); const li = lists.find(x => 'list:' + x.id === k); if (li) setListEdit(li); }}><Pencil size={12} /></span>}</button>)}
-        <button className="ms-chip-add" onClick={() => setListEdit({ id: String(uid()), name: '', chats: [] })} aria-label={t('New chat list')}><Plus size={16} /></button></div>
+      <div className="ms-chips ms-folder-tabs" role="tablist" aria-label={t('Chats')} title={ui.hint}>{folders.map(([k,l])=><span className={'ms-folder-chip '+(folder===k?'active':'')} key={k} draggable onDragStart={e=>{draggingFolder.current=k;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',k);}} onDragEnd={()=>{draggingFolder.current=null;}} onDragOver={e=>{if(draggingFolder.current&&draggingFolder.current!==k){e.preventDefault();e.dataTransfer.dropEffect='move';}}} onDrop={e=>{e.preventDefault();const source=draggingFolder.current;if(source)setFolderOrder(current=>reorderFolder(current,folderIds,source,k));draggingFolder.current=null;}} onContextMenu={e=>{e.preventDefault();setFolderMenu(k);}}>
+        <button type="button" role="tab" aria-selected={folder===k} className={folder===k?'on':''} onClick={()=>setFolder(k)}>{l}{k==='unread'&&unreadCount>0&&<em>{unreadCount}</em>}</button>
+        <button type="button" className="ms-folder-options" aria-label={`${ui.options}: ${l}`} aria-haspopup="dialog" onClick={()=>setFolderMenu(k)}><MoreHorizontal size={13}/></button>
+      </span>)}<button type="button" className="ms-chip-add" onClick={()=>setListEdit({id:String(uid()),name:'',chats:[]})} aria-label={t('New chat list')}><Plus size={16}/></button></div>
       <div className="ms-chats">{list.map(c => { const l = last(c); const cat = categoryOf(c); const p = chatProfiles[c.handle];
         return <ListItem key={c.id} c={c} active={active === c.id} onOpen={() => setActive(c.id)} onMenu={() => setItemMenu(c.id)} label={chatTitle(c)}>
           <Avatar chat={c} size={52} dot />
@@ -553,14 +562,14 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <div className="ms-menu-list"><button className="danger" onClick={() => { setPrivacy(false); if (confirm(t('Clear all messages in this chat on this device?'))) update(chat.id, c => ({ ...c, messages: [], pinnedMsg: undefined })); }}><Eraser size={18} /> {t('Clear history')}</button></div>
     </Sheet>}
 
+    {folderMenu&&<Sheet title={`${ui.options} · ${folders.find(([id])=>id===folderMenu)?.[1]||''}`} onClose={()=>setFolderMenu(null)}><div className="ms-menu-list"><button type="button" disabled={orderedIds.indexOf(folderMenu)<=0} onClick={()=>moveFolderInMenu(-1)}><ChevronLeft size={18}/>{ui.left}</button><button type="button" disabled={orderedIds.indexOf(folderMenu)>=orderedIds.length-1} onClick={()=>moveFolderInMenu(1)}><ChevronRight size={18}/>{ui.right}</button>{folderMenu.startsWith('list:')&&<button type="button" onClick={()=>{const item=lists.find(list=>'list:'+list.id===folderMenu);if(item)setListEdit(item);setFolderMenu(null);}}><Pencil size={18}/>{t('Edit list')}</button>}</div></Sheet>}
+
     {newChat && <Sheet title={t('New chat')} onClose={closeNew} className="np">
-      <label className="ms-search sm"><Search size={18} /><input autoFocus value={pickQ} onChange={e => setPickQ(e.target.value)} placeholder={t('Search people, communities...')} /></label>
-      <div className="ms-chips np-tabs">{(['people', 'communities', 'groups'] as const).map(k => <button key={k} className={newChat === k ? 'on' : ''} onClick={() => { setNewChat(k); setPick([]); }}>{t(k === 'people' ? 'People' : k === 'groups' ? 'Groups' : 'Communities')}</button>)}</div>
-      {newChat === 'people' && <>{peoplePicker(false)}<button className="np-cta" disabled={pick.length !== 1} onClick={() => { const p = contacts.find(x => x.handle === pick[0]); if (p) openPerson(p); closeNew(); }}><MessageSquare size={18} /> {t('Start chat')}</button></>}
-      {newChat === 'groups' && <><input className="np-name" value={groupName} maxLength={60} onChange={e => setGroupName(e.target.value)} placeholder={t('Group name')} aria-label={t('Group name')} />
-        <p className="muted ms-note">{t('Choose at least 2 people · {n} selected', { n: pick.length })}</p>{peoplePicker(true)}
-        <button className="np-cta" disabled={pick.length < 2 || groupName.trim().length < 2} onClick={createGroup}><Users size={18} /> {t('Create group')}</button></>}
-      {newChat === 'communities' && <div className="np-empty"><Users size={34} /><p>{t('Communities have their own feed and channels.')}</p><button className="np-cta" onClick={() => { closeNew(); onCommunities?.(); }}>{t('Open Communities')}</button></div>}
+      <label className="ms-search sm"><Search size={18}/><input autoFocus value={pickQ} onChange={e=>setPickQ(e.target.value)} placeholder={ui.search} aria-label={ui.search}/></label>
+      <div className="ms-chips np-tabs">{(['people','groups'] as const).map(k=><button type="button" key={k} className={newChat===k?'on':''} onClick={()=>setNewChat(k)}>{t(k==='people'?'People':'Groups')}</button>)}</div>
+      {pick.length>0&&<div className="np-selected" aria-label={ui.selected}>{pick.map(handle=>{const person=contacts.find(p=>p.handle===handle);return person&&<button type="button" key={handle} onClick={()=>setPick(current=>current.filter(id=>id!==handle))} aria-label={`${t('Remove')} ${person.name}`}><span>{person.name}</span><X size={13}/></button>;})}</div>}
+      {newChat==='people'&&<>{peoplePicker(true)}<button type="button" className="np-cta" disabled={!pick.length} onClick={()=>{if(pick.length>=2){setNewChat('groups');return;}const person=contacts.find(p=>p.handle===pick[0]);if(person)openPerson(person);closeNew();}}>{pick.length>=2?<><Users size={18}/>{ui.group} · {pick.length}</>:<><MessageSquare size={18}/>{t('Start chat')}</>}</button></>}
+      {newChat==='groups'&&<><input className="np-name" value={groupName} maxLength={60} onChange={e=>setGroupName(e.target.value)} placeholder={t('Group name')} aria-label={t('Group name')}/><p className="muted ms-note">{t('Choose at least 2 people · {n} selected',{n:pick.length})}</p>{peoplePicker(true)}<button type="button" className="np-cta" disabled={pick.length<2||groupName.trim().length<2} onClick={createGroup}><Users size={18}/>{t('Create group')}</button></>}
       <p className="ms-local-note">{t('Only people from this device are listed until public profiles are connected.')}</p>
     </Sheet>}
 
