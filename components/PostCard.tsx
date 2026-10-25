@@ -1,4 +1,5 @@
 'use client';
+import { GifView } from './GifView';
 import { useT } from './I18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Heart, MessageCircle, Repeat2, Bookmark, MoreHorizontal, CheckCircle2, Target, ArrowRight, Trash2, Flag, Pencil, Pin, PinOff, Link2, Send, EyeOff, BarChart3, Quote, X, ChevronLeft, ChevronRight, CornerDownRight, VolumeX } from 'lucide-react';
@@ -115,6 +116,7 @@ export default function PostCard(props: Props) {
     <div className="post-body">
       {p.kind === 'intention' && <span className="type-label"><Target size={13} />{p.category ? t(p.category) : t('Intention')}</span>}
       <p className="post-text"><RichText text={long ? p.text.slice(0, 280) + '…' : p.text} onTag={props.onTag} />{long && <button className="rt-more" onClick={() => setExpanded(true)}>{t("Show more")}</button>}</p>
+      {p.gif && <div className="post-gif"><GifView gif={p.gif} maxWidth={520} maxHeight={420} /></div>}
       {p.images.length > 0 && <div className={'photo-grid n' + Math.min(p.images.length, 4)}>
         {p.images.slice(0, 4).map((im, i) => <button key={i} className={'pg-cell image-' + i} onClick={() => tapMedia(i)} aria-label={`Open image ${i + 1}`}><img src={im} alt="Post media" loading="lazy" />{i === 3 && p.images.length > 4 && <span className="pg-more">+{p.images.length - 4}</span>}</button>)}
         {burst && <span className="heart-burst"><Heart size={90} fill="white" /></span>}

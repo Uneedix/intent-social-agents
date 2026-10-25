@@ -102,7 +102,7 @@ export default function Page() {
   };
 
   const publish = (d: Draft) => {
-    const p: Post = { id: uid(), author: profile.name || 'You', handle: ME, avatar: profile.avatar || avatars.you, time: 'now', createdAt: Date.now(), text: d.text, images: d.images, likes: 0, comments: 0, reposts: 0, kind: d.kind, category: d.category, poll: d.poll, audience: d.audience, quoteOf: d.quoteOf, views: 0 };
+    const p: Post = { id: uid(), author: profile.name || 'You', handle: ME, avatar: profile.avatar || avatars.you, time: 'now', createdAt: Date.now(), text: d.text, images: d.images, likes: 0, comments: 0, reposts: 0, kind: d.kind, category: d.category, poll: d.poll, audience: d.audience, quoteOf: d.quoteOf, gif: d.gif, views: 0 };
     if (d.quoteOf) { const q = byId(d.quoteOf); if (q) setReposted(current => current.includes(q.id) ? current : [...current, q.id]); }
     if (d.kind === 'post') { setPosts([p, ...posts]); setTab('Feeds'); if (section !== 'Profile') go('Home'); } else { setIntentions([p, ...intentions]); go('Intentions'); }
     setComposer(null); toast(t("Published"));
