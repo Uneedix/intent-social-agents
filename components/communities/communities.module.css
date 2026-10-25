@@ -161,3 +161,28 @@
 @container (max-width:440px){.chip,.chipOn{height:32px;padding:0 13px;font-size:13.5px}}
 .coverBadge{position:absolute;top:10px;left:10px;z-index:3;pointer-events:none}
 .railText small{display:flex;align-items:center;gap:4px}
+
+/* channel groups, voice rooms, chat composer with emoji/GIF */
+.groupLabel{display:block;padding:10px 10px 4px;color:var(--cm-muted);font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.channelList>.groupLabel:first-child{padding-top:4px}
+.channel .cap,.channelOn .cap{margin-left:auto;flex:none;color:var(--cm-muted);font-size:12px;font-variant-numeric:tabular-nums}
+.channel svg,.channelOn svg{flex:none}
+.voiceRoom{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;flex:1;min-height:320px;padding:24px 12px;text-align:center;min-width:0}
+.voiceRoom h3{margin:4px 0 0;font-size:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voiceIcon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:var(--cm-raised);border:1px solid var(--cm-chip);color:#fff}
+.voiceMeta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:0;color:var(--cm-sec);font-size:14px;line-height:1.4}.voiceMeta b{color:#fff;font-variant-numeric:tabular-nums}
+.voiceActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.voiceRoom .notice{text-align:left;max-width:460px}
+.chatCompose{display:flex;flex-direction:column;gap:8px;min-width:0}
+.chatForm .pill{flex:1;min-width:0;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--cm-chip);background:#0d0d0e;color:#fff;font:inherit;font-size:15px;outline:0}
+.chatForm .pill:focus{border-color:#3a3a40}
+.round,.roundOn{flex:none;width:42px;height:42px;display:grid;place-items:center;padding:0;border:0;border-radius:999px;background:none;color:#ddd;cursor:pointer}
+.round:hover{background:var(--cm-hover);color:#fff}.roundOn{background:#1c1c20;color:#fff}
+.gifTag{font-size:11.5px;font-weight:800;letter-spacing:.04em;border:1.5px solid currentColor;border-radius:7px;height:24px;padding:0 5px;display:inline-grid;place-items:center}
+.msgGif{margin-top:4px;max-width:100%;overflow:hidden;border-radius:12px}
+.voiceForm{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;min-width:0}
+.voiceForm input[type=number]{width:76px;height:40px}
+.voiceEdit{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--cm-chip,#2a2a2e);border-radius:14px;background:#0b0b0c}
+.voiceEdit .seg{align-items:center}
+
+@container (max-width:440px){.round,.roundOn{width:36px;height:36px}.chatForm{gap:4px}.chatForm .pill{height:40px;padding:0 12px}}

@@ -5,13 +5,13 @@ import { useT } from './I18n';
 import { useSession } from './SessionBoundary';
 import { useProfile } from './Experience';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
-import { demoCommunities, demoPeople } from '../lib/demo/communities';
+import { demoCommunities, demoPeople, demoVoiceChannels } from '../lib/demo/communities';
 import { createCommunity, deleteCommunity, joinCommunity, leaveCommunity, loadDirectory, schemaOf, type DB, type Schema } from './communities/api';
 import { can, errorText, filterCards, recentlyActive, shortId, shouldShowExamples, type CardItem, type Community, type Draft, type JoinState } from './communities/model';
 import { useLiveCommunity } from './communities/useLiveCommunity';
 import Directory from './communities/Directory';
 import CreateWizard from './communities/CreateWizard';
-import CommunityView, { type Person, type ViewActions, type ViewModel } from './communities/CommunityView';
+import CommunityView, { type Person, type ViewActions, type ViewChannel, type ViewModel, type ViewMsg } from './communities/CommunityView';
 import SettingsModal from './communities/SettingsModal';
 import { setRailState } from './communities/store';
 import s from './communities/communities.module.css';
@@ -39,6 +39,8 @@ function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
   const [loading, setLoading] = useState(!!db), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [chip, setChip] = useState('foryou'), [hidden, setHidden] = useState<string[]>([]);
   const [demoJoined, setDemoJoined] = useState<string[]>([]), [demoChannel, setDemoChannel] = useState<string | null>(null);
+  // Messages typed into example channels live only in this tab's memory.
+  const [demoSent, setDemoSent] = useState<Record<string, ViewMsg[]>>({});
   const [selected, setSelected] = useState<Selected>(null), [wizard, setWizard] = useState(false), [busyKey, setBusyKey] = useState<string | null>(null);
   const directoryRequest = useRef(0);
 
@@ -104,10 +106,15 @@ function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
         setSelected(current => current?.kind === 'real' && current.id === id ? null : current);
         flash(t('Community deleted.')); void reload();
       }} />
-      : demo ? <CommunityView v={demoModel(demo.id, demoJoined.includes(demo.id), interests, notice, demoChannel)} a={{
+      : demo ? <CommunityView v={demoModel(demo.id, demoJoined.includes(demo.id), interests, notice, demoChannel, demoSent)} a={{
         back: () => setSelected(null), join: () => void join(DEMO_KEY + demo.id), leave: () => void join(DEMO_KEY + demo.id), retry: () => {}, openSettings: () => {},
         publish: async () => { flash(t('This is an example community — posts are not saved. Create your own community to start.')); return false; },
-        send: async () => { flash(t('This is an example community — messages are not saved.')); return false; },
+        send: async body => {
+          if (!demoChannel || !body.trim()) return false;
+          const msg: ViewMsg = { id: 'local-' + Date.now(), author: { id: 'me', name: t('You'), me: true }, body: body.trim(), at: Date.now() };
+          setDemoSent(m => ({ ...m, [demoChannel]: [...(m[demoChannel] || []), msg] }));
+          flash(t('This is an example community — messages are not saved.')); return true;
+        },
         deletePost: () => {}, openChannel: id => setDemoChannel(id), loadOlder: () => {},
       }} />
       : <Directory cards={visible} chip={chip} onChip={setChip} onCreate={openWizard} onOpen={open} onJoin={k => void join(k)} busyKey={busyKey}
@@ -118,18 +125,20 @@ function CommunitiesApp({ db, user }: { db: DB | null; user: User | null }) {
   </div>;
 }
 
-function demoModel(id: string, joined: boolean, interests: string[], notice: string, demoChannel: string | null): ViewModel {
+function demoModel(id: string, joined: boolean, interests: string[], notice: string, demoChannel: string | null, sent: Record<string, ViewMsg[]>): ViewModel {
   const d = demoCommunities.find(x => x.id === id)!;
   const person = (i: number): Person => ({ id: 'demo-person-' + i, name: demoPeople[i].name, avatar: demoPeople[i].avatar, role: demoPeople[i].role || 'member' });
-  const channels = d.channels.map(n => ({ id: d.id + '#' + n, name: n }));
+  const channels: ViewChannel[] = [...d.channels.map(n => ({ id: d.id + '#' + n, name: n })),
+    ...demoVoiceChannels.map(vc => ({ id: d.id + '~' + vc.name, name: vc.name, kind: 'voice' as const, access: vc.access, max_participants: vc.max, exampleInCall: vc.inCall }))];
+  const isVoice = channels.find(c => c.id === demoChannel)?.kind === 'voice';
   const active = channels.some(c => c.id === demoChannel) ? demoChannel : null;
   const now = Date.now();
   return {
     demo: true, name: d.name, description: d.description, category: d.category, tags: d.tags, cover: d.cover, icon: d.icon, privacy: 'public',
-    memberCount: null, join: joined ? 'member' : 'none', role: null, signedIn: true, channelsEnabled: true, canPost: joined, canManage: false,
+    memberCount: null, join: joined ? 'member' : 'none', role: null, signedIn: true, channelsEnabled: true, canPost: joined, canManage: false, canManageChannels: false,
     posts: d.posts.map((p, i) => ({ id: d.id + '-p' + i, author: person(p.author), body: p.text, at: now - p.hoursAgo * 3600e3, canDelete: false })),
     members: demoPeople.map((_, i) => person(i)), channels, activeChannel: active,
-    messages: active ? d.chat.map((m, i) => ({ id: d.id + '-m' + i, author: person(m.author), body: m.text, at: now - m.minutesAgo * 60e3 })) : [],
+    messages: active && !isVoice ? [...d.chat.map((m, i) => ({ id: d.id + '-m' + i, author: person(m.author), body: m.text, at: now - m.minutesAgo * 60e3 })), ...(sent[active] || [])] : [],
     recent: demoPeople.map((_, i) => person(i)), activeNow: null,
     sharedInterest: demoPeople.map((p, i) => ({ ...person(i), shared: p.interests.filter(x => interests.some(w => w.includes(x) || x.includes(w))) })).filter(p => p.shared!.length),
     hasIntroduced: false, loading: false, busy: false, error: '', notice, messagesLoading: false, hasOlder: false, olderLoading: false,
@@ -142,7 +151,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
 }) {
   const t = useT();
   const live = useLiveCommunity(db, community, user, onChanged);
-  const [settings, setSettings] = useState(false);
+  const [settings, setSettings] = useState<false | 'default' | 'structure'>(false);
   const closeSettings = useCallback(() => setSettings(false), []);
   const c = live.community;
   const meRow = live.members.find(m => m.user_id === user?.id);
@@ -154,7 +163,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
   const v: ViewModel = {
     demo: false, name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url, icon: c.avatar_url, privacy: c.privacy,
     memberCount: user ? live.members.length || count : count, join, role, signedIn: !!user, channelsEnabled: c.channels_enabled,
-    canPost: can(c, role, 'post'), canManage: can(c, role, 'moderate') || can(c, role, 'approve'),
+    canPost: can(c, role, 'post'), canManage: can(c, role, 'moderate') || can(c, role, 'approve') || can(c, role, 'manage_channels'), canManageChannels: can(c, role, 'manage_channels'),
     posts: live.posts.map(p => ({ id: p.id, author: person(p.author_id, roleOf(p.author_id)), body: p.body, at: Date.parse(p.created_at), canDelete: p.author_id === user?.id || can(c, role, 'moderate') })),
     members: user ? live.members.map(m => person(m.user_id, m.role)) : null, channels: live.channels, activeChannel: live.activeChannel,
     messages: live.messages.map(m => ({ id: m.id, author: person(m.author_id), body: m.body, at: Date.parse(m.created_at) })),
@@ -163,7 +172,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
     messagesLoading: live.messagesLoading, hasOlder: live.hasOlder, olderLoading: live.olderLoading,
   };
   const a: ViewActions = {
-    back: onBack, retry: () => void live.reload(), openSettings: () => setSettings(true),
+    back: onBack, retry: () => void live.reload(), openSettings: () => setSettings('default'), editChannels: () => setSettings('structure'),
     join: () => { onJoin(); setTimeout(() => void live.reload(), 600); },
     leave: () => void live.perform(async () => { if (!user) return; await leaveCommunity(db, user.id, c.id, join === 'pending'); await live.reload(); onLeft(); }),
     publish: body => live.publish(body), deletePost: id => void live.deletePost(id),
@@ -171,7 +180,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
   };
   return <>
     <CommunityView v={v} a={a} />
-    {settings && <SettingsModal live={live} role={role} userId={user?.id || null} onClose={closeSettings} onDelete={async () => {
+    {settings && <SettingsModal live={live} role={role} userId={user?.id || null} initialSection={settings === 'structure' ? 'structure' : undefined} onClose={closeSettings} onDelete={async () => {
       if (!user || c.owner_id !== user.id) throw new Error(t('Only the community owner can delete it.'));
       await deleteCommunity(db, c.id); onDeleted(c.id);
     }} />}

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { DB } from './api';
-import { errorText, isMissingSchema, normalizeChannel, type Channel, type Community, type Member, type Msg, type Post } from './model';
+import { channelKind, clampCapacity, errorText, isMissingSchema, normalizeChannel, normalizeVoiceName, type Channel, type VoiceAccess, type Community, type Member, type Msg, type Post } from './model';
 
 const PAGE_SIZE = 100;
 const POLL_MS = 8000;
@@ -21,11 +21,23 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false), [olderLoading, setOlderLoading] = useState(false), [hasOlder, setHasOlder] = useState(false);
   const [needsMigration, setNeedsMigration] = useState(false);
+  // null = unknown yet; false = voice migration (kind/access/max_participants) not applied.
+  const [voiceReady, setVoiceReady] = useState<boolean | null>(null), [voiceNeedsMigration, setVoiceNeedsMigration] = useState(false);
+  const voiceRef = useRef<boolean | null>(null), channelsRef = useRef<Channel[]>([]);
   const alive = useRef(true), detailsRequest = useRef(0), channelRequest = useRef(0), channelSelection = useRef<string | null>(null);
   const oldest = useRef<Msg | null>(null), olderBusy = useRef(false), busyRef = useRef(false);
   useEffect(() => { alive.current = true; const d = detailsRequest, c = channelRequest; return () => { alive.current = false; d.current++; c.current++; }; }, []);
 
   const resetChat = () => { channelSelection.current = null; channelRequest.current++; oldest.current = null; setActiveChannel(null); setMessages([]); setHasOlder(false); };
+  const loadChannels = useCallback(async () => {
+    const q = (cols: string) => db.from('community_channels').select(cols).eq('community_id', initial.id).order('created_at', { ascending: true });
+    if (voiceRef.current !== false) {
+      const r = await q('id,name,category,kind,access,max_participants');
+      if (!r.error || !isMissingSchema(r.error)) { if (!r.error) { voiceRef.current = true; setVoiceReady(true); } return r; }
+      voiceRef.current = false; setVoiceReady(false);
+    }
+    return q('id,name,category');
+  }, [db, initial.id]);
   const load = useCallback(async () => {
     const request = ++detailsRequest.current; setLoading(true);
     const current = () => alive.current && request === detailsRequest.current;
@@ -33,17 +45,17 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
       const [a, b, d, e] = await Promise.all([
         db.from('community_members').select('user_id,role').eq('community_id', initial.id),
         db.from('community_posts').select('id,body,author_id,created_at').eq('community_id', initial.id).order('created_at', { ascending: false }).order('id', { ascending: false }),
-        db.from('community_channels').select('id,name,category').eq('community_id', initial.id).order('created_at', { ascending: true }),
+        loadChannels(),
         user ? db.from('community_join_requests').select('user_id,status,created_at').eq('community_id', initial.id).eq('status', 'pending') : Promise.resolve({ data: [], error: null }),
       ]);
       if (!current()) return;
       // Anonymous visitors have no member-list privilege; that is not an error worth showing.
       const errors = [user ? a.error : null, b.error, d.error, e.error].filter(Boolean);
       if (errors.length) { setError(errors.map(x => x!.message).join('; ')); return; }
-      setMembers((a.data || []) as Member[]); setPosts((b.data || []) as Post[]); setChannels((d.data || []) as Channel[]); setRequests((e.data || []) as typeof requests); setError('');
+      setMembers((a.data || []) as Member[]); setPosts((b.data || []) as Post[]); { const ch = (d.data || []) as unknown as Channel[]; channelsRef.current = ch; setChannels(ch); } setRequests((e.data || []) as typeof requests); setError('');
     } catch (x) { if (current()) setError(errorText(x, 'Could not load community details')); }
     finally { if (current()) setLoading(false); }
-  }, [db, initial.id, user]);
+  }, [db, initial.id, user, loadChannels]);
   useEffect(() => { void load(); }, [load]);
 
   const perform = async (fn: () => Promise<void>) => {
@@ -53,7 +65,7 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
     catch (x) { if (alive.current) { if (x instanceof Error && x.message === NEEDS_MIGRATION) setNeedsMigration(true); else setError(errorText(x)); } return false; }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   };
-  const rpc = async (name: string, args: Record<string, string>) => {
+  const rpc = async (name: string, args: Record<string, string | number>) => {
     const { error } = await db.rpc(name, args);
     if (error) throw isMissingSchema(error) ? new Error(NEEDS_MIGRATION) : error;
   };
@@ -71,9 +83,18 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
     if (error) throw error; await load(); onChanged();
   });
   const deletePost = (id: string) => perform(async () => { const { error } = await db.from('community_posts').delete().eq('id', id); if (error) throw error; await load(); });
-  const createChannel = (name: string) => perform(async () => {
-    const { error } = await db.from('community_channels').insert({ community_id: community.id, name: normalizeChannel(name) });
-    if (error) throw error; await load();
+  const createChannel = (name: string, voice?: { access: VoiceAccess; max: number }) => perform(async () => {
+    if (voice && voiceRef.current === false) { setVoiceNeedsMigration(true); return; }
+    const row: Record<string, unknown> = voice ? { community_id: community.id, name: normalizeVoiceName(name), kind: 'voice', access: voice.access, max_participants: clampCapacity(voice.max) }
+      : { community_id: community.id, name: normalizeChannel(name) };
+    const { error } = await db.from('community_channels').insert(row);
+    if (error) { if (voice && isMissingSchema(error)) { voiceRef.current = false; setVoiceReady(false); setVoiceNeedsMigration(true); return; } throw error; }
+    await load();
+  });
+  const updateVoiceChannel = (id: string, patch: { name: string; access: VoiceAccess; max: number }) => perform(async () => {
+    const { error } = await db.rpc('intent_update_voice_channel', { chid: id, new_name: normalizeVoiceName(patch.name), new_access: patch.access, new_max: clampCapacity(patch.max) });
+    if (error) { if (isMissingSchema(error)) { setVoiceNeedsMigration(true); return; } throw error; }
+    await load();
   });
   const deleteChannel = (id: string) => perform(async () => {
     const { error } = await db.from('community_channels').delete().eq('id', id);
@@ -105,11 +126,13 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
   }, [db]);
   const openChannel = (id: string) => {
     channelSelection.current = id; channelRequest.current++; oldest.current = null; olderBusy.current = false;
-    setActiveChannel(id); setMessages([]); setHasOlder(false); setOlderLoading(false); setError(''); void loadMessages(id);
+    setActiveChannel(id); setMessages([]); setHasOlder(false); setOlderLoading(false); setMessagesLoading(false); setError('');
+    // Voice channels have no message history (the server rejects inserts there).
+    if (channelKind(channelsRef.current.find(c => c.id === id) || {}) === 'text') void loadMessages(id);
   };
   // Live conversation without a realtime socket: light polling while a channel is open and visible.
   useEffect(() => {
-    if (!activeChannel) return;
+    if (!activeChannel || channelKind(channelsRef.current.find(c => c.id === activeChannel) || {}) === 'voice') return;
     const timer = setInterval(() => { if (document.visibilityState === 'visible') void loadMessages(activeChannel, 'poll'); }, POLL_MS);
     return () => clearInterval(timer);
   }, [activeChannel, loadMessages]);
@@ -120,9 +143,9 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
   });
 
   return {
-    community, members, posts, channels, requests, messages, activeChannel, error, busy, loading, needsMigration,
+    community, members, posts, channels, requests, messages, activeChannel, error, busy, loading, needsMigration, voiceReady, voiceNeedsMigration,
     messagesLoading, olderLoading, hasOlder, setError, setCommunity,
-    reload: load, update, publish, deletePost, createChannel, deleteChannel, approve, decline, setRole, removeMember,
+    reload: load, update, publish, deletePost, createChannel, updateVoiceChannel, deleteChannel, approve, decline, setRole, removeMember,
     openChannel, loadOlder: () => activeChannel && loadMessages(activeChannel, 'older'), send, perform,
   };
 }
