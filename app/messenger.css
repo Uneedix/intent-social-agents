@@ -7,8 +7,8 @@
 .main.is-messages .content{padding:18px 20px 18px 0;max-width:none}
 @media(min-width:901px){.main.is-messages .topbar{display:none}}
 /* list column sized to fit title + switch */
-.ms{--line:#1f1f22;--card:#0b0b0c;--bub:#1e1e21;--bub-me:#2a2a2e;--mut:#8d8d93;display:grid;grid-template-columns:minmax(320px,440px) minmax(0,1fr);gap:16px;height:calc(100vh - 36px);min-height:560px;color:#fff;position:relative}
-.ms.side-open{grid-template-columns:minmax(320px,440px) minmax(0,1fr) 300px}
+.ms{--line:#1f1f22;--card:#0b0b0c;--bub:#1e1e21;--bub-me:#2a2a2e;--mut:#8d8d93;display:grid;grid-template-columns:var(--pane-chat-list,minmax(320px,440px)) minmax(0,1fr);gap:16px;height:calc(100vh - 36px);min-height:560px;color:#fff;position:relative}
+.ms.side-open{grid-template-columns:var(--pane-chat-list,minmax(320px,440px)) minmax(0,1fr) var(--pane-chat-side,300px)}
 .ms button{font:inherit}
 .ms-dim{color:var(--mut)}.ms-read{color:#5ea0ff}.ms-verified{color:#fff;flex:none}
 /* avatars */
@@ -226,7 +226,7 @@
 .ms-row-btn .toggle{margin-left:auto}
 /* ---------- responsive ---------- */
 @media(max-width:1279px){
-  .ms.side-open{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}
+  .ms.side-open{grid-template-columns:var(--pane-chat-list,minmax(280px,360px)) minmax(0,1fr)}
   .ms-side{position:fixed;top:0;right:0;bottom:0;width:340px;z-index:60;background:#050506;border-left:1px solid var(--line);padding:14px;box-shadow:-20px 0 60px rgba(0,0,0,.6)}
 }
 @media(max-width:900px){

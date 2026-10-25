@@ -5,6 +5,7 @@ import { Search, Pin, PinOff, Send, Paperclip, Smile, X, Reply, Pencil, Trash2, 
 import { chatProfiles, type Chat, type ChatMsg, type ChatFile, type ChatCategory } from '../lib/data';
 import { compressImage, uid, useStored } from '../lib/social';
 import { Avatar, VoicePlayer, Sheet } from './MsgParts';
+import ResizeHandle from './ResizeHandle';
 
 const QUICK = ['❤️', '👍', '🔥', '😂', '😮', '😢'];
 const EMOJI = ['😀', '😂', '😍', '🥲', '😎', '🤔', '🙌', '👏', '🙏', '🔥', '✨', '🎉', '💯', '👍', '👀', '❤️', '😅', '😢', '😡', '🚀', '☕', '🎧', '📍', '✅'];
@@ -330,6 +331,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   return <div className={'ms ' + (chat ? 'has-chat ' : '') + (chat && side ? 'side-open' : '')}>
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
+      <ResizeHandle pane="chatList" edge="end" container=".ms" label="Resize chat list" />
       <div className="ms-title"><h1>{t('Messages')}</h1><span className="ms-logo">intent<span>.</span></span><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
       <div className="ms-search-row"><label className="ms-search"><Search size={20} /><input ref={listSearch} value={q} onChange={e => setQ(e.target.value)} placeholder={t('Search messages...')} aria-label={t('Search messages...')} /></label>
         <button className="ms-new ms-hide-m" onClick={() => setNewChat('people')} aria-label={t('New chat')} title={t('New chat')}><SquarePen size={20} /></button></div>
@@ -436,6 +438,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     </>}</section>
 
     {/* ---------- profile side panel ---------- */}
+    {chat && side && <ResizeHandle pane="chatSide" edge="start" anchor="before" container=".ms" label="Resize profile panel" className="pane-wide-only" />}
     {chat && side && <aside className="ms-side">
       {/* desktop */}
       <div className="ms-side-desk">
