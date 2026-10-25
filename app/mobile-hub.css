@@ -17,3 +17,11 @@
 .group-message>p,.ms-groups .group-message>p{margin:0;padding:0;text-align:start}
 .group-message>time,.ms-groups .group-message>time{margin-top:6px}
 @media(max-width:900px){.ms-bub:not(.photo):not(.media),.group-message,.ms-groups .group-message{padding:12px}}
+/* Give message text the available line width instead of a narrow nested column. */
+.ms-stack:has(.ms-text){max-width:min(82%,560px)}
+.ms-bub-wrap,.ms-bub{min-width:0}
+.ms-bub>.ms-text{align-self:stretch;width:100%;max-width:none;min-width:0}
+.ms-field textarea{scrollbar-width:none;overflow-y:auto}
+.ms-field textarea::-webkit-scrollbar{display:none;width:0;height:0}
+.ms-field textarea::-webkit-scrollbar-button{display:none}
+@media(max-width:900px){.ms-stack:has(.ms-text){max-width:90%}}
