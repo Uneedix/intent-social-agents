@@ -79,3 +79,21 @@ body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user
   .ms-title-tools .message-mode-switch{min-width:0}
   .ms-title-tools .message-mode-switch button{padding:7px 8px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 }
+
+/* ===== Narrower left sidebar ===== */
+@media(min-width:1391px){
+  .app{grid-template-columns:244px minmax(0,850px) var(--pane-rail,325px)}
+  .app:has(.main.is-messages){grid-template-columns:244px minmax(0,1fr)}
+}
+@media(min-width:1051px) and (max-width:1390px){
+  .app{grid-template-columns:212px minmax(0,1fr) var(--pane-rail,280px)}
+  .app:has(.main.is-messages){grid-template-columns:212px minmax(0,1fr)}
+}
+@media(min-width:901px) and (max-width:1050px){
+  .app,.app:has(.main.is-messages){grid-template-columns:216px minmax(0,1fr)}
+}
+@media(min-width:901px){
+  .leftbar{padding-left:14px;padding-right:14px}
+  .leftbar nav button{gap:16px;padding:0 13px}
+  .leftbar nav button>span,.leftbar nav button{white-space:nowrap}
+}
