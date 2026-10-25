@@ -12,8 +12,8 @@
 .np-selected>button{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;max-width:220px;min-height:31px;padding:5px 9px;border:1px solid #3c3c43;border-radius:999px;background:#1a1a1f;color:#eee;font-size:12px;line-height:1.4}
 .np-selected>button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.np-selected>button svg{flex-shrink:0}
 .sh.np{min-width:0}.sh.np>.ms-search,.sh.np>.np-tabs,.sh.np>.np-name{flex-shrink:0}.sh.np>.np-list{min-height:90px;max-height:40dvh;overflow:auto}
-.ms.ms-groups.group-messages-grid{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,minmax(320px,440px))) minmax(0,1fr);border:0;border-radius:0;overflow:visible;min-height:560px;height:calc(100dvh - 36px);gap:16px}
-.ms.ms-groups.group-messages-grid.side-open{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,minmax(320px,440px))) minmax(0,1fr) var(--pane-chat-side,300px)}
+.ms.ms-groups.group-messages-grid{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,clamp(280px,24vw,368px))) minmax(0,1fr);border:0;border-radius:0;overflow:visible;min-height:560px;height:calc(100dvh - 36px);gap:16px}
+.ms.ms-groups.group-messages-grid.side-open{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,clamp(280px,24vw,368px))) minmax(0,1fr) var(--pane-chat-side,clamp(260px,22vw,370px))}
 .ms.ms-groups>.group-list.ms-list{border:0;padding:0 0 0 4px;min-width:0;max-height:none;overflow:visible;position:relative}
 .ms-groups .group-list-item.ms-item{padding:12px 14px;gap:14px;border:1px solid transparent;border-radius:14px}.ms-groups .group-list-item.current{border-color:#3a3a3e;background:#161618}
 .ms-groups .group-server-avatar{width:52px;height:52px;background:#17171d;border:1px solid #2b2b32;color:#e8e8ee;font-size:20px;font-weight:600}
