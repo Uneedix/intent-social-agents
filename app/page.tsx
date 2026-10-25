@@ -5,6 +5,7 @@ import { Home, Search, Target, Users, ShoppingBag, MessageCircle, Bell, UserCirc
 import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
 import WidgetRail from '../components/WidgetRail';
+import ResizeHandle from '../components/ResizeHandle';
 import Communities from '../components/Communities';
 import PostCard, { type Comment, Lightbox } from '../components/PostCard';
 import Composer, { type Draft } from '../components/Composer';
@@ -202,7 +203,7 @@ export default function Page() {
     <button className="icon-button badge-btn" onClick={() => go('Messages')} aria-label={t("Messages")}><MessageCircle />{unreadChats > 0 && <i>{unreadChats}</i>}</button>
     <button className="icon-button badge-btn" onClick={() => go('Notifications')} aria-label={t("Notifications")}><Bell />{unreadNotifs > 0 && <i>{unreadNotifs}</i>}</button>
     <AuthStatus avatar={profile.avatar || avatars.you} name={profile.name} onProfile={() => go('Profile')} onSettings={() => { setSettingsSection('profile'); go('Settings'); }} /></div>;
-  const sidebar = <aside className="rightbar">{topActions}<div className="widget"><div className="widget-heading"><strong>{t("Recommended for you")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{people.map(([name, handle, img]) => <div className="person" key={handle}><img className="avatar" src={img} alt="" /><div><strong>{name} ✓</strong><small>@{handle}</small></div><button className={'follow ' + (following.includes(handle) ? 'on' : '')} onClick={() => toggleFollow(handle)}>{t(following.includes(handle) ? 'Following|button' : 'Follow')}</button></div>)}</div>
+  const sidebar = <aside className="rightbar"><ResizeHandle pane="widgetRail" edge="start" container=".app" label="Resize widget panel" />{topActions}<div className="widget"><div className="widget-heading"><strong>{t("Recommended for you")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{people.map(([name, handle, img]) => <div className="person" key={handle}><img className="avatar" src={img} alt="" /><div><strong>{name} ✓</strong><small>@{handle}</small></div><button className={'follow ' + (following.includes(handle) ? 'on' : '')} onClick={() => toggleFollow(handle)}>{t(following.includes(handle) ? 'Following|button' : 'Follow')}</button></div>)}</div>
     <div className="widget"><div className="widget-heading"><strong>{t("Trending now")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{['#Warsaw', '#Technology', '#Art', '#Startups', '#Music'].map((tag, i) => <button className="trend" key={tag} onClick={() => tagSearch(tag)}><span>#{i + 1}</span><div><strong>{tag.slice(1)}</strong><small>{t("Trending topic")}</small></div><ArrowRight size={16} /></button>)}</div>
     <div className="widget promo"><strong>{t("Find your people.")}<br />{t("Build what matters.")}</strong><button onClick={() => go('Intentions')} aria-label="Open intentions"><ArrowRight /></button></div></aside>;
 
