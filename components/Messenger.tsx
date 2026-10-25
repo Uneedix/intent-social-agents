@@ -433,7 +433,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       : <header className="ms-head">
         <button className="icon-button ms-back" onClick={() => setActive(null)} aria-label={t('Back')}><ChevronLeft size={28} /></button>
         <button className={'ms-who' + (isGroup ? ' ms-who-group' : '')} onClick={() => isGroup ? setGroupInfo(true) : setSide(!side)} aria-label={t(isGroup ? 'Group info' : 'Info')}>
-          <Avatar chat={chat} size={60} dot />
+          <Avatar chat={chat} size={44} dot />
           <span><b>{chatTitle(chat)}{prof?.verified && <BadgeCheck size={20} className="ms-verified" fill="#fff" color="#000" />}</b><small className={chat.online ? 'online' : ''}>{status(chat)}</small></span>
         </button>
         <div className="ms-head-actions">
@@ -444,7 +444,6 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
             {headMenu && <div className="ms-pop" onMouseLeave={() => setHeadMenu(false)}>{options(() => setHeadMenu(false))}</div>}</div>
         </div>
       </header>}
-      {(prof?.title || prof?.location) && !selected && <div className="ms-sub">{prof.title && <p>{prof.title}</p>}{prof.location && <small><MapPin size={16} /> {prof.location}</small>}</div>}
       <div className={topicsOn ? gs.split + (topicId === null ? ' ' + gs.listMode : '') : 'gt-contents'}>
       {topicsOn && <div className={gs.rail}><TopicList topics={topicRows} active={topicId === null ? null : curTopicId!} onOpen={openTopic} manage onNew={() => setTopicEdit('new')} /></div>}
       <div className={topicsOn ? gs.pane : 'gt-contents'}>
