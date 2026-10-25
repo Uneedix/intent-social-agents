@@ -278,3 +278,5 @@
   .ms-viewer-strip{justify-content:flex-start}.ms-viewer-strip button{width:72px;height:72px}
   .app:has(.ms.has-chat) .mobile-nav{display:none}
 }
+
+.ms-compose{position:relative}.ms-gif-btn{font-size:12px!important;font-weight:800;letter-spacing:.04em;border:1.5px solid currentColor!important;border-radius:7px!important;width:auto!important;height:26px!important;padding:0 6px!important}
