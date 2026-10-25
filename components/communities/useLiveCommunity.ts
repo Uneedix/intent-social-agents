@@ -96,7 +96,8 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
       if (cursor) query = query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`);
       const { data, error } = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(PAGE_SIZE);
       if (!current()) return;
-      if (error) { if (mode !== 'poll') setError(error.message); return; }
+      // No read access (e.g. signed out / not a member) is expected, not an error to show.
+      if (error) { if (error.code === '42501') { setMessages([]); setHasOlder(false); return; } if (mode !== 'poll') setError(error.message); return; }
       const next = (data || []) as Msg[]; setMessages(old => mergeMessages(old, next));
       if (mode !== 'poll' && (mode === 'older' || !oldest.current)) { oldest.current = [...next].sort(chronological)[0] || cursor; setHasOlder(next.length === PAGE_SIZE); }
     } catch (x) { if (current() && mode !== 'poll') setError(errorText(x, 'Could not load channel messages')); }

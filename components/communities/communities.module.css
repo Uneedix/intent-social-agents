@@ -96,7 +96,7 @@
 .tabs{display:flex;gap:4px;padding:12px 12px 0;border-bottom:0;overflow-x:auto;scrollbar-width:none}
 .tab,.tabOn{flex:none;height:44px;padding:0 16px;border:0;border-bottom:2px solid transparent;background:none;color:var(--cm-sec);font:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
 .tab:hover{color:#fff}.tabOn{color:#fff;border-bottom-color:#fff}
-.feedLayout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+.feedLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 @container (max-width:700px){.feedLayout{grid-template-columns:minmax(0,1fr)}.connectCol{order:-1}.heroText h1{font-size:22px}.heroIcon{width:64px;height:64px;border-radius:16px}.heroCover{aspect-ratio:16/6}}
 .feedCol,.connectCol{display:flex;flex-direction:column;gap:12px;min-width:0}
 .introCard,.composer,.post,.side,.about,.chat,.channelList{background:var(--cm-card);border:1px solid var(--cm-line);border-radius:18px}

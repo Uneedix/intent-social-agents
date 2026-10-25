@@ -84,16 +84,6 @@ export default function CommunityView({ v, a }: { v: ViewModel; a: ViewActions }
           <p className={s.postBody}>{p.body}</p></article>)}
         {!v.loading && !v.posts.length && <div className={s.emptySmall}>{t('No posts yet.')}</div>}
       </div>
-      <aside className={s.connectCol}>
-        <div className={s.side}><h3><i className={s.dot} /> {t(v.activeNow != null ? 'Active now' : 'Recently active')}</h3>
-          {v.recent.length ? <div className={s.faces}>{v.recent.slice(0, 8).map(p => <Face key={p.id} src={p.avatar} name={p.me ? t('You') : p.name} size={34} />)}</div> : <small>{t('No activity in the last 24 hours yet. Start the conversation!')}</small>}</div>
-        {v.channelsEnabled && v.channels.length > 0 && <div className={s.side}><h3><MessageCircle size={16} /> {t('Live conversations')}</h3>
-          {v.channels.slice(0, 4).map(c => <button key={c.id} className={s.sideChannel} onClick={() => jump(c.id)}><Hash size={15} /><span>{c.name}</span><small>{t('Jump in')}</small></button>)}</div>}
-        <div className={s.side}><h3><Users size={16} /> {t('Members who share your interests')}</h3>
-          {v.sharedInterest === null ? <small>{t('Interest matching appears once member profiles are connected to the database.')}</small>
-            : v.sharedInterest.length ? v.sharedInterest.slice(0, 4).map(p => <div key={p.id} className={s.sidePerson}><Face src={p.avatar} name={p.name} size={32} /><div><b>{p.name}</b><small>{p.shared?.join(', ')}</small></div></div>)
-            : <small>{t('Add interests to your profile to see matches.')}</small>}</div>
-      </aside>
     </div>}
 
     {tab === 'channels' && v.channelsEnabled && <div className={s.chatLayout}>

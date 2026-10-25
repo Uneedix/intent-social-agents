@@ -82,7 +82,8 @@ body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user
 
 /* ===== Narrower left sidebar ===== */
 @media(min-width:1391px){
-  .app{grid-template-columns:244px minmax(0,850px) var(--pane-rail,325px)}
+  .app{grid-template-columns:244px minmax(0,1fr) var(--pane-rail,325px);max-width:1483px}
+  .app:not(:has(.rightbar)){max-width:1525px}
   .app:has(.main.is-messages){grid-template-columns:244px minmax(0,1fr)}
 }
 @media(min-width:1051px) and (max-width:1390px){

@@ -423,8 +423,8 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
                 {m.reactions && Object.keys(m.reactions).length > 0 && <span className="ms-rx">{Object.entries(m.reactions).map(([e, u]) => <button key={e} className={u.includes('me') ? 'on' : ''} onClick={ev => { ev.stopPropagation(); react(m, e); }}>{e}{u.length > 1 ? ' ' + u.length : ''}</button>)}</span>}
                 {menuMsg?.id === m.id && msgBar(m)}
               </div>
-              {!mine && meta}
               {!m.deleted && !selected && menuMsg?.id !== m.id && <button type="button" className="ms-reply-btn" onClick={e => { e.stopPropagation(); setReplyTo(m); setEditing(null); input.current?.focus(); }} aria-label={t('Reply')} title={t('Reply')}><Reply size={16} /></button>}
+              {!mine && meta}
             </MsgRow></div>; })}
         {!shown.length && <p className="muted ms-empty">{t(find ? 'No messages match your search.' : 'No messages yet. Say hi 👋')}</p>}
       </div>

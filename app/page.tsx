@@ -6,7 +6,7 @@ import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
 import WidgetRail from '../components/WidgetRail';
 import ResizeHandle from '../components/ResizeHandle';
-import Communities, { CommunitiesRail } from '../components/Communities';
+import Communities from '../components/Communities';
 import PostCard, { type Comment, Lightbox } from '../components/PostCard';
 import Composer, { type Draft } from '../components/Composer';
 import Stories, { type MyStory } from '../components/Stories';
@@ -198,7 +198,7 @@ export default function Page() {
     : <><div className="page-heading"><div><h1>{t("Your activity")}</h1><p>{t("Activity on this device.")}</p></div></div><div className="activity-cards"><div><b>{myCount}</b><span>{t("Publications")}</span></div><div><b>{myComments}</b><span>{t("Comments")}</span></div><div><b>{Object.keys(reactions).length}</b><span>{t("Reactions")}</span></div><div><b>{saved.length}</b><span>{t("Saved")}</span></div><div><b>{reposted.length}</b><span>{t("Reposts")}</span></div></div>
       {(hidden.length > 0 || muted.length > 0) && <div className="settings-group"><h2>{t("Hidden & muted")}</h2>{muted.map(h => <div className="setting-row" key={h}><div><strong>@{h}</strong><small>{t("Muted account")}</small></div><button className="outline" onClick={() => setMuted(muted.filter(x => x !== h))}>{t("Unmute")}</button></div>)}{hidden.length > 0 && <div className="setting-row"><div><strong>{t('{n} hidden posts', { n: hidden.length })}</strong><small>{t("Posts you marked “Not interested”")}</small></div><button className="outline" onClick={() => setHidden([])}>{t("Show again")}</button></div>}</div>}</>;
 
-  const showRight = right && section !== 'Settings' && section !== 'Messages' && section !== 'Advanced Settings';
+  const showRight = right && section !== 'Settings' && section !== 'Messages' && section !== 'Advanced Settings' && section !== 'Communities';
   const unreadChats = chats.reduce((a, c) => a + (c.unread || 0), 0); const unreadNotifs = notifs.filter(n => !n.read).length;
   const topActions = <div className="top-actions">
     <button className="icon-button badge-btn" onClick={() => go('Messages')} aria-label={t("Messages")}><MessageCircle />{unreadChats > 0 && <i>{unreadChats}</i>}</button>
@@ -218,7 +218,7 @@ export default function Page() {
       <div className="topbar"><div className="global-search"><Search size={22} /><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => go('Explore')} placeholder={t("Search people, posts, intentions, communities...")} aria-label={t("Search")} /></div>
         {topActions}</div>
       <div className="content">{content}</div></main>
-    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : section === 'Communities' ? <aside className="rightbar">{topActions}<CommunitiesRail /></aside> : sidebar)}
+    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : sidebar)}
     <nav className="mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4]].map(({ name, Icon }) => <button className={section === name ? 'active' : ''} key={name} onClick={() => go(name)}><Icon size={24} /><small>{t(name)}</small></button>)}<button className="mobile-create" onClick={() => setComposer({ kind: 'post' })} aria-label={t("Create")}><Plus /></button></nav>
 
     {composer && <Composer initialKind={composer.kind} quote={composer.quote} onClose={() => setComposer(null)} onPublish={publish} />}
