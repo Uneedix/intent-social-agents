@@ -1,24 +1,32 @@
 'use client';
 import { useCallback, useState } from 'react';
-import { Check, Globe, Hash, Lock, MoreHorizontal, Plus, ShieldCheck, Trash2, UserMinus, X } from 'lucide-react';
+import { Check, Globe, Hash, Lock, MoreHorizontal, Pencil, Plus, ShieldCheck, Trash2, UserMinus, Users, Volume2, X } from 'lucide-react';
 import { Button, Choice, Field, Menu, Modal, Toggle, inputClass } from '../ui';
 import { useT } from '../I18n';
 import ImagePicker from '../ImagePicker';
-import { CATEGORIES, CATEGORY_LABEL, DESCRIPTION_MAX, NAME_MAX, NAME_MIN, addTag, assignableRoles, can, canRemove, displayRole, shortId, type Community, type Threshold } from './model';
+import { CATEGORIES, CATEGORY_LABEL, DESCRIPTION_MAX, NAME_MAX, NAME_MIN, addTag, assignableRoles, can, canRemove, clampCapacity, displayRole, shortId, VOICE_DEFAULT, VOICE_MAX, VOICE_MIN, type Channel, type Community, type Threshold, type VoiceAccess } from './model';
 import type { Live } from './useLiveCommunity';
 import DeleteCommunityControl from './DeleteCommunityControl';
 import s from './communities.module.css';
 
-type Section = 'general' | 'privacy' | 'structure' | 'members' | 'requests';
+export type Section = 'general' | 'privacy' | 'structure' | 'members' | 'requests';
 const roleLabel = (r: string) => displayRole(r).replace(/^./, c => c.toUpperCase());
 
-export default function SettingsModal({ live, role, userId, onClose, onDelete }: { live: Live; role: string | null; userId: string | null; onClose: () => void; onDelete?: () => Promise<void> }) {
+export default function SettingsModal({ live, role, userId, onClose, onDelete, initialSection }: { live: Live; role: string | null; userId: string | null; onClose: () => void; onDelete?: () => Promise<void>; initialSection?: Section }) {
   const t = useT();
   const c = live.community;
   const v2 = 'category' in c;
   const sections: [Section, string][] = ([['general', 'General'], ['privacy', 'Privacy & permissions'], ['structure', 'Structure'], ['members', 'Members & roles'], ['requests', 'Join requests']] as [Section, string][])
     .filter(([k]) => k === 'general' || k === 'privacy' ? can(c, role, 'settings') : k === 'structure' ? can(c, role, 'settings') || can(c, role, 'manage_channels') : k === 'members' ? can(c, role, 'moderate') : can(c, role, 'approve'));
-  const [section, setSection] = useState<Section>(sections[0]?.[0] || 'members');
+  const [section, setSection] = useState<Section>(sections.some(([k]) => k === initialSection) ? initialSection! : sections[0]?.[0] || 'members');
+  const [voice, setVoice] = useState({ name: '', access: 'open' as VoiceAccess, max: String(VOICE_DEFAULT) });
+  const [editing, setEditing] = useState<{ id: string; name: string; access: VoiceAccess; max: string } | null>(null);
+  const voiceOff = live.voiceReady === false || live.voiceNeedsMigration;
+  const accessSeg = (value: VoiceAccess, set: (a: VoiceAccess) => void) => <div className={s.seg} role="radiogroup" aria-label={t('Who can join the call')}>
+    {(['open', 'closed'] as VoiceAccess[]).map(a => <Button key={a} size="sm" role="radio" aria-checked={value === a} variant={value === a ? 'primary' : 'outline'} onClick={() => set(a)}>{a === 'open' ? <Users size={14} /> : <Lock size={14} />} {t(a === 'open' ? 'Open channel' : 'Closed channel')}</Button>)}</div>;
+  const capInput = (value: string, set: (v: string) => void) => <input className={inputClass} type="number" inputMode="numeric" min={VOICE_MIN} max={VOICE_MAX} value={value} aria-label={t('Max participants')} onChange={e => set(e.target.value)} onBlur={() => set(String(clampCapacity(value)))} />;
+  const removeBtn = (ch: Channel) => confirmChannel === ch.id ? <><Button size="sm" variant="danger" disabled={live.busy} onClick={() => { setConfirmChannel(null); void live.deleteChannel(ch.id); }}>{t(ch.kind === 'voice' ? 'Delete' : 'Delete with messages')}</Button><Button size="sm" variant="ghost" onClick={() => setConfirmChannel(null)}>{t('Cancel')}</Button></>
+    : <Button variant="ghost" icon aria-label={t('Remove channel')} onClick={() => setConfirmChannel(ch.id)}><Trash2 size={16} /></Button>;
   const [g, setG] = useState({ name: c.name, description: c.description, category: c.category || 'other', tags: c.tags || [], cover: c.cover_url || '', icon: c.avatar_url || '' });
   const [tag, setTag] = useState('');
   const [p, setP] = useState({ privacy: c.privacy, posting_permission: c.posting_permission, comments_permission: c.comments_permission || 'members', manage_channels_role: c.manage_channels_role || 'admin', approve_requests_role: c.approve_requests_role || 'admin', remove_members_role: c.remove_members_role || 'admin' });
@@ -80,12 +88,30 @@ export default function SettingsModal({ live, role, userId, onClose, onDelete }:
       {can(c, role, 'settings') && <div className={s.structRow}><Hash size={20} /><div><b>{t('Channels')}</b><small>{t('Turning channels off hides them for everyone. Messages are kept and return when you turn them back on.')}</small></div>
         <Toggle on={c.channels_enabled} onChange={v => void live.update({ channels_enabled: v })} label={t('Enable channels')} /></div>}
       {c.channels_enabled && can(c, role, 'manage_channels') && <div className={s.channelEdit}>
-        {live.channels.map(ch => <div key={ch.id} className={s.channelLine}><Hash size={16} /><span className={s.grow}>{ch.name}</span>
-          {confirmChannel === ch.id ? <><Button size="sm" variant="danger" disabled={live.busy} onClick={() => { setConfirmChannel(null); void live.deleteChannel(ch.id); }}>{t('Delete with messages')}</Button><Button size="sm" variant="ghost" onClick={() => setConfirmChannel(null)}>{t('Cancel')}</Button></>
-            : <Button variant="ghost" icon aria-label={t('Remove channel')} onClick={() => setConfirmChannel(ch.id)}><Trash2 size={16} /></Button>}</div>)}
+        <div className={s.fieldLabel}>{t('Text channels')}</div>
+        {live.channels.filter(ch => ch.kind !== 'voice').map(ch => <div key={ch.id} className={s.channelLine}><Hash size={16} /><span className={s.grow}>{ch.name}</span>{removeBtn(ch)}</div>)}
         <form className={s.channelLine} onSubmit={async e => { e.preventDefault(); if (channel.trim() && await live.createChannel(channel)) setChannel(''); }}><Hash size={16} />
           <input className={inputClass} value={channel} maxLength={40} placeholder={t('Channel name')} onChange={e => setChannel(e.target.value)} />
           <Button type="submit" size="sm" disabled={live.busy || !channel.trim()}><Plus size={14} /> {t('Add channel')}</Button></form>
+
+        <div className={s.fieldLabel}>{t('Voice channels')}</div>
+        {voiceOff && <p className={s.notice} role="status"><Lock size={16} /> {t('Voice channels need the database update (voice channels migration). Text channels keep working.')}</p>}
+        {live.channels.filter(ch => ch.kind === 'voice').map(ch => editing?.id === ch.id ? <div key={ch.id} className={s.voiceEdit}>
+          <Field label={t('Name')}><input className={inputClass} value={editing.name} maxLength={80} onChange={e => setEditing({ ...editing, name: e.target.value })} /></Field>
+          <div className={s.permRow}><span>{t('Who can join the call')}<small>{t('Closed: only the owner, admins and moderators can join')}</small></span>{accessSeg(editing.access, a => setEditing({ ...editing, access: a }))}</div>
+          <div className={s.permRow}><span>{t('Max participants')}<small>{t('From {min} to {max}', { min: VOICE_MIN, max: VOICE_MAX })}</small></span>{capInput(editing.max, v => setEditing({ ...editing, max: v }))}</div>
+          <div className={s.seg}><Button size="sm" variant="primary" disabled={live.busy || !editing.name.trim()} onClick={async () => { if (await live.updateVoiceChannel(editing.id, { name: editing.name, access: editing.access, max: clampCapacity(editing.max) })) { setEditing(null); done(true); } }}>{t('Save changes')}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>{t('Cancel')}</Button></div>
+        </div> : <div key={ch.id} className={s.channelLine}><Volume2 size={16} /><span className={s.grow}>{ch.name}</span>
+          <span className={s.locked}>{ch.access === 'closed' ? <><Lock size={12} /> {t('Closed channel')}</> : t('Open channel')} · 0/{ch.max_participants ?? VOICE_DEFAULT}</span>
+          <Button variant="ghost" icon aria-label={t('Edit voice channel')} onClick={() => setEditing({ id: ch.id, name: ch.name, access: ch.access || 'open', max: String(ch.max_participants ?? VOICE_DEFAULT) })}><Pencil size={16} /></Button>{removeBtn(ch)}</div>)}
+        {!voiceOff && <form className={s.voiceEdit} onSubmit={async e => { e.preventDefault(); if (voice.name.trim() && await live.createChannel(voice.name, { access: voice.access, max: clampCapacity(voice.max) })) setVoice({ name: '', access: 'open', max: String(VOICE_DEFAULT) }); }}>
+          <div className={s.channelLine}><Volume2 size={16} /><input className={inputClass} value={voice.name} maxLength={80} placeholder={t('Voice channel name')} onChange={e => setVoice({ ...voice, name: e.target.value })} /></div>
+          <div className={s.permRow}><span>{t('Who can join the call')}</span>{accessSeg(voice.access, a => setVoice({ ...voice, access: a }))}</div>
+          <div className={s.permRow}><span>{t('Max participants')}<small>{t('From {min} to {max}', { min: VOICE_MIN, max: VOICE_MAX })}</small></span>{capInput(voice.max, v => setVoice({ ...voice, max: v }))}</div>
+          <div><Button type="submit" size="sm" disabled={live.busy || !voice.name.trim()}><Plus size={14} /> {t('Add voice channel')}</Button></div>
+        </form>}
+        <p className={s.hint}>{t('Voice calls themselves are not available yet. The channels and their settings are saved and enforced by the server.')}</p>
       </div>}
     </>}
 

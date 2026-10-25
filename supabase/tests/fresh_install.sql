@@ -47,3 +47,10 @@ END $$;
 \ir ../migrations/20261025130000_group_message_pins.sql
 \ir ../migrations/20261025130000_group_message_pins.sql
 \ir group_message_pins.sql
+-- Voice channels: repeatable; earlier suites rerun on the new schema (text channels unchanged).
+\ir ../migrations/20261025140000_voice_channels.sql
+\ir ../migrations/20261025140000_voice_channels.sql
+\ir voice_channels.sql
+\ir community_roles.sql
+\ir access_control.sql
+\ir private_function_security.sql

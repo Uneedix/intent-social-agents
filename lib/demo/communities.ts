@@ -88,3 +88,10 @@ export const demoCommunities: DemoCommunity[] = [
     posts: [P(4, 'Free reverb plugins that actually sound good — my top 5.', 6)],
     chat: [C(4, 'Sidechain or volume automation for the kick?', 11)] },
 ];
+
+/** Illustrative voice channels for every example community. `inCall` is invented and
+ *  shown with an "Example" badge; no call is running and nobody is actually connected. */
+export const demoVoiceChannels: { name: string; access: 'open' | 'closed'; max: number; inCall: number }[] = [
+  { name: 'Lounge', access: 'open', max: 10, inCall: 3 },
+  { name: 'Staff room', access: 'closed', max: 5, inCall: 1 },
+];

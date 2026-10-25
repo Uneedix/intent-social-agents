@@ -43,6 +43,10 @@
     {
       "path": "migrations/20261025130000_group_message_pins.sql",
       "sha256": "4583fa02ea0a4a5925a9fcfa53e475bbb849ca113ac1dd0060a52d61b9b089de"
+    },
+    {
+      "path": "migrations/20261025140000_voice_channels.sql",
+      "sha256": "2e37cd1efbeff72c29b05b77df3b1bec42a6aa8b4ac22ebf3b5a1eac73a30289"
     }
   ]
 }

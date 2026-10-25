@@ -14,7 +14,10 @@ export type Community = {
 };
 export type Member = { user_id: string; role: Role | string };
 export type Post = { id: string; body: string; author_id: string; created_at: string };
-export type Channel = { id: string; name: string; category: string };
+export type ChannelKind = 'text' | 'voice';
+export type VoiceAccess = 'open' | 'closed';
+// kind/access/max_participants exist only once 20261025140000_voice_channels.sql is applied.
+export type Channel = { id: string; name: string; category: string; kind?: ChannelKind; access?: VoiceAccess; max_participants?: number };
 export type Msg = { id: string; body: string; author_id: string; created_at: string };
 export type JoinState = 'none' | 'member' | 'pending';
 
@@ -78,6 +81,13 @@ export function addTag(tags: string[], raw: string) {
   if (!tag || tags.length >= TAGS_MAX || tags.some(t => t.toLowerCase() === tag.toLowerCase())) return tags;
   return [...tags, tag];
 }
+export const VOICE_MIN = 2, VOICE_MAX = 99, VOICE_DEFAULT = 10;
+export const channelKind = (c: Pick<Channel, 'kind'>): ChannelKind => (c.kind === 'voice' ? 'voice' : 'text');
+/** Whole number clamped to 2..99 (server CHECK + RPC validate the same range). */
+export const clampCapacity = (n: unknown) => { const v = Math.round(Number(n)); return Number.isFinite(v) ? Math.min(VOICE_MAX, Math.max(VOICE_MIN, v)) : VOICE_DEFAULT; };
+/** 'open' = every member, 'closed' = owner/admin/moderator. UI hint only. */
+export const canJoinVoice = (access: VoiceAccess | undefined, role: string | null | undefined) => rank(role) >= (access === 'closed' ? 2 : 1);
+export const normalizeVoiceName = (s: string) => s.trim().replace(/\s+/g, ' ').slice(0, CHANNEL_MAX);
 export const normalizeChannel = (s: string) => s.trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase().slice(0, CHANNEL_MAX);
 
 export type Draft = {
