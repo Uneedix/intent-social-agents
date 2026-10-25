@@ -320,3 +320,5 @@
 /* Narrow chat list: folder tags give way so names stay readable */
 .ms-list{container-type:inline-size;container-name:mslist}
 @container mslist (max-width:330px){.ms-item .ms-tag{display:none}}
+/* Compact chat header (no title/location strip; that lives in the profile panel) */
+@media(min-width:901px){.ms-head{padding:14px 18px 12px;border-bottom:1px solid var(--line)}.ms-who{gap:12px}.ms-who b{font-size:19px}}
