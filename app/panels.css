@@ -15,6 +15,7 @@
 .group-list{overflow-y:auto;min-height:0}.group-conversation{min-height:0;max-height:none;overflow:hidden}.group-message-history{min-height:0;overflow-y:auto;flex:1}
 .group-list-resizer{left:calc(var(--group-list-width,300px) - 6px)}
 .group-stacked.group-messages-grid{grid-template-columns:1fr;height:auto}.group-stacked>.group-list{max-height:200px;border-right:0;border-bottom:1px solid #323239}.group-stacked>.group-list-resizer{display:none}
+.group-stacked>.group-conversation{height:calc(100dvh - 300px);min-height:390px}
 @media(min-width:901px){
   .ms.resizable-ms{grid-template-columns:var(--chat-list-width,360px) minmax(0,1fr);min-width:0}
   .ms.resizable-ms.inline-info{grid-template-columns:var(--chat-list-width,360px) minmax(0,1fr) var(--chat-info-width,300px)}
@@ -49,5 +50,5 @@
   .ms-compose{padding-left:10px;padding-right:10px}
 }
 @media(max-width:900px){.ms-list-resizer,.ms-info-resizer{display:none}.ms-field textarea{min-height:44px;padding:10px 0}.ms-head{padding:calc(env(safe-area-inset-top) + 8px) 8px 8px}}
-@media(max-width:700px){.group-messages-grid{grid-template-columns:1fr;height:auto}.group-list-resizer{display:none}.group-conversation{min-height:390px}.group-signin-card{margin:14px 0;padding:24px;min-height:240px}}
+@media(max-width:700px){.group-messages-grid{grid-template-columns:1fr;height:auto}.group-list-resizer{display:none}.group-conversation{height:calc(100dvh - 280px);min-height:390px}.group-signin-card{margin:14px 0;padding:24px;min-height:240px}}
 @media(max-width:690px){.main .page-heading{align-items:flex-start;flex-wrap:wrap;gap:14px}.main .page-heading>.message-mode-switch{margin-left:auto}}
