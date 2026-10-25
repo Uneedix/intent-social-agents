@@ -33,7 +33,11 @@
       "sha256": "141f228f669a692e3b89ba07dc66aba592edc3f093c2b1d5923210614b8cbc02"
     },
     {
-      "path": "migrations/20261025110000_owner_community_delete.sql",
+      "path": "migrations/20261025110000_group_topics_avatar.sql",
+      "sha256": "e8a8ff89bacb7017d5b2b8c566edfb895922260cc351b9103928bd7e41cda84c"
+    },
+    {
+      "path": "migrations/20261025120000_owner_community_delete.sql",
       "sha256": "c2e168a177c49e050ec9cbaf15edbbd113d2ca0c512df6f535d36731a3680856"
     }
   ]
