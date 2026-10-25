@@ -27,5 +27,6 @@
 .menuItem{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:none;color:#eee;font:inherit;font-size:14.5px;text-align:left;cursor:pointer}.menuItem:hover,.menuItem:focus-visible{background:#1f1f22;outline:0}.menuItem.dangerItem{color:#ff6b6b}
 .menuSep{height:1px;margin:6px 4px;background:#26262a}
 @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}@keyframes fade{from{opacity:0}to{opacity:1}}
-@media(max-width:640px){.backdrop{place-items:end stretch;padding:0}.modal{width:100%;max-height:92dvh;border-radius:24px 24px 0 0;border-bottom:0}.foot{padding-bottom:calc(env(safe-area-inset-bottom) + 18px)}}
+@keyframes sheet{from{transform:translateY(28px);opacity:.6}to{transform:none;opacity:1}}
+@media(max-width:640px){.backdrop{place-items:end stretch;padding:0}.modal{animation-name:sheet;animation-duration:.22s;width:100%;max-height:92dvh;border-radius:24px 24px 0 0;border-bottom:0}.foot{padding-bottom:calc(env(safe-area-inset-bottom) + 18px)}}
 @media(prefers-reduced-motion:reduce){.modal,.menu,.backdrop{animation:none}}
