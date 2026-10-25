@@ -232,3 +232,8 @@
 @media(max-width:690px){.tg,.tg:has(.tg-info){height:calc(100dvh - 255px);min-height:380px;border-radius:14px}.page-heading .message-mode-switch button{padding:7px 12px}}
 
 .cmp-gif{position:relative;display:inline-flex;gap:6px;align-items:flex-start;margin:8px 0}.cmp-gif-btn{font-size:11px!important;font-weight:800;border:1.5px solid currentColor!important;border-radius:6px!important;width:auto!important;height:24px!important;padding:0 5px!important}.post-gif{margin:10px 0}
+
+/* Notification type badges: always a perfect circle (".follow" button styles must not leak in) */
+.n-av .n-ic,.n-av .n-ic.follow{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;min-width:0;padding:0;margin:0;border-radius:50%;border:2px solid #050505;display:grid;place-items:center;color:#fff;font-size:0;line-height:0;box-sizing:border-box;transform:none}
+.n-av .n-ic svg{width:12px;height:12px;flex:none}
+.n-av .n-ic.follow{background:#1d9bf0}
