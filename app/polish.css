@@ -26,3 +26,56 @@
   .stories{--sr:clamp(80px,23vw,96px);--badge:28px;gap:16px;padding:8px 0 18px;margin:0 -2px}
   .stories .story>span{font-size:13px}
 }
+
+/* ===== Resizable panes (desktop only; see components/ResizeHandle.tsx) ===== */
+.pane-handle{display:none}
+@media(min-width:1051px){
+  .ms-list,.rightbar,.group-list{position:relative}
+  .pane-handle[data-anchor=before]{right:auto}
+  .pane-handle{display:block;position:absolute;top:0;bottom:0;width:16px;z-index:6;cursor:col-resize;touch-action:none;outline:none;-webkit-user-select:none;user-select:none}
+  .pane-handle[data-edge=end]{right:var(--pane-handle-offset,-16px)}
+  .pane-handle[data-edge=start]{left:var(--pane-handle-offset,-16px)}
+  .pane-handle::after{content:'';position:absolute;top:10px;bottom:10px;left:7px;width:2px;border-radius:2px;background:transparent;transition:background-color .15s}
+  .pane-handle:hover::after,.pane-handle[data-dragging]::after{background:#55555e}
+  .pane-handle:focus-visible::after{background:#baadff;box-shadow:0 0 0 2px #baadff55}
+  .rightbar>.pane-handle::after{top:96px}
+}
+@media(max-width:1279px){.pane-handle.pane-wide-only{display:none}}
+body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user-select:none!important;user-select:none!important}
+[data-theme="light"] .pane-handle:hover::after,[data-theme="light"] .pane-handle[data-dragging]::after{background:#b9b6c6}
+
+/* ===== Left sidebar rhythm: Settings → Create matches the gap around the nav divider ===== */
+.leftbar nav{margin-bottom:41px;flex:0 1 auto;min-height:0}
+@media(min-width:691px) and (max-height:860px){
+  .leftbar{padding-top:18px;padding-bottom:18px}
+  .logo{padding-bottom:16px}
+  .leftbar nav{gap:3px;margin-bottom:27px}
+  .leftbar nav button{min-height:44px}
+  .nav-divider{margin:10px 0}
+  .create-button{min-height:50px}
+}
+
+/* Narrow chat list (resized): the Chats/Group chats switch moves under the title instead of truncating it */
+@media(min-width:901px){
+  .ms-list{container-type:inline-size;container-name:mslist}
+  @container mslist (max-width:430px){
+    .ms-title{flex-wrap:wrap;row-gap:12px}
+    .ms-title h1{flex:1 0 100%}
+    .ms-title-tools{margin-left:0}
+  }
+}
+
+/* Pages without the right rail (Settings, or rail switched off): centre the 970px column like the 3-column pages */
+@media(min-width:1391px){.app:has(.main.expanded):not(:has(.main.is-messages)){max-width:1288px}}
+
+/* Market cards: long translations of "Message seller" wrap inside the card instead of spilling out */
+.product-actions{padding:4px 10px 0;margin-top:auto;flex-wrap:wrap}
+.product-actions .pill-btn{max-width:100%;min-width:0;height:auto;min-height:38px;padding:8px 14px;white-space:normal;line-height:1.2;text-align:center}
+
+/* Phone Messages header: the Chats/Group chats switch shrinks instead of pushing past the screen edge (hu, fr) */
+@media(max-width:900px){
+  .ms-title{min-width:0}.ms-logo{flex:none}
+  .ms-title-tools{flex:0 1 auto;min-width:0;gap:4px}
+  .ms-title-tools .message-mode-switch{min-width:0}
+  .ms-title-tools .message-mode-switch button{padding:7px 8px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+}
