@@ -81,12 +81,12 @@ body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user
 
 /* ===== Narrower left sidebar ===== */
 @media(min-width:1391px){
-  .app{grid-template-columns:224px minmax(0,1fr) var(--pane-rail,325px);max-width:1525px}
-  .app:has(.main.is-messages){grid-template-columns:224px minmax(0,1fr)}
+  .app{grid-template-columns:234px minmax(0,1fr) var(--pane-rail,325px);max-width:1525px}
+  .app:has(.main.is-messages){grid-template-columns:234px minmax(0,1fr)}
 }
 @media(min-width:1051px) and (max-width:1390px){
-  .app{grid-template-columns:208px minmax(0,1fr) var(--pane-rail,280px)}
-  .app:has(.main.is-messages){grid-template-columns:208px minmax(0,1fr)}
+  .app{grid-template-columns:212px minmax(0,1fr) var(--pane-rail,280px)}
+  .app:has(.main.is-messages){grid-template-columns:212px minmax(0,1fr)}
 }
 @media(min-width:901px) and (max-width:1050px){
   .app,.app:has(.main.is-messages){grid-template-columns:216px minmax(0,1fr)}
