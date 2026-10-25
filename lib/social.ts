@@ -4,7 +4,7 @@ import { useSession } from '../components/SessionBoundary';
 import { readStored, storageKey, writeStored } from './storage';
 
 export function notifyStorageFailure() {
-  window.dispatchEvent(new Event('intent-storage-error'));
+  if(typeof window!=='undefined')window.dispatchEvent(new Event('intent-storage-error'));
 }
 
 export function useLocalStore() {

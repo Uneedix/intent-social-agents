@@ -43,3 +43,7 @@ END $$;
 \ir ../migrations/20261025110000_group_topics_avatar.sql
 \ir access_control.sql
 \ir group_topics.sql
+
+\ir ../migrations/20261025130000_group_message_pins.sql
+\ir ../migrations/20261025130000_group_message_pins.sql
+\ir group_message_pins.sql

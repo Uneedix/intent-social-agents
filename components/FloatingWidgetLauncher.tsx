@@ -18,9 +18,10 @@ export default function FloatingWidgetLauncher({state,onChange,onOpen,bottomInse
  const release=()=>{clearTimer();const current=gesture.current;gesture.current=null;if(current?.node.hasPointerCapture(current.id))current.node.releasePointerCapture(current.id);};
  useEffect(()=>{const measure=()=>setViewport({width:window.innerWidth,height:window.visualViewport?.height||window.innerHeight});measure();window.addEventListener('resize',measure);window.visualViewport?.addEventListener('resize',measure);return()=>{window.removeEventListener('resize',measure);window.visualViewport?.removeEventListener('resize',measure);};},[]);
  useEffect(()=>()=>{if(timer.current!==null)clearTimeout(timer.current);const current=gesture.current;if(current?.node.hasPointerCapture(current.id))current.node.releasePointerCapture(current.id);},[]);
+ useEffect(()=>{if(!prefs.hidden)return;if(timer.current!==null)clearTimeout(timer.current);timer.current=null;const current=gesture.current;gesture.current=null;if(current?.node.hasPointerCapture(current.id))current.node.releasePointerCapture(current.id);setPoint(null);setDragging(false);},[prefs.hidden]);
  const cancel=()=>{release();setPoint(null);setDragging(false);ignoreClickUntil.current=Date.now()+400;};
  const start=(event:PointerEvent<HTMLButtonElement>)=>{
-  if(event.button!==0||!event.isPrimary)return;
+  if(event.button!==0||!event.isPrimary||gesture.current)return;
   release();event.currentTarget.setPointerCapture(event.pointerId);
   gesture.current={id:event.pointerId,start:{x:event.clientX,y:event.clientY},origin:pos,point:pos,active:false,cancelled:false,node:event.currentTarget};
   timer.current=setTimeout(()=>{const current=gesture.current;if(current&&!current.cancelled){current.active=true;setDragging(true);setPoint(current.point);}},LONG_PRESS_MS);

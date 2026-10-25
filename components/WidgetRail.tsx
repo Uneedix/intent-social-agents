@@ -1,19 +1,20 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { LayoutGrid, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useI18n } from './I18n';
 import WidgetPanel from './WidgetPanel';
 import ResizeHandle from './ResizeHandle';
 import styles from './WidgetRail.module.css';
+import FloatingWidgetLauncher from './FloatingWidgetLauncher';
+import type {LauncherState} from '../lib/mobile-controls';
 
 /** One mounted panel across breakpoints: hidden duplicate stores would overwrite edits. */
-export default function WidgetRail({ header }: { header?: React.ReactNode }) {
+export default function WidgetRail({ header, launcher, onLauncherChange }: { header?: React.ReactNode; launcher:LauncherState; onLauncherChange:(state:LauncherState)=>void }) {
   const { lang } = useI18n();
   const label = lang === 'Русский' ? 'Мои виджеты' : lang === 'Polski' ? 'Moje widżety' : 'My widgets';
   const closeLabel = lang === 'Русский' ? 'Закрыть виджеты' : lang === 'Polski' ? 'Zamknij widżety' : 'Close widgets';
   const [open, setOpen] = useState(false);
   const rail = useRef<HTMLElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const media = window.matchMedia('(min-width: 1051px)');
     const resize = () => { if (media.matches) setOpen(false); };
@@ -52,7 +53,7 @@ export default function WidgetRail({ header }: { header?: React.ReactNode }) {
     };
   }, [open]);
   return <>
-    <button ref={trigger} type="button" className={styles.launcher} aria-expanded={open} aria-controls="feed-widgets" aria-haspopup="dialog" onClick={() => setOpen(true)}><LayoutGrid size={17} />{label}</button>
+    <FloatingWidgetLauncher state={launcher} onChange={onLauncherChange} onOpen={()=>setOpen(true)}/>
     {open && <button type="button" data-widget-overlay className={styles.scrim} aria-label={closeLabel} onClick={() => setOpen(false)} tabIndex={-1} />}
     <aside id="feed-widgets" ref={rail} tabIndex={-1} className={`rightbar ${styles.rail} ${open ? styles.open : ''}`} aria-label={label} role={open ? 'dialog' : undefined} aria-modal={open ? true : undefined}>
       <ResizeHandle pane="widgetRail" edge="start" container=".app" label="Resize widget panel" />

@@ -6,6 +6,8 @@ import './stories.css';
 import './messenger.css';
 import './polish.css';
 import './design.css';
+import './mobile-chat.css';
+import './mobile-hub.css';
 import type { Metadata } from 'next';
 import { I18nProvider } from '../components/I18n';
 import SessionBoundary from '../components/SessionBoundary';

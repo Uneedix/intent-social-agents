@@ -13,7 +13,7 @@ export function sanitizeLauncher(value:unknown):LauncherState {
 export function launcherPosition(state:LauncherState,width:number,height:number,bottomInset=88):Point {
  const w=Math.max(0,finite(width)),h=Math.max(0,finite(height)),bottom=Math.max(0,finite(bottomInset,88));
  const minX=Math.min(12,Math.max(0,w-LAUNCHER_SIZE)),maxX=Math.max(minX,w-LAUNCHER_SIZE-12);
- const minY=Math.min(72,Math.max(0,h-LAUNCHER_SIZE)),maxY=Math.max(minY,h-bottom-LAUNCHER_SIZE-12);
+ const maxY=Math.max(0,h-bottom-LAUNCHER_SIZE-12),minY=Math.min(72,maxY);
  return {x:Math.round(Math.min(maxX,Math.max(minX,finite(state.x,maxX)))),y:Math.round(Math.min(maxY,Math.max(minY,finite(state.y,Math.max(minY,maxY-76)))))};
 }
 export function isLauncherOverTrash(point:Point,width:number,height:number,bottomInset=88):boolean {

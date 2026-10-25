@@ -39,6 +39,10 @@
     {
       "path": "migrations/20261025120000_owner_community_delete.sql",
       "sha256": "c2e168a177c49e050ec9cbaf15edbbd113d2ca0c512df6f535d36731a3680856"
+    },
+    {
+      "path": "migrations/20261025130000_group_message_pins.sql",
+      "sha256": "4583fa02ea0a4a5925a9fcfa53e475bbb849ca113ac1dd0060a52d61b9b089de"
     }
   ]
 }

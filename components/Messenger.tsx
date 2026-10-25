@@ -1,4 +1,5 @@
 'use client';
+import {PinDialog,PinnedList,type PinScope} from './MessagePins';
 import { useT, useI18n } from './I18n';
 import {normalizeFolderOrder,moveFolder,reorderFolder} from '../lib/chat-folders';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as RPointerEvent } from 'react';
@@ -70,6 +71,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
   const [editing, setEditing] = useState<ChatMsg | null>(null);
+  const [pinTarget,setPinTarget]=useState<{chatId:string;messageId:number}|null>(null);
   const [msgMenu, setMsgMenu] = useState<number | null>(null);
   const [rxPicker, setRxPicker] = useState(false);
   const [itemMenu, setItemMenu] = useState<string | null>(null);
@@ -232,7 +234,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const patchMsg = (ids: number[], fn: (m: ChatMsg) => ChatMsg) => chat && update(chat.id, c => ({ ...c, messages: c.messages.map(m => ids.includes(m.id) ? fn(m) : m) }));
   const react = (m: ChatMsg, e: string) => patchMsg([m.id], x => { const r = { ...(x.reactions || {}) }; const had = (r[e] || []).includes('me');
     Object.keys(r).forEach(k => { r[k] = r[k].filter(u => u !== 'me'); if (!r[k].length) delete r[k]; }); if (!had) r[e] = [...(r[e] || []), 'me']; return { ...x, reactions: r }; });
-  const removeMsgs = (ids: number[]) => chat && update(chat.id, c => ({ ...c, pinnedMsg: c.pinnedMsg && ids.includes(c.pinnedMsg) ? undefined : c.pinnedMsg, messages: c.messages.map(x => ids.includes(x.id) ? { ...x, deleted: true, text: '', image: undefined, file: undefined, voice: undefined, poll: undefined, contact: undefined, location: undefined } : x) }));
+  const removeMsgs = (ids: number[]) => chat && update(chat.id, c => ({ ...c, pinnedMsg: c.pinnedMsg && ids.includes(c.pinnedMsg) ? undefined : c.pinnedMsg, pinnedMessages:(c.pinnedMessages||[]).filter(p=>!ids.includes(p.messageId)), messages: c.messages.map(x => ids.includes(x.id) ? { ...x, deleted: true, text: '', image: undefined, file: undefined, voice: undefined, poll: undefined, contact: undefined, location: undefined } : x) }));
   const readData = (f: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error(t('Could not read the file.'))); r.readAsDataURL(f); });
   async function pickFile(f?: File, el?: HTMLInputElement | null) {
     setAttachOpen(false);
@@ -312,7 +314,9 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const toggleSel = (id: number) => setSelected(s => s ? (s.includes(id) ? s.filter(x => x !== id) : [...s, id]) : [id]);
 
   /* ---------- derived ---------- */
-  const pinned = chat?.pinnedMsg ? chat.messages.find(m => m.id === chat.pinnedMsg && !m.deleted) : null;
+  const localPins=(c:Chat)=>{const pins=c.pinnedMessages||[];return c.pinnedMsg&&!pins.some(p=>p.messageId===c.pinnedMsg)?[{messageId:c.pinnedMsg,scope:'self' as const},...pins]:pins;};
+  const pinRows=chat?localPins(chat).filter(p=>chat.messages.some(m=>m.id===p.messageId&&!m.deleted)).map(p=>({id:String(p.messageId),scope:p.scope,text:preview(chat.messages.find(m=>m.id===p.messageId)!)})):[];
+  const unpinMessage=(id:string,scope:PinScope)=>chat&&update(chat.id,c=>({...c,pinnedMsg:undefined,pinnedMessages:localPins(c).filter(p=>!(p.messageId===Number(id)&&p.scope===scope))}));
   const shown = chat ? chat.messages.filter(m => !m.deleted && (!curTopicId || inTopic(m, curTopicId)) && (!find || m.text.toLowerCase().includes(find.toLowerCase()))) : [];
   const live = chat ? chat.messages.filter(m => !m.deleted) : [];
   const images = live.filter(m => m.image);
@@ -329,7 +333,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <button type="button" title={t('Reply')} aria-label={t('Reply')} onClick={() => { setReplyTo(m); setEditing(null); closeMenu(); input.current?.focus(); }}><Reply size={18} /></button>
       {m.text && <button type="button" title={t('Copy')} aria-label={t('Copy')} onClick={() => { void navigator.clipboard?.writeText(m.text).then(() => toast(t('Copied'))); closeMenu(); }}><Copy size={18} /></button>}
       {m.from === 'me' && m.text && <button type="button" title={t('Edit')} aria-label={t('Edit')} onClick={() => { setEditing(m); setReplyTo(null); setDraft(m.text); closeMenu(); input.current?.focus(); }}><Pencil size={18} /></button>}
-      <button type="button" title={t(chat.pinnedMsg === m.id ? 'Unpin' : 'Pin')} aria-label={t(chat.pinnedMsg === m.id ? 'Unpin' : 'Pin')} onClick={() => { update(chat.id, c => ({ ...c, pinnedMsg: c.pinnedMsg === m.id ? undefined : m.id })); closeMenu(); }}>{chat.pinnedMsg === m.id ? <PinOff size={18} /> : <Pin size={18} />}</button>
+      <button type="button" title={t('Pin')} aria-label={t('Pin')} onClick={()=>{setPinTarget({chatId:chat.id,messageId:m.id});closeMenu();}}><Pin size={18}/></button>
       <button type="button" title={t('Forward')} aria-label={t('Forward')} onClick={() => { setForward([m]); closeMenu(); }}><Forward size={18} /></button>
       <button type="button" title={t(m.starred ? 'Unstar' : 'Star')} aria-label={t(m.starred ? 'Unstar' : 'Star')} onClick={() => { patchMsg([m.id], x => ({ ...x, starred: !x.starred })); closeMenu(); }}><Star size={18} fill={m.starred ? 'currentColor' : 'none'} /></button>
       <button type="button" title={t('Select')} aria-label={t('Select')} onClick={() => { setSelected([m.id]); closeMenu(); }}><CircleCheck size={18} /></button>
@@ -353,7 +357,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <button className={categoryOf(chat) === 'job' ? 'on' : ''} onClick={() => setCategory('job')}><Briefcase size={18} /> {t('Jobs')}</button>
       <button className={categoryOf(chat) === 'collab' ? 'on' : ''} onClick={() => setCategory('collab')}><Handshake size={18} /> {t('Collaborations')}</button>
       <button className={categoryOf(chat) === 'other' ? 'on' : ''} onClick={() => setCategory('other')}><MessageSquare size={18} /> {t('Other')}</button></>}
-    <button className="danger" onClick={() => { close(); if (confirm(t('Clear all messages in this chat on this device?'))) update(chat.id, c => ({ ...c, messages: [], pinnedMsg: undefined })); }}><Eraser size={18} /> {t('Clear history')}</button>
+    <button className="danger" onClick={() => { close(); if (confirm(t('Clear all messages in this chat on this device?'))) update(chat.id, c => ({ ...c, messages: [], pinnedMsg: undefined, pinnedMessages: [] })); }}><Eraser size={18} /> {t('Clear history')}</button>
     {chat.kind !== 'saved' && <button className="danger" onClick={() => { close(); deleteChat(chat); }}><Trash2 size={18} /> {t(isGroup ? 'Delete group' : 'Delete chat')}</button>}
   </div>;
 
@@ -448,7 +452,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         onClosed={closed => { setTopics(list => list.map(x => x.id === curTopic.id ? { ...x, closed } : x)); toast(t(closed ? 'Topic closed' : 'Topic reopened')); }}
         onPin={pinned => setTopics(list => list.map(x => x.id === curTopic.id ? { ...x, pinned } : x))} onSearch={() => setFind('')} />}
       {find != null && <div className="ms-find"><Search size={16} /><input autoFocus value={find} onChange={e => setFind(e.target.value)} placeholder={t(topicsOn ? 'Search in this topic' : 'Search in this chat')} /><span>{find ? shown.length : ''}</span><button className="icon-button" onClick={() => setFind(null)} aria-label={t('Close')}><X size={16} /></button></div>}
-      {pinned && <button className="ms-pinned" onClick={() => jump(pinned.id)}><Pin size={15} /><span><b>{t('Pinned message')}</b><small>{preview(pinned)}</small></span><span className="icon-button" role="button" tabIndex={0} aria-label={t('Unpin')} onClick={e => { e.stopPropagation(); update(chat.id, c => ({ ...c, pinnedMsg: undefined })); }}><X size={15} /></span></button>}
+      <PinnedList rows={pinRows} onRemove={unpinMessage} onOpen={id=>{const m=chat.messages.find(x=>x.id===Number(id));if(topicsOn&&m)openTopic(m.topicId||GENERAL_ID);jump(Number(id));}}/>
 
       <div className="ms-msgs" ref={box}>
         {shown.map((m, i) => { const prevM = shown[i - 1]; const showDay = !prevM || startOf(prevM.at) !== startOf(m.at); const mine = m.from === 'me'; const s = sender(m);
@@ -595,9 +599,10 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {privacy && chat && <Sheet title={t('Privacy')} onClose={() => setPrivacy(false)}>
       <p className="sh-text">{t('This chat is stored only in this browser on this device. It is not sent to other people or to our servers yet.')}</p>
       <p className="sh-text">{t('End-to-end encryption is not implemented. Do not share passwords, card numbers or other sensitive data in chats.')}</p>
-      <div className="ms-menu-list"><button className="danger" onClick={() => { setPrivacy(false); if (confirm(t('Clear all messages in this chat on this device?'))) update(chat.id, c => ({ ...c, messages: [], pinnedMsg: undefined })); }}><Eraser size={18} /> {t('Clear history')}</button></div>
+      <div className="ms-menu-list"><button className="danger" onClick={() => { setPrivacy(false); if (confirm(t('Clear all messages in this chat on this device?'))) update(chat.id, c => ({ ...c, messages: [], pinnedMsg: undefined, pinnedMessages: [] })); }}><Eraser size={18} /> {t('Clear history')}</button></div>
     </Sheet>}
 
+    {pinTarget&&<PinDialog local onClose={()=>setPinTarget(null)} onChoose={scope=>{const target=chats.find(c=>c.id===pinTarget.chatId);if(target&&target.messages.some(m=>m.id===pinTarget.messageId&&!m.deleted))update(target.id,c=>({...c,pinnedMsg:undefined,pinnedMessages:[...localPins(c).filter(p=>!(p.messageId===pinTarget.messageId&&p.scope===scope)),{messageId:pinTarget.messageId,scope}]}));setPinTarget(null);}}/>}
     {folderMenu&&<Sheet title={`${ui.options} · ${folders.find(([id])=>id===folderMenu)?.[1]||''}`} onClose={()=>setFolderMenu(null)}><div className="ms-menu-list"><button type="button" disabled={orderedIds.indexOf(folderMenu)<=0} onClick={()=>moveFolderInMenu(-1)}><ChevronLeft size={18}/>{ui.left}</button><button type="button" disabled={orderedIds.indexOf(folderMenu)>=orderedIds.length-1} onClick={()=>moveFolderInMenu(1)}><ChevronRight size={18}/>{ui.right}</button>{folderMenu.startsWith('list:')&&<button type="button" onClick={()=>{const item=lists.find(list=>'list:'+list.id===folderMenu);if(item)setListEdit(item);setFolderMenu(null);}}><Pencil size={18}/>{t('Edit list')}</button>}</div></Sheet>}
 
     {newChat && <Sheet title={t('New chat')} onClose={closeNew} className="np">

@@ -1,4 +1,5 @@
 'use client';
+import {GroupPins} from './MessagePins';
 import { useT } from './I18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
@@ -11,6 +12,7 @@ import GroupInfoModal, { type InfoMember, type GroupProfile } from './groups/Gro
 import { TopicList, TopicBar, TopicModal, ClosedTopic, type TopicRow } from './groups/Topics';
 import { GroupAvatar } from './groups/parts';
 import { canManage, readSeen, writeSeen, sortTopics } from './groups/model';
+import type {Chat} from '../lib/data';
 import type { GroupRole } from '../lib/data';
 import gs from './groups/groups.module.css';
 type Group = { id:string; title:string; description:string|null; created_by:string; created_at:string; avatar_url?:string|null; avatar_color?:number|null; topics_enabled?:boolean|null };
@@ -29,14 +31,14 @@ const mergeMessages = (old: Message[], next: Message[]) => [...new Map([...old, 
 const missingSchema = (e: { code?: string; message?: string } | null | undefined) => !!e && (['42703', '42P01', 'PGRST204', 'PGRST205', 'PGRST202'].includes(e.code || '') || /does not exist|schema cache|could not find/i.test(e.message || ''));
 const short = (id: string) => id.slice(0, 8);
 
-type Props={modeSwitch?:ReactNode;onHome?:()=>void};
-export default function GroupMessages({modeSwitch,onHome}:Props={}) {
+type Props={modeSwitch?:ReactNode;onHome?:()=>void;localGroups?:Chat[];onOpenLocalGroup?:(id:string)=>void};
+export default function GroupMessages({modeSwitch,onHome,localGroups,onOpenLocalGroup}:Props={}) {
  const {user,scope} = useSession();
  const [db] = useState<DB | null>(() => { try { return isSupabaseConfigured() ? createClient() : null; } catch { return null; } });
  if (!db) return <p role="alert">Supabase is not configured. Set the public environment variables.</p>;
- return <GroupMessagesSession key={scope} supabase={db} userId={user?.id || null} modeSwitch={modeSwitch} onHome={onHome} />;
+ return <GroupMessagesSession key={scope} supabase={db} userId={user?.id || null} modeSwitch={modeSwitch} onHome={onHome} localGroups={localGroups} onOpenLocalGroup={onOpenLocalGroup} />;
 }
-function GroupMessagesSession({ supabase, userId, modeSwitch, onHome }: { supabase: DB; userId: string | null }&Props) {
+function GroupMessagesSession({ supabase, userId, modeSwitch, onHome, localGroups=[], onOpenLocalGroup }: { supabase: DB; userId: string | null }&Props) {
  const t = useT();
  const [groups,setGroups]=useState<Group[]>([]);
  const [schema,setSchema]=useState<Schema>('unknown');
@@ -57,6 +59,7 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome }: { supaba
  const [adding,setAdding]=useState(false);
  const [topicEdit,setTopicEdit]=useState<TopicRow|'new'|null>(null);
  const [find,setFind]=useState<string|null>(null);
+ const [pinTarget,setPinTarget]=useState<Message|null>(null);
  const [draft,setDraft]=useState('');
  const [busy,setBusy]=useState(false);
  const [seen,setSeen]=useState<Record<string,string>>({});
@@ -85,7 +88,7 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome }: { supaba
  const resetConversation = () => { conversationRequest.current++; olderBusy.current = false; oldest.current = null; setMessages([]); setHasOlder(false); setOlderLoading(false); setFind(null); };
  const choose = (group: Group | null) => {
   selectionVersion.current++; selection.current = group?.id || null; metaRequest.current++; topicKey.current = null; resetConversation();
-  setSelected(group); setMembers([]); setTopics([]); setOverview([]); setTopic(null); setDraft(''); setError(''); setConversationLoading(!!group); setBusy(false); setInfo(false); setAdding(false); setTopicEdit(null);
+  setPinTarget(null);setSelected(group); setMembers([]); setTopics([]); setOverview([]); setTopic(null); setDraft(''); setError(''); setConversationLoading(!!group); setBusy(false); setInfo(false); setAdding(false); setTopicEdit(null);
  };
  const refreshGroups=useCallback(async(selectId?: string)=>{
   const request = ++groupRequest.current; setLoading(true);
@@ -228,17 +231,19 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome }: { supaba
  const shown = find ? messages.filter(m => m.body.toLowerCase().includes(find.toLowerCase())) : messages;
 
  const heading=<div className="ms-title"><h1>{t('Messages')}</h1><button type="button" className="ms-logo ms-home-logo" onClick={onHome} aria-label={t('Home')}>intent<span>.</span></button><span className="ms-title-tools">{modeSwitch}<button className="icon-button" disabled={!userId} onClick={()=>{setModalError('');setCreating(true);}} aria-label={t('New group')}><Plus size={22}/></button></span></div>;
- if(!userId)return <div className="group-messages gm-unified">{heading}<p className="muted">{t('Sign in to create group chats and invite participants.')}</p><a href="/login" className="primary">{t('Sign in')}</a></div>;
+ const localList=localGroups.length>0&&<div className="group-local-list"><small>{t('On this device')}</small>{localGroups.filter(g=>g.name.toLowerCase().includes(query.toLowerCase())).map(g=><button type="button" className="group-list-item" key={g.id} onClick={()=>onOpenLocalGroup?.(g.id)}><GroupAvatar name={g.name} src={g.avatar} color={g.color} size={42}/><span><strong>{g.name}</strong><small>{t('On this device')}</small></span></button>)}</div>;
+ if(!userId)return <div className="group-messages gm-unified">{heading}{localList}<p className="muted">{t('Sign in to create group chats and invite participants.')}</p><a href="/login" className="primary">{t('Sign in')}</a></div>;
  const history = <>
+  {selected&&<GroupPins key={selected.id} db={supabase} groupId={selected.id} userId={userId} admin={admin} target={pinTarget} onClose={()=>setPinTarget(null)} onOpen={(id,targetTopic)=>{if(targetTopic)setTopic(targetTopic);document.getElementById('group-message-'+id)?.scrollIntoView({block:'center',behavior:'smooth'});}}/>}
   {find!=null&&<div className="ms-find gm-find"><input autoFocus value={find} onChange={e=>setFind(e.target.value)} placeholder={t(topicsOn?'Search in this topic':'Search in this chat')} aria-label={t(topicsOn?'Search in this topic':'Search in this chat')}/><span>{find?shown.length:''}</span><Button variant="ghost" size="sm" onClick={()=>setFind(null)}>{t('Close')}</Button></div>}
-  <div className="group-message-history">{conversationLoading&&<p role="status">{t("Loading…")}</p>}{hasOlder&&<Button size="sm" disabled={olderLoading} onClick={()=>void loadOlder()} className="gm-older">{t(olderLoading ? "Loading…" : "Load older messages")}</Button>}{!conversationLoading&&shown.length===0&&<p className="muted gm-empty">{t(find?'No messages match your search.':"No messages yet. Start the conversation.")}</p>}{shown.map(m=><div key={m.id} className={'group-message '+(m.sender_id===userId?'mine':'other')}><small>{m.sender_id===userId?t('You'):short(m.sender_id)}</small><p>{m.body}</p><time>{new Date(m.created_at).toLocaleString()}</time></div>)}</div>
+  <div className="group-message-history">{conversationLoading&&<p role="status">{t("Loading…")}</p>}{hasOlder&&<Button size="sm" disabled={olderLoading} onClick={()=>void loadOlder()} className="gm-older">{t(olderLoading ? "Loading…" : "Load older messages")}</Button>}{!conversationLoading&&shown.length===0&&<p className="muted gm-empty">{t(find?'No messages match your search.':"No messages yet. Start the conversation.")}</p>}{shown.map(m=><div id={"group-message-"+m.id} key={m.id} className={'group-message '+(m.sender_id===userId?'mine':'other')}><small>{m.sender_id===userId?t('You'):short(m.sender_id)}</small><p>{m.body}</p><button type="button" className="group-pin-action" aria-label={t("Pin")} onClick={()=>setPinTarget(m)}>⌖</button><time>{new Date(m.created_at).toLocaleString()}</time></div>)}</div>
   {activeTopic?.closed ? <ClosedTopic manage={admin} onReopen={()=>patchTopic(activeTopic,{closed:false})}/> : <form className="group-send" onSubmit={sendMessage}><input value={draft} maxLength={4000} onChange={e=>setDraft(e.target.value)} placeholder={t(topicsOn?"Message the topic...":"Message the group...")} aria-label="Group message"/><button disabled={busy||!draft.trim()} type="submit" aria-label={t("Send")}><Send size={19}/></button></form>}
  </>;
  return <div className="group-messages gm-unified">
   {heading}
   {schema==='legacy'&&<p className="gm-upgrade" role="status">{upgradeNote}</p>}
   {error&&<div role="alert" className="group-error">{error} <button onClick={()=>{setError('');if(selected)void refreshMeta(selected,topicsOn);else void refreshGroups();}}>{t("Retry")}</button> <button onClick={()=>setError('')}>{t("Dismiss")}</button></div>}
-  <div className={'group-messages-grid'+(selected?' gm-has-group':'')}><aside className="group-list"><ResizeHandle pane="groupList" edge="end" container=".group-messages-grid" label="Resize group list" /><div className="group-list-head"><strong>{t("Your groups")}</strong><button className="icon-button" onClick={()=>void refreshGroups()} aria-label={t("Refresh groups")}><RefreshCw size={16}/></button></div><label className="ms-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("Search messages...")} aria-label={t("Search groups")}/></label>{loading?<p role="status">{t("Loading…")}</p>:groups.length===0?<p className="muted">{t("No groups yet. Create your first group.")}</p>:groups.filter(g=>g.title.toLowerCase().includes(query.toLowerCase())).map(g=><button key={g.id} className={'group-list-item '+(selected?.id===g.id?'current':'')} onClick={()=>choose(g)}><GroupAvatar name={g.title} src={g.avatar_url} color={g.avatar_color} size={42}/><span><strong>{g.title}</strong><small>{g.description||t(g.topics_enabled?'Group with topics':'Group conversation')}</small></span></button>)}</aside>
+  <div className={'group-messages-grid'+(selected?' gm-has-group':'')}><aside className="group-list"><ResizeHandle pane="groupList" edge="end" container=".group-messages-grid" label="Resize group list" /><div className="group-list-head"><strong>{t("Your groups")}</strong><button className="icon-button" onClick={()=>void refreshGroups()} aria-label={t("Refresh groups")}><RefreshCw size={16}/></button></div><label className="ms-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("Search messages...")} aria-label={t("Search groups")}/></label>{loading?<p role="status">{t("Loading…")}</p>:groups.length===0?<p className="muted">{t("No groups yet. Create your first group.")}</p>:groups.filter(g=>g.title.toLowerCase().includes(query.toLowerCase())).map(g=><button key={g.id} className={'group-list-item '+(selected?.id===g.id?'current':'')} onClick={()=>choose(g)}><GroupAvatar name={g.title} src={g.avatar_url} color={g.avatar_color} size={42}/><span><strong>{g.title}</strong><small>{g.description||t(g.topics_enabled?'Group with topics':'Group conversation')}</small></span></button>)}{localList}</aside>
   <section className="group-conversation">{!selected?<div className="group-empty"><Users size={36}/><p>{t("Select a group to view messages.")}</p></div>:<>
    <header className="group-conversation-head">
     <button className="gm-back icon-button" onClick={()=>choose(null)} aria-label={t("Back")}><ArrowLeft size={18}/></button>
