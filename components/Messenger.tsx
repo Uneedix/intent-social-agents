@@ -111,6 +111,14 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const status = (c: Chat) => c.kind === 'saved' ? t('Only you can see this chat') : c.kind === 'group' ? t('{n} members', { n: (c.members?.length || 0) + 1 }) : t(c.online ? 'Online' : 'last seen recently');
 
   useEffect(() => { setSide(window.matchMedia('(min-width: 1280px)').matches); }, []);
+  useEffect(() => {
+    if (msgMenu == null) return;
+    const down = (e: PointerEvent) => { const el = e.target as HTMLElement; if (!el.closest?.('.ms-inl-bar,.ms-inl-rx,.ms-bub-wrap.on')) { setMsgMenu(null); setRxPicker(false); } };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMsgMenu(null); setRxPicker(false); } };
+    const tm = setTimeout(() => { document.addEventListener('pointerdown', down); document.querySelector('.ms-inl-bar')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 0);
+    document.addEventListener('keydown', key);
+    return () => { clearTimeout(tm); document.removeEventListener('pointerdown', down); document.removeEventListener('keydown', key); };
+  }, [msgMenu]);
   // ⌘K / Ctrl+K focuses the chat search while Messages is open
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); e.stopPropagation(); listSearch.current?.focus(); } };
@@ -275,6 +283,22 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const starred = live.filter(m => m.starred);
   const sharedTop = [...files.map(m => ({ k: 'f' + m.id, at: m.at, m, url: '' })), ...links.map(l => ({ k: 'l' + l.key, at: l.m.at, m: l.m, url: l.url }))].sort((a, b) => b.at - a.at);
   const menuMsg = msgMenu != null ? chat?.messages.find(m => m.id === msgMenu) : null;
+  const closeMenu = () => { setMsgMenu(null); setRxPicker(false); };
+  const msgQuick = (m: ChatMsg) => <div className="ms-inl-rx" onClick={e => e.stopPropagation()}>{QUICK.map(e => <button key={e} type="button" onClick={() => { react(m, e); closeMenu(); }}>{e}</button>)}<button type="button" className="more" onClick={() => setRxPicker(!rxPicker)} aria-label={t('More reactions')}><Plus size={18} /></button></div>;
+  const msgBar = (m: ChatMsg) => chat && <div className="ms-inl-bar" role="toolbar" onClick={e => e.stopPropagation()}>
+    {rxPicker && <div className="ms-inl-pick"><EmojiPicker variant="inline" keepOpen={false} onPick={e => { react(m, e); closeMenu(); }} onClose={() => setRxPicker(false)} /></div>}
+    <div className="ms-inl-acts">
+      <button type="button" title={t('Reply')} aria-label={t('Reply')} onClick={() => { setReplyTo(m); setEditing(null); closeMenu(); input.current?.focus(); }}><Reply size={18} /></button>
+      {m.text && <button type="button" title={t('Copy')} aria-label={t('Copy')} onClick={() => { void navigator.clipboard?.writeText(m.text).then(() => toast(t('Copied'))); closeMenu(); }}><Copy size={18} /></button>}
+      {m.from === 'me' && m.text && <button type="button" title={t('Edit')} aria-label={t('Edit')} onClick={() => { setEditing(m); setReplyTo(null); setDraft(m.text); closeMenu(); input.current?.focus(); }}><Pencil size={18} /></button>}
+      <button type="button" title={t(chat.pinnedMsg === m.id ? 'Unpin' : 'Pin')} aria-label={t(chat.pinnedMsg === m.id ? 'Unpin' : 'Pin')} onClick={() => { update(chat.id, c => ({ ...c, pinnedMsg: c.pinnedMsg === m.id ? undefined : m.id })); closeMenu(); }}>{chat.pinnedMsg === m.id ? <PinOff size={18} /> : <Pin size={18} />}</button>
+      <button type="button" title={t('Forward')} aria-label={t('Forward')} onClick={() => { setForward([m]); closeMenu(); }}><Forward size={18} /></button>
+      <button type="button" title={t(m.starred ? 'Unstar' : 'Star')} aria-label={t(m.starred ? 'Unstar' : 'Star')} onClick={() => { patchMsg([m.id], x => ({ ...x, starred: !x.starred })); closeMenu(); }}><Star size={18} fill={m.starred ? 'currentColor' : 'none'} /></button>
+      <button type="button" title={t('Select')} aria-label={t('Select')} onClick={() => { setSelected([m.id]); closeMenu(); }}><CircleCheck size={18} /></button>
+      <span className="ms-inl-sep" />
+      <button type="button" className="danger" title={t('Delete')} aria-label={t('Delete')} onClick={() => { removeMsgs([m.id]); closeMenu(); }}><Trash2 size={18} /></button>
+    </div>
+  </div>;
   const itemChat = itemMenu ? chats.find(c => c.id === itemMenu) : null;
   const viewMsg = viewer != null ? images.find(m => m.id === viewer) : null;
   const jump = (id: number) => { setMediaTab(null); setViewer(null); if (window.matchMedia('(max-width: 1050px)').matches) setSide(false); setTimeout(() => document.getElementById('m' + id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); };
@@ -392,13 +416,15 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
             <MsgRow m={m} mine={mine} selecting={!!selected} sel={!!selected?.includes(m.id)} onTap={() => selected ? toggleSel(m.id) : !m.deleted && setMsgMenu(m.id)} onLong={() => !m.deleted && setMsgMenu(m.id)} onDouble={() => !m.deleted && react(m, '❤️')}>
               {!mine && s && <Avatar chat={{ kind: 'personal', avatar: s.avatar, name: s.name, online: 'online' in s ? !!s.online : false }} size={42} dot />}
               <div className="ms-stack">
-                <div className="ms-bub-wrap">
+                {menuMsg?.id === m.id && msgQuick(m)}
+                <div className={'ms-bub-wrap' + (menuMsg?.id === m.id ? ' on' : '')}>
                   <div className={'ms-bub ' + (m.deleted ? 'del ' : '') + (media && !m.text ? 'media ' : '') + (m.image && !m.text ? 'photo' : '')}>{body(m, mine)}{mine && meta}</div>
                 </div>
                 {m.reactions && Object.keys(m.reactions).length > 0 && <span className="ms-rx">{Object.entries(m.reactions).map(([e, u]) => <button key={e} className={u.includes('me') ? 'on' : ''} onClick={ev => { ev.stopPropagation(); react(m, e); }}>{e}{u.length > 1 ? ' ' + u.length : ''}</button>)}</span>}
+                {menuMsg?.id === m.id && msgBar(m)}
               </div>
               {!mine && meta}
-              {!m.deleted && !selected && <button type="button" className="ms-reply-btn" onClick={e => { e.stopPropagation(); setReplyTo(m); setEditing(null); input.current?.focus(); }} aria-label={t('Reply')} title={t('Reply')}><Reply size={16} /></button>}
+              {!m.deleted && !selected && menuMsg?.id !== m.id && <button type="button" className="ms-reply-btn" onClick={e => { e.stopPropagation(); setReplyTo(m); setEditing(null); input.current?.focus(); }} aria-label={t('Reply')} title={t('Reply')}><Reply size={16} /></button>}
             </MsgRow></div>; })}
         {!shown.length && <p className="muted ms-empty">{t(find ? 'No messages match your search.' : 'No messages yet. Say hi 👋')}</p>}
       </div>
@@ -508,24 +534,6 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     </aside>}
 
     {/* ---------- overlays ---------- */}
-    {menuMsg && chat && <div className="ms-ctx-overlay" onClick={() => { setMsgMenu(null); setRxPicker(false); }}>
-      <div className={'ms-ctx-box ' + (menuMsg.from === 'me' ? 'mine' : '')} onClick={e => e.stopPropagation()}>
-        <div className="ms-ctx-preview">{preview(menuMsg)}</div>
-        <div className="ms-quick">{QUICK.map(e => <button key={e} onClick={() => { react(menuMsg, e); setMsgMenu(null); }}>{e}</button>)}<button className="more" onClick={() => setRxPicker(!rxPicker)} aria-label={t('More reactions')}><Plus size={20} /></button></div>
-        {rxPicker && <EmojiPicker variant="inline" keepOpen={false} onPick={e => { react(menuMsg, e); setMsgMenu(null); setRxPicker(false); }} onClose={() => setRxPicker(false)} />}
-        <div className="ms-menu-list">
-          <button onClick={() => { setReplyTo(menuMsg); setEditing(null); setMsgMenu(null); input.current?.focus(); }}><Reply size={18} /> {t('Reply')}</button>
-          {menuMsg.text && <button onClick={() => { void navigator.clipboard?.writeText(menuMsg.text).then(() => toast(t('Copied'))); setMsgMenu(null); }}><Copy size={18} /> {t('Copy')}</button>}
-          {menuMsg.from === 'me' && menuMsg.text && <button onClick={() => { setEditing(menuMsg); setReplyTo(null); setDraft(menuMsg.text); setMsgMenu(null); input.current?.focus(); }}><Pencil size={18} /> {t('Edit')}</button>}
-          <button onClick={() => { update(chat.id, c => ({ ...c, pinnedMsg: c.pinnedMsg === menuMsg.id ? undefined : menuMsg.id })); setMsgMenu(null); }}>{chat.pinnedMsg === menuMsg.id ? <><PinOff size={18} /> {t('Unpin')}</> : <><Pin size={18} /> {t('Pin')}</>}</button>
-          <button onClick={() => { setForward([menuMsg]); setMsgMenu(null); }}><Forward size={18} /> {t('Forward')}</button>
-          <button onClick={() => { patchMsg([menuMsg.id], m => ({ ...m, starred: !m.starred })); setMsgMenu(null); }}><Star size={18} fill={menuMsg.starred ? 'currentColor' : 'none'} /> {t(menuMsg.starred ? 'Unstar' : 'Star')}</button>
-          <button onClick={() => { setSelected([menuMsg.id]); setMsgMenu(null); }}><CircleCheck size={18} /> {t('Select')}</button>
-          <button className="danger" onClick={() => { removeMsgs([menuMsg.id]); setMsgMenu(null); }}><Trash2 size={18} /> {t('Delete')}</button>
-        </div>
-      </div>
-    </div>}
-
     {itemChat && <Sheet title={<span className="sh-who"><Avatar chat={itemChat} size={36} /> {chatTitle(itemChat)}</span>} onClose={() => setItemMenu(null)}>
       <div className="ms-menu-list">
         <button onClick={() => { togglePin(itemChat); setItemMenu(null); }}>{itemChat.pinned ? <><PinOff size={18} /> {t('Unpin')}</> : <><Pin size={18} /> {t('Pin to top')} <small className="muted">{pinCount}/{MAX_PINS}</small></>}</button>
