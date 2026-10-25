@@ -11,6 +11,9 @@ import Composer, { type Draft } from '../components/Composer';
 import Stories, { type MyStory } from '../components/Stories';
 import Messenger from '../components/Messenger';
 import ImagePicker from '../components/ImagePicker';
+import ExplorePage from '../components/explore/ExplorePage';
+import ExploreRail from '../components/explore/ExploreRail';
+import { useExploreState } from '../components/explore/shared';
 import { SearchHub, ProfileStudio, SettingsStudio, useProfile, type SettingsSection } from '../components/Experience';
 import { avatars, initialPosts, initialIntentions, products, sampleChats, type Post, type Section, type Chat } from '../lib/data';
 import { useStored, uid } from '../lib/social';
@@ -156,9 +159,15 @@ export default function Page() {
         onViewProfile={h => { setQuery('@' + h); go('Explore'); }} onShareIntention={() => setComposer({ kind: 'intention' })} onCommunities={() => go('Communities')} />
     : <><div className="page-heading"><div><h1>{t("Messages")}</h1></div>{modeSwitch}</div><GroupMessages /></>;
 
-  const explorePosts = visible(posts).filter(p => p.images.length);
-  const explore = <>{!query && explorePosts.length > 0 && <div className="ig-grid">{explorePosts.flatMap(p => p.images.map((im, i) => ({ p, im, i }))).slice(0, 12).map(({ p, im, i }, k) => <button key={p.id + '-' + i} className={'ig-cell ' + (k % 5 === 0 ? 'tall' : '')} onClick={() => setLightbox({ images: p.images, i })}><img src={im} alt="" loading="lazy" /><span className="ig-ov"><Heart size={18} fill="white" /> {p.likes}</span></button>)}</div>}
-    <SearchHub query={query} onQuery={setQuery} people={people.filter(([,handle])=>!muted.includes(handle))} posts={visible(posts)} intentions={visible(intentions)} onFollow={toggleFollow} following={following} onPost={p => { go(p.kind === 'intention' ? 'Intentions' : 'Home'); setTab(p.kind === 'intention' ? 'Intentions' : 'Feeds'); }} onMessage={name => { const x = people.find(y => y[0] === name); if (x) openChatWith(x[1], x[0], x[2]); go('Messages'); }} /></>;
+  const exploreState = useExploreState();
+  const exploreMessage = (h: string, name: string, avatar: string) => { openChatWith(h, name, avatar); go('Messages'); };
+  const explore = query.trim()
+    ? <SearchHub query={query} onQuery={setQuery} people={people.filter(([,handle])=>!muted.includes(handle))} posts={visible(posts)} intentions={visible(intentions)} onFollow={toggleFollow} following={following} onPost={p => { go(p.kind === 'intention' ? 'Intentions' : 'Home'); setTab(p.kind === 'intention' ? 'Intentions' : 'Feeds'); }} onMessage={name => { const x = people.find(y => y[0] === name); if (x) openChatWith(x[1], x[0], x[2]); go('Messages'); }} />
+    : <ExplorePage me={ME} posts={visible(posts)} intentions={visible(intentions)} people={people} following={following} onFollow={toggleFollow}
+        saved={saved} onToggleSave={id => { const on = saved.includes(id); setSaved(on ? saved.filter(x => x !== id) : [...saved, id]); toast(t(on ? 'Removed from saved' : 'Saved!')); }}
+        reactions={reactions} onReact={(id, r) => { const n = { ...reactions }; if (r) n[id] = r; else delete n[id]; setReactions(n); }} comments={comments}
+        hidden={hidden} onHidePost={id => setHidden([...hidden, id])} muted={muted} hiddenWords={words} interests={profile.interests} state={exploreState}
+        toast={toast} openLightbox={(images, i) => setLightbox({ images, i })} renderPost={card} onSearch={setQuery} onOpenCommunities={() => go('Communities')} onMessage={exploreMessage} />;
 
   const nIcon = { like: <Heart size={16} />, comment: <MessageCircle size={16} />, follow: <UserPlus size={16} />, mention: <AtSign size={16} />, invite: <Users size={16} />, system: <Bell size={16} /> };
   const shownNotifs = notifs.filter(n => notifFilter === 'all' || (notifFilter === 'mentions' ? n.kind === 'mention' || n.kind === 'comment' : n.kind === 'follow'));
@@ -207,7 +216,7 @@ export default function Page() {
       <div className="topbar"><div className="global-search"><Search size={22} /><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => go('Explore')} placeholder={t("Search people, posts, intentions, communities...")} aria-label={t("Search")} /></div>
         {topActions}</div>
       <div className="content">{content}</div></main>
-    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : sidebar)}
+    {showRight && (section === 'Home' ? <WidgetRail header={topActions} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : sidebar)}
     <nav className="mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4]].map(({ name, Icon }) => <button className={section === name ? 'active' : ''} key={name} onClick={() => go(name)}><Icon size={24} /><small>{t(name)}</small></button>)}<button className="mobile-create" onClick={() => setComposer({ kind: 'post' })} aria-label={t("Create")}><Plus /></button></nav>
 
     {composer && <Composer initialKind={composer.kind} quote={composer.quote} onClose={() => setComposer(null)} onPublish={publish} />}
