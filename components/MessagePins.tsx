@@ -1,6 +1,6 @@
 'use client';
 import {useState,useEffect,useRef} from 'react';
-import {Pin,PinOff,X} from 'lucide-react';
+import {Pin,PinOff,ChevronDown} from 'lucide-react';
 import {useI18n} from './I18n';
 import {Modal,Button} from './ui';
 import {useStored} from '../lib/social';
@@ -9,7 +9,17 @@ export type PinScope='self'|'everyone';
 export type MessagePin={messageId:number;scope:PinScope};
 export function usePinLabels(){const {lang}=useI18n();return lang==='Русский'?{title:'Закрепить сообщение',self:'Для себя',all:'Для всех',cancel:'Отмена',pins:'Закреплённые сообщения',unpin:'Открепить',local:'Этот чат хранится на устройстве. Другие участники пока не получат закрепление.',personal:'Видно только вам на этом устройстве.',failed:'Не удалось изменить закрепление.'}:lang==='Polski'?{title:'Przypnij wiadomość',self:'Dla mnie',all:'Dla wszystkich',cancel:'Anuluj',pins:'Przypięte wiadomości',unpin:'Odepnij',local:'Ten czat jest lokalny. Inni uczestnicy nie otrzymają przypięcia.',personal:'Widoczne tylko dla Ciebie na tym urządzeniu.',failed:'Nie udało się zmienić przypięcia.'}:{title:'Pin message',self:'For myself',all:'For everyone',cancel:'Cancel',pins:'Pinned messages',unpin:'Unpin',local:'This chat is stored on this device. Other participants will not receive the pin yet.',personal:'Visible only to you on this device.',failed:'Could not change the pin.'};}
 export function PinDialog({onChoose,onClose,local,busy,error}:{onChoose:(scope:PinScope)=>void;onClose:()=>void;local?:boolean;busy?:boolean;error?:string}){const l=usePinLabels();return <Modal title={l.title} onClose={onClose} width={420} footer={<Button disabled={busy} onClick={onClose}>{l.cancel}</Button>}><p className="muted">{local?l.local:l.personal}</p>{error&&<p role="alert">{error}</p>}<div className="pin-choices"><Button disabled={busy} onClick={()=>onChoose('self')}><Pin size={17}/>{l.self}</Button><Button disabled={busy} variant="primary" onClick={()=>onChoose('everyone')}><Pin size={17}/>{l.all}</Button></div></Modal>;}
-export function PinnedList({rows,onRemove,onOpen}:{rows:{id:string;text:string;scope:PinScope;canRemove?:boolean}[];onRemove:(id:string,scope:PinScope)=>void;onOpen?:(id:string)=>void}){const l=usePinLabels();const[open,setOpen]=useState(false);if(!rows.length)return null;return <div className="message-pin-strip"><button className="message-pin-toggle" onClick={()=>setOpen(!open)} aria-expanded={open}><Pin size={16}/><span><b>{l.pins} · {rows.length}</b><small>{rows[rows.length-1].text}</small></span></button>{open&&<div className="message-pin-list">{rows.map(r=><div key={r.id+':'+r.scope}><button onClick={()=>onOpen?.(r.id)}><small>{r.scope==='self'?l.self:l.all}</small><span>{r.text}</span></button>{r.canRemove!==false&&<button aria-label={l.unpin} onClick={()=>onRemove(r.id,r.scope)}><PinOff size={17}/></button>}</div>)}</div>}</div>;}
+type PinRow={id:string;text:string;scope:PinScope;canRemove?:boolean};
+export function PinnedList({rows,onRemove,onOpen}:{rows:PinRow[];onRemove:(id:string,scope:PinScope)=>void;onOpen?:(id:string)=>void}){
+ const l=usePinLabels();const[open,setOpen]=useState(false);
+ const grouped=new Map<string,{id:string;text:string;audiences:PinRow[]}>();
+ for(const row of rows){const item=grouped.get(row.id)||{id:row.id,text:row.text,audiences:[]};if(!item.audiences.some(a=>a.scope===row.scope))item.audiences.push(row);grouped.set(row.id,item);}
+ const messages=[...grouped.values()];if(!messages.length)return null;
+ return <section className="message-pin-strip" aria-label={l.pins}>
+  <button type="button" className="message-pin-toggle" onClick={()=>setOpen(!open)} aria-expanded={open}><Pin size={16}/><span><b>{l.pins} · {messages.length}</b><small>{messages[messages.length-1].text}</small></span><ChevronDown size={17} className={open?'pin-chevron open':'pin-chevron'}/></button>
+  {open&&<div className="message-pin-list" role="list">{messages.map((message,index)=><div className="message-pin-entry" role="listitem" key={message.id}><span className="pin-number">{index+1}</span><div className="pin-entry-content"><button type="button" className="pin-message-link" onClick={()=>onOpen?.(message.id)}>{message.text}</button><div className="pin-audiences">{message.audiences.map(a=><span className="pin-audience" key={a.scope}>{a.scope==='self'?l.self:l.all}{a.canRemove!==false&&<button type="button" aria-label={`${l.unpin} · ${a.scope==='self'?l.self:l.all}`} onClick={()=>onRemove(message.id,a.scope)}><PinOff size={13}/></button>}</span>)}</div></div></div>)}</div>}
+ </section>;
+}
 type DB=ReturnType<typeof createClient>;
 type ServerPin={message_id:string;pinned_by:string;message:{id:string;body:string;topic_id?:string|null}|null};
 export function GroupPins({db,userId,groupId,admin,target,onClose,onOpen}:{db:DB;userId:string;groupId:string;admin:boolean;target:{id:string;body:string}|null;onClose:()=>void;onOpen:(id:string,topic?:string|null)=>void}){
