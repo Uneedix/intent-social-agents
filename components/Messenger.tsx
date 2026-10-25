@@ -360,7 +360,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {m.deleted ? <i>{t('Message deleted')}</i> : m.text && <span className="ms-text">{m.text}</span>}
   </>;
 
-  return <div className={'ms ' + (chat ? 'has-chat ' : '') + (chat && side ? 'side-open' : '')}>
+  return <div className={'ms ' + (chat ? 'has-chat ' : '') + (chat && side && !topicsOn ? 'side-open' : '')}>
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
       <ResizeHandle pane="chatList" edge="end" container=".ms" label="Resize chat list" />
@@ -395,7 +395,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
         </div></header>
       : <header className="ms-head">
         <button className="icon-button ms-back" onClick={() => setActive(null)} aria-label={t('Back')}><ChevronLeft size={28} /></button>
-        <button className="ms-who" onClick={() => isGroup ? setGroupInfo(true) : setSide(!side)} aria-label={t(isGroup ? 'Group info' : 'Info')}>
+        <button className={'ms-who' + (isGroup ? ' ms-who-group' : '')} onClick={() => isGroup ? setGroupInfo(true) : setSide(!side)} aria-label={t(isGroup ? 'Group info' : 'Info')}>
           <Avatar chat={chat} size={60} dot />
           <span><b>{chatTitle(chat)}{prof?.verified && <BadgeCheck size={20} className="ms-verified" fill="#fff" color="#000" />}</b><small className={chat.online ? 'online' : ''}>{status(chat)}</small></span>
         </button>
@@ -479,8 +479,8 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     </>}</section>
 
     {/* ---------- profile side panel ---------- */}
-    {chat && side && <ResizeHandle pane="chatSide" edge="start" anchor="before" container=".ms" label="Resize profile panel" className="pane-wide-only" />}
-    {chat && side && <aside className="ms-side">
+    {chat && side && !topicsOn && <ResizeHandle pane="chatSide" edge="start" anchor="before" container=".ms" label="Resize profile panel" className="pane-wide-only" />}
+    {chat && side && !topicsOn && <aside className="ms-side">
       {/* desktop */}
       <div className="ms-side-desk">
         <button className="icon-button ms-side-close" onClick={() => setSide(false)} aria-label={t('Close')}><X /></button>

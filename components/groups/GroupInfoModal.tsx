@@ -70,7 +70,7 @@ export default function GroupInfoModal(p: Props) {
       <small>{t('{n} members', { n: p.members.length })}{p.topicsEnabled ? ' · ' + t('Topics on') : ''}</small>
     </div>
     {actions.length > 0 && <div className={s.tiles} style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}>
-      {actions.map(a => <button key={a.key} type="button" className={s.tile} onClick={a.onClick}>{a.icon}<span className={s.ellipsis}>{a.label}</span></button>)}
+      {actions.map(a => <button key={a.key} type="button" className={s.tile} onClick={a.onClick}>{a.icon}<span>{a.label}</span></button>)}
     </div>}
     {p.description && <section className={s.card}><div className={s.cardHead}><b>{t('Description')}</b></div><p className={s.desc}>{p.description}</p></section>}
     <section className={s.card}>

@@ -44,7 +44,7 @@ export default function CreateGroupModal({ candidates, minMembers = 1, manual, m
       ? <><span className={s.footInfo}>{t('{n} selected', { n: members.length })}</span><Button onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" disabled={!enough} onClick={() => setStep(1)}>{t('Next')} <ArrowRight size={16} /></Button></>
       : <><Button onClick={() => setStep(0)}><ArrowLeft size={16} /> {t('Back')}</Button><Button variant="primary" disabled={!validName || !enough || busy} onClick={create}><Users size={16} /> {t(busy ? 'Creating…' : 'Create group')}</Button></>}>
     {step === 0 ? <>
-      <p className={s.lead}>{manual ? t('Add people by their account ID. A people directory is not connected yet.') : t('Choose at least {n} people to start the group.', { n: minMembers })}</p>
+      <p className={s.lead}>{manual ? t('Add people by their account ID. A people directory is not connected yet.') : t(minMembers > 1 ? 'Choose at least {n} people to start the group.' : 'Choose people to add to the group.', { n: minMembers })}</p>
       <MemberPicker candidates={candidates} selected={members} onChange={setMembers} manual={manual} />
     </> : <form className={s.form} onSubmit={e => { e.preventDefault(); create(); }}>
       <AvatarEditor name={name} avatar={avatar} color={shownColor} onAvatar={setAvatar} onColor={setColor} uploadDisabled={unavailable} />
