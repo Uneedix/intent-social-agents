@@ -17,7 +17,7 @@ html[data-theme="light"] :is(button,input,textarea,select){font-family:inherit}
 html[data-theme="light"] :is(.primary,.auth-join,.create-button,.post-submit,.pill-btn.light,.mobile-compose-fab,.ad-mock-cta){background:#1877f2!important;border-color:#1877f2!important;color:#fff!important}
 html[data-theme="light"] :is(.primary,.auth-join,.create-button,.post-submit,.pill-btn.light):hover:not(:disabled){background:#166fe5!important}
 html[data-theme="light"] .follow{background:#e7f3ff;border-color:#e7f3ff;color:#1877f2}
-html[data-theme="light"] :is(button[role="tab"][aria-selected="true"],.experience-tabs button.selected,.chips button.selected,.switcher button.active,.modal-types button.selected,.ms-chips button.on,.message-mode-switch button.on,.message-mode-switch button.active,.tg-folders button.on,.ad-chips button.on,.ad-obj.on){background:#dcdde1!important;border-color:#dcdde1!important;color:#202124!important}
+html[data-theme="light"] :is(button[role="tab"][aria-selected="true"],.experience-tabs button.selected,.chips button.selected,.switcher button.active,.modal-types button.selected,.ms-chips button.on,.message-mode-switch button.on,.message-mode-switch button.active,.tg-folders button.on,.ad-chips button.on,.ad-obj.on){background:#c3c6cd!important;border-color:#c3c6cd!important;color:#202124!important}
 html[data-theme="light"] .stories .story-ring img{border-color:#fff!important}
 html[data-theme="light"] .stories .story-ring.seen{background:#d6d6da!important}
 html[data-theme="light"] .stories .story-ring.empty{background:#ececef}
