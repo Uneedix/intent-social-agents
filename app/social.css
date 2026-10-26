@@ -126,7 +126,7 @@
 .aud-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:1px solid #2f3336;background:none;color:#1d9bf0;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600}
 .cmp-cat{display:flex;align-items:center;gap:10px;font-size:13px;color:#aaa;margin:6px 0}
 .cmp-foot{display:flex;align-items:center;gap:12px;border-top:1px solid #222;padding-top:12px;margin-top:10px}
-.cmp-tools{display:flex;gap:4px;margin-right:auto}.cmp-tools .icon-button{color:#1d9bf0}
+.cmp-tools{display:flex;align-items:center;gap:4px;margin-right:auto}.cmp-tools>.icon-button{width:36px;height:36px;padding:6px;flex:none}.cmp-tools .icon-button{color:#1d9bf0}
 .cmp-count{display:flex;align-items:center;gap:6px;font-size:13px;color:#aaa}.cmp-count .over{color:#f4212e}
 .poll-edit{border:1px solid #2a2a2a;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .poll-edit-row{display:flex;gap:6px}.poll-edit-row input{flex:1;background:#0d0d0d;border:1px solid #333;border-radius:10px;color:#fff;padding:10px 12px;outline:0}
@@ -231,7 +231,7 @@
 .intent-reduce-motion *{animation:none!important;transition:none!important}
 @media(max-width:690px){.tg,.tg:has(.tg-info){height:calc(100dvh - 255px);min-height:380px;border-radius:14px}.page-heading .message-mode-switch button{padding:7px 12px}}
 
-.cmp-gif{position:relative;display:inline-flex;gap:6px;align-items:flex-start;margin:8px 0}.cmp-gif-btn{font-size:11px!important;font-weight:800;border:1.5px solid currentColor!important;border-radius:6px!important;width:auto!important;height:24px!important;padding:0 5px!important}.post-gif{margin:10px 0}
+.cmp-gif{position:relative;display:inline-flex;gap:6px;align-items:flex-start;margin:8px 0}.cmp-gif-btn>span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:18px;border:1.5px solid currentColor;border-radius:4px;font-size:9px;font-weight:700;line-height:1;box-sizing:border-box}.post-gif{margin:10px 0}
 
 /* Notification type badges: always a perfect circle (".follow" button styles must not leak in) */
 .n-av .n-ic,.n-av .n-ic.follow{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;min-width:0;padding:0;margin:0;border-radius:50%;border:2px solid #050505;display:grid;place-items:center;color:#fff;font-size:0;line-height:0;box-sizing:border-box;transform:none}
