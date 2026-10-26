@@ -24,8 +24,8 @@ export default function Appearance({children}: {children: ReactNode}) {
  useEffect(()=>{
   document.documentElement.classList.toggle('intent-compact',compact);
   document.documentElement.classList.toggle('intent-reduce-motion',reduceMotion);
-  document.documentElement.dataset.theme=theme; document.documentElement.style.colorScheme=theme;
-  return ()=>{document.documentElement.classList.remove('intent-compact','intent-reduce-motion');delete document.documentElement.dataset.theme;document.documentElement.style.colorScheme='';};
+  document.documentElement.dataset.theme=theme;
+  return ()=>{document.documentElement.classList.remove('intent-compact','intent-reduce-motion');delete document.documentElement.dataset.theme;};
  },[compact,reduceMotion,theme]);
  return <AppearanceContext.Provider value={{compact,setCompact,theme,setTheme,reduceMotion,setReduceMotion,paneSizes,setPaneSize,resetPaneSizes}}>{children}</AppearanceContext.Provider>;
 }

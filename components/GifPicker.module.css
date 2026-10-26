@@ -1,5 +1,5 @@
 .root{--gp-bg:#141617;--gp-field:#1d2022;--gp-text:#f1f2f0;--gp-muted:#9aa19e;--gp-line:#2b2e2e;--gp-accent:#c1e6ca;--gp-active:#2a3a30;--gp-shadow:0 18px 60px #000a;display:flex;flex-direction:column;width:360px;height:440px;max-width:100%;background:var(--gp-bg);color:var(--gp-text);border:1px solid var(--gp-line);border-radius:18px;box-shadow:var(--gp-shadow);overflow:hidden;font-size:13px;color-scheme:dark;box-sizing:border-box}
-:global(.intent-light) .root,:global([data-theme="light"]) .root{--gp-bg:#fff;--gp-field:#f2f4f1;--gp-text:#202b26;--gp-muted:#636e67;--gp-line:#e0e5df;--gp-accent:#256740;--gp-active:#dcebdf;--gp-shadow:0 18px 60px #25362a30;color-scheme:light}
+:global(.intent-light) .root{--gp-bg:#fff;--gp-field:#f2f4f1;--gp-text:#202b26;--gp-muted:#636e67;--gp-line:#e0e5df;--gp-accent:#256740;--gp-active:#dcebdf;--gp-shadow:0 18px 60px #25362a30;color-scheme:light}
 .root *{box-sizing:border-box}.root button,.root input{font:inherit;color:inherit}.root button{cursor:pointer}.root button:disabled{opacity:.45;cursor:default}
 .root button:focus-visible,.root input:focus-visible{outline:2px solid var(--gp-accent);outline-offset:1px}
 .inline{box-shadow:none;width:100%}

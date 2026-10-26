@@ -9,7 +9,5 @@
   .mobileHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:18px; }
   .mobileHeader button { display:grid; place-items:center; background:transparent; color:inherit; border:1px solid #7776; width:36px; height:36px; border-radius:50%; cursor:pointer; }
 }
-:global([data-theme="light"]) .rail.open { background:#fff; color:#15131c; }
-:global([data-theme="light"]) .launcher { background:#f5f2ff; color:#2f254c; }
 .launcher:focus-visible,.mobileHeader button:focus-visible { outline:2px solid #baadff; outline-offset:4px; }
 @media (prefers-reduced-motion:reduce) { .launcher { transition:none; } }

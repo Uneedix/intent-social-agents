@@ -1,5 +1,5 @@
 .root{--ep-bg:#141617;--ep-field:#1d2022;--ep-text:#f1f2f0;--ep-muted:#9aa19e;--ep-line:#2b2e2e;--ep-accent:#c1e6ca;--ep-active:#2a3a30;--ep-shadow:0 18px 60px #000a;display:flex;flex-direction:column;width:352px;height:420px;max-width:100%;background:var(--ep-bg);color:var(--ep-text);border:1px solid var(--ep-line);border-radius:18px;box-shadow:var(--ep-shadow);overflow:hidden;font-size:13px;color-scheme:dark;box-sizing:border-box}
-:global(.intent-light) .root,:global([data-theme="light"]) .root{--ep-bg:#fff;--ep-field:#f2f4f1;--ep-text:#202b26;--ep-muted:#636e67;--ep-line:#e0e5df;--ep-accent:#256740;--ep-active:#dcebdf;--ep-shadow:0 18px 60px #25362a30;color-scheme:light}
+:global(.intent-light) .root{--ep-bg:#fff;--ep-field:#f2f4f1;--ep-text:#202b26;--ep-muted:#636e67;--ep-line:#e0e5df;--ep-accent:#256740;--ep-active:#dcebdf;--ep-shadow:0 18px 60px #25362a30;color-scheme:light}
 .root *{box-sizing:border-box}.root button,.root input{font:inherit;color:inherit}.root button{cursor:pointer}
 .root button:focus-visible,.root input:focus-visible{outline:2px solid var(--ep-accent);outline-offset:1px}
 .inline{box-shadow:none;width:100%}
@@ -30,7 +30,7 @@
 .tab[aria-current="true"]{background:var(--ep-active);color:var(--ep-accent)}
 .srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .quick{position:relative;display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--ep-bg,#141617);border:1px solid var(--ep-line,#2b2e2e);box-shadow:0 8px 30px #0006}
-:global(.intent-light) .quick,:global([data-theme="light"]) .quick{--ep-bg:#fff;--ep-line:#e0e5df;--ep-field:#f2f4f1;--ep-muted:#636e67;--ep-active:#dcebdf}
+:global(.intent-light) .quick{--ep-bg:#fff;--ep-line:#e0e5df;--ep-field:#f2f4f1;--ep-muted:#636e67;--ep-active:#dcebdf}
 .quick>button{font-family:inherit;width:38px;height:38px;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;cursor:pointer;transition:transform .12s}
 .quick>button:hover{transform:scale(1.18)}
 .quick>button[aria-pressed="true"]{background:var(--ep-active,#2a3a30)}

@@ -42,7 +42,7 @@
 }
 @media(max-width:1279px){.pane-handle.pane-wide-only{display:none}}
 body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user-select:none!important;user-select:none!important}
-[data-theme="light"] .pane-handle:hover::after,[data-theme="light"] .pane-handle[data-dragging]::after{background:#b9b6c6}
+
 
 /* ===== Left sidebar rhythm: Settings → Create matches the gap around the nav divider ===== */
 .leftbar nav{margin-bottom:41px;flex:0 1 auto;min-height:0}
