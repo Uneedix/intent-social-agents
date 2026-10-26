@@ -56,3 +56,7 @@ html[data-theme="light"] .composer-action{filter:invert(1) hue-rotate(180deg)}ht
 @media(max-width:600px){.composer-modal .cmp-row{gap:10px}.composer-modal .cmp-main>textarea{padding:12px 14px;font-size:16px}.composer-modal .cmp-row>.avatar{width:36px;height:36px}.composer-modal .cmp-limit{max-width:90px;font-size:10px}.composer-modal .modal-publish{gap:6px;padding-inline:14px}}
 
 @media(max-width:600px){.composer-modal .cmp-foot{flex-wrap:wrap}.composer-modal .cmp-limit{order:3;flex-basis:100%;max-width:none;text-align:right}}
+
+/* Keep navigation icons aligned even beside longer translated labels. */
+.leftbar nav button>svg{flex-shrink:0}
+.leftbar nav button>.lucide-bell{stroke-width:2.25}
