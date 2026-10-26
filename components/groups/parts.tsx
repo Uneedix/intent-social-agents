@@ -11,12 +11,12 @@ export type Candidate = { id: string; name: string; sub?: string; avatar?: strin
 
 /** Group photo, or generated colour + initials when there is none. */
 export function GroupAvatar({ name, src, color, size = 48, className = '' }: { name: string; src?: string | null; color?: number | null; size?: number; className?: string }) {
-  return <span className={s.av + ' ' + className} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(color ?? colorFor(name)) }} aria-hidden="true">
+  return <span className={s.av + (!src ? ' no-invert' : '') + ' ' + className} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(color ?? colorFor(name)) }} aria-hidden="true">
     {src ? <img src={src} alt="" /> : initialsOf(name)}</span>;
 }
 
 export function PersonAvatar({ name, src, size = 40 }: { name: string; src?: string; size?: number }) {
-  return <span className={s.av} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(colorFor(name)) }} aria-hidden="true">
+  return <span className={s.av + (!src ? ' no-invert' : '')} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(colorFor(name)) }} aria-hidden="true">
     {src ? <img src={src} alt="" /> : initialsOf(name)}</span>;
 }
 
@@ -30,7 +30,7 @@ export function Swatches({ value, onChange, label }: { value: number; onChange: 
   const t = useT();
   return <div className={s.swatches} role="radiogroup" aria-label={label}>
     {GROUP_COLORS.map((_, i) => <button key={i} type="button" role="radio" aria-checked={value === i} aria-label={t('Colour {n}', { n: i + 1 })}
-      className={s.swatch + (value === i ? ' ' + s.on : '')} style={{ background: gradient(i) }} onClick={() => onChange(i)}>{value === i && <Check size={14} strokeWidth={3} />}</button>)}
+      className={s.swatch + ' no-invert' + (value === i ? ' ' + s.on : '')} style={{ background: gradient(i) }} onClick={() => onChange(i)}>{value === i && <Check size={14} strokeWidth={3} />}</button>)}
   </div>;
 }
 

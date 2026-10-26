@@ -7,7 +7,7 @@ import s from './communities.module.css';
 export function Pic({ src, className, seed = '', initial = true }: { src: string | null | undefined; className: string; seed?: string; initial?: boolean }) {
   const [failed, setFailed] = useState(false);
   const hue = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
-  return <span className={className} style={{ ['--hue' as string]: hue }} aria-hidden="true">
+  return <span className={className + ((!src || failed) && initial ? ' no-invert' : '')} style={{ ['--hue' as string]: hue }} aria-hidden="true">
     {src && !failed ? <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} /> : initial && <i className={s.picInitial}>{seed.trim().slice(0, 1).toUpperCase()}</i>}
   </span>;
 }

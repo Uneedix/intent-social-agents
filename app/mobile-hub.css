@@ -34,7 +34,7 @@
 .ms-folder-chip.lifted>button{cursor:grabbing}
 .ms-folder-tabs.reordering{touch-action:none;overflow:visible}
 
-.widget-mode-switch{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:14px}.widget-mode-switch>span{font-size:13px;color:var(--ds-text-2)}.widget-mode-switch .pill-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;max-width:100%;height:auto;min-height:36px;padding-block:8px;white-space:normal;overflow-wrap:anywhere;font-size:12px}.widget-mode-switch .pill-btn>svg{flex-shrink:0}
+.widget-restore.pill-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:100%;height:auto;min-height:44px;margin-bottom:18px;padding:10px 14px;white-space:normal;overflow-wrap:anywhere}.widget-restore>svg{flex-shrink:0}
 
 /* Keep the home feed focused and centred, even with a wide browser window. */
 @media(min-width:901px){.main.is-home>.content{width:100%;max-width:680px;margin-inline:auto}}
@@ -60,3 +60,6 @@ html[data-theme="light"] .composer-action{filter:invert(1) hue-rotate(180deg)}ht
 /* Keep navigation icons aligned even beside longer translated labels. */
 .leftbar nav button>svg{flex-shrink:0}
 .leftbar nav button>.lucide-bell{stroke-width:2.25}
+
+/* Compact desktop header spacing while keeping account controls clear. */
+@media(min-width:901px){.account-corner{min-height:72px}.topbar{min-height:72px}.rightbar{padding-top:80px}.main.is-messages{padding-top:72px}.main.is-messages .content{padding-top:8px}.main.is-messages .ms,.main.is-messages .ms.ms-groups.group-messages-grid{height:calc(100dvh - 98px)}}
