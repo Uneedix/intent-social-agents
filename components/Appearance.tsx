@@ -6,6 +6,7 @@ import {DEFAULT_PANE_SIZES, PANE_STORAGE_KEY, sanitizePaneSizes, withPaneSize, t
 type AppearanceState = {
  compact: boolean; setCompact: Dispatch<SetStateAction<boolean>>;
  reduceMotion: boolean; setReduceMotion: Dispatch<SetStateAction<boolean>>;
+ theme: 'dark' | 'light'; setTheme: (t: 'dark' | 'light') => void;
  paneSizes: PaneSizes; setPaneSize: (id: PaneId, value: number | null) => void; resetPaneSizes: () => void;
 };
 const AppearanceContext = createContext<AppearanceState | null>(null);
@@ -14,6 +15,8 @@ const AppearanceContext = createContext<AppearanceState | null>(null);
 export default function Appearance({children}: {children: ReactNode}) {
  const [compact,setCompact] = useStored('intent-compact',false);
  const [reduceMotion,setReduceMotion] = useStored('intent-reduce-motion',false);
+ const [storedTheme,setTheme] = useStored<'dark' | 'light'>('intent-theme','dark');
+ const theme = storedTheme === 'light' ? 'light' : 'dark';
  const [storedPanes,setStoredPanes] = useStored<PaneSizes>(PANE_STORAGE_KEY,DEFAULT_PANE_SIZES);
  const paneSizes = useMemo(()=>sanitizePaneSizes(storedPanes),[storedPanes]);
  const setPaneSize = useCallback((id: PaneId, value: number | null)=>setStoredPanes(current=>withPaneSize(current,id,value)),[setStoredPanes]);
@@ -21,9 +24,10 @@ export default function Appearance({children}: {children: ReactNode}) {
  useEffect(()=>{
   document.documentElement.classList.toggle('intent-compact',compact);
   document.documentElement.classList.toggle('intent-reduce-motion',reduceMotion);
-  return ()=>{document.documentElement.classList.remove('intent-compact','intent-reduce-motion');};
- },[compact,reduceMotion]);
- return <AppearanceContext.Provider value={{compact,setCompact,reduceMotion,setReduceMotion,paneSizes,setPaneSize,resetPaneSizes}}>{children}</AppearanceContext.Provider>;
+  document.documentElement.dataset.theme=theme; document.documentElement.style.colorScheme=theme;
+  return ()=>{document.documentElement.classList.remove('intent-compact','intent-reduce-motion');delete document.documentElement.dataset.theme;document.documentElement.style.colorScheme='';};
+ },[compact,reduceMotion,theme]);
+ return <AppearanceContext.Provider value={{compact,setCompact,theme,setTheme,reduceMotion,setReduceMotion,paneSizes,setPaneSize,resetPaneSizes}}>{children}</AppearanceContext.Provider>;
 }
 /** For components that may render outside the provider (isolated tests); returns null there. */
 export const useOptionalAppearance = () => useContext(AppearanceContext);

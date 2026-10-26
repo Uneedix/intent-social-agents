@@ -133,3 +133,5 @@ body.pane-resizing,body.pane-resizing *{cursor:col-resize!important;-webkit-user
 .ad-item>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.ad-item strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ad-item small{color:#8d8d93}
 .ad-badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid #333338;color:#a5a5ab;flex:none}
 @media(max-width:900px){.ad-grid{grid-template-columns:1fr}.ad-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* For you / Following: tighter tab strip */
+.feed-tabs{margin:-6px 0 12px}.feed-tabs button{padding:6px 0 10px}

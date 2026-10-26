@@ -1,0 +1,12 @@
+/* Light theme: the dark UI is inverted (black ↔ white). Media and avatars are inverted back so photos,
+   GIFs and emoji keep their real colours. hue-rotate keeps accent colours (blue, green, red) recognisable. */
+html[data-theme="light"]{filter:invert(1) hue-rotate(180deg);background:#fff}
+html[data-theme="light"] :is(img,video,picture,canvas,iframe,svg image,.no-invert,[style*="background-image"]){filter:invert(1) hue-rotate(180deg)}
+.theme-pick{display:flex;gap:8px;flex-wrap:wrap}
+.theme-opt{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 8px;border-radius:999px;border:1px solid #333338;background:#0d0d0e;color:#fff;font-weight:600}
+.theme-opt.on{border-color:#fff;box-shadow:0 0 0 1px #fff inset}
+.theme-swatch{display:flex;width:28px;height:28px;border-radius:50%;overflow:hidden;border:1px solid #444}
+.theme-swatch i{flex:1}.theme-opt.dark .theme-swatch i:first-child{background:#000}.theme-opt.dark .theme-swatch i:last-child{background:#1c1c1f}
+.theme-opt.light .theme-swatch i:first-child{background:#fff}.theme-opt.light .theme-swatch i:last-child{background:#e5e5e8}
+@media(max-width:640px){.theme-row{flex-wrap:wrap;gap:12px}}
+html[data-theme="light"] :is(.ms-inl-rx button:not(.more),.ms-quick button:not(.more),.reaction-picker button,.ms-rx button){filter:invert(1) hue-rotate(180deg)}

@@ -39,3 +39,5 @@
 @media(prefers-reduced-motion:reduce){.cell,.quick>button{transition:none}.cell:hover,.cell:focus-visible,.quick>button:hover{transform:none}}
 :global(.intent-reduce-motion) .cell,:global(.intent-reduce-motion) .quick>button{transition:none;transform:none!important}
 .root .search input:focus-visible{outline:none}.search:focus-within{outline:2px solid var(--ep-accent);outline-offset:1px}
+/* Light theme inverts the page; flip emoji glyphs back so they keep real colours. */
+:global(html[data-theme="light"]) .cell{filter:invert(1) hue-rotate(180deg)}

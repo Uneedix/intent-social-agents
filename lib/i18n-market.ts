@@ -27,4 +27,8 @@ export const DICT_MARKET: Record<string, Row> = {
   'day': ['день', 'день', 'dzień', 'nap', 'Tag', 'jour', 'día'],
   'days': ['дн.', 'дн.', 'dni', 'nap', 'Tage', 'jours', 'días'],
   'Draft': ['Черновик', 'Чернетка', 'Szkic', 'Piszkozat', 'Entwurf', 'Brouillon', 'Borrador'],
+  'Theme': ['Тема', 'Тема', 'Motyw', 'Téma', 'Design', 'Thème', 'Tema'],
+  'Dark or light interface on this device': ['Тёмный или светлый интерфейс на этом устройстве', 'Темний або світлий інтерфейс на цьому пристрої', 'Ciemny lub jasny interfejs na tym urządzeniu', 'Sötét vagy világos felület ezen az eszközön', 'Dunkle oder helle Oberfläche auf diesem Gerät', 'Interface sombre ou claire sur cet appareil', 'Interfaz oscura o clara en este dispositivo'],
+  'Dark': ['Тёмная', 'Темна', 'Ciemny', 'Sötét', 'Dunkel', 'Sombre', 'Oscuro'],
+  'Light': ['Светлая', 'Світла', 'Jasny', 'Világos', 'Hell', 'Clair', 'Claro'],
 };
