@@ -425,9 +425,9 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
       <ResizeHandle pane="chatList" edge="end" container=".ms" label="Resize chat list" />
-      <MessageListHeader modeSwitch={modeSwitch} onHome={onHome} onNew={()=>setNewChat('people')} newLabel={t('New chat')}/>
+      <MessageListHeader modeSwitch={modeSwitch} onHome={onHome} onNew={()=>groupOnly?setWizard(true):setNewChat('people')} newLabel={t(groupOnly?'New group':'New chat')}/>
       <div className="ms-search-row"><label className="ms-search"><Search size={20} /><input ref={listSearch} value={q} onChange={e => setQ(e.target.value)} placeholder={t('Search messages...')} aria-label={t('Search messages...')} /></label>
-        <button className="ms-new ms-hide-m" onClick={() => setNewChat('people')} aria-label={t('New chat')} title={t('New chat')}><SquarePen size={20} /></button></div>
+        <button className="ms-new ms-hide-m" onClick={() => groupOnly?setWizard(true):setNewChat('people')} aria-label={t(groupOnly?'New group':'New chat')} title={t(groupOnly?'New group':'New chat')}><SquarePen size={20} /></button></div>
       <div className={'ms-chips ms-folder-tabs'+(lifted?' reordering':'')} role="tablist" aria-label={t('Chats')} title={ui.hint}>{folders.map(([k,l])=><span className={'ms-folder-chip '+(folder===k?'active':'')+(lifted===k?' lifted':'')} key={k} data-folder={k} onPointerDown={e=>holdStart(e,k)} onContextMenu={e=>{e.preventDefault();setFolderMenu(k);}}>
         <button type="button" role="tab" aria-selected={folder===k} className={folder===k?'on':''} onClick={()=>{if(suppressClick.current){suppressClick.current=false;return;}setFolder(k);}} onKeyDown={e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();setFolderMenu(k);}}}>{l}{k==='unread'&&unreadCount>0&&<em>{unreadCount}</em>}</button>
       </span>)}<button type="button" className="ms-chip-add" onClick={()=>setListEdit({id:String(uid()),name:'',chats:[]})} aria-label={t('New chat list')}><Plus size={16}/></button></div>
