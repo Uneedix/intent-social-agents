@@ -40,3 +40,5 @@
 @media(prefers-reduced-motion:reduce){.skeleton{animation:none}}
 :global(.intent-reduce-motion) .skeleton{animation:none}
 .root .search input:focus-visible{outline:none}.search:focus-within{outline:2px solid var(--gp-accent);outline-offset:1px}
+
+.strip{height:auto;min-height:0}.strip .scroll{flex:none;min-height:0;overflow:visible}.rowResults{display:flex;flex-wrap:nowrap;align-items:stretch;gap:8px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;padding:2px 0 8px;scroll-snap-type:x proximity}.rowResults>.tile{flex:none;scroll-snap-align:start}.rowMore{flex:0 0 100px;border:1px solid var(--gp-line);background:var(--gp-field);border-radius:10px;padding:12px;white-space:normal;line-height:1.4}.strip .state{padding:12px 10px}.strip .heading{padding-top:2px}.strip .top{padding-bottom:8px}

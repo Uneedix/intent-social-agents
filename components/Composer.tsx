@@ -39,7 +39,6 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
   const left = LIMIT - text.length;
   const pollValid = !pollOn || options.filter(o => o.trim()).length >= 2;
   const can = (text.trim().length > 0 || images.length > 0 || !!gif) && left >= 0 && pollValid;
-  const ring = Math.min(1, text.length / LIMIT);
 
   function publish() {
     if (!can) return;
@@ -51,7 +50,7 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="modal composer-modal" role="dialog" aria-modal="true" aria-label={t("Create")} onClick={e => e.stopPropagation()}>
       <div className="modal-head"><h2>{t(quote ? 'Quote post' : kind === 'post' ? 'Create post' : 'Create intention')}</h2><button className="icon-button" onClick={onClose} aria-label={t("Close")}><X /></button></div>
-      {!quote && <div className="modal-types"><button className={kind === 'post' ? 'selected' : ''} onClick={() => setKind('post')}>{t("Post")}</button><button className={kind === 'intention' ? 'selected' : ''} onClick={() => setKind('intention')}><Target size={15} /> {t("Intention")}</button></div>}
+      {!quote && <div className="modal-types"><button className={kind === 'post' ? 'selected' : ''} onClick={() => setKind('post')}>{t("Post|type")}</button><button className={kind === 'intention' ? 'selected' : ''} onClick={() => setKind('intention')}><Target size={15} /> {t("Intention")}</button></div>}
       <div className="cmp-row"><img className="avatar" src={avatars.you} alt="" />
         <div className="cmp-main">
           <button type="button" className="aud-btn" onClick={() => setAudience(audience === 'everyone' ? 'followers' : 'everyone')}>{audience === 'everyone' ? <><Globe size={14} /> {t("Everyone")}</> : <><Users size={14} /> {t("Followers only")}</>}</button>
@@ -60,7 +59,7 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
           {quote && <div className="quote-card"><div className="quote-h"><img src={quote.avatar} alt="" /><b>{quote.author}</b><span>@{quote.handle}</span></div><p>{quote.text.slice(0, 200)}</p></div>}
           {(showMedia || images.length > 0) && <MediaPicker images={images} onChange={setImages} />}
           {gif && <div className="cmp-gif"><GifView gif={gif} maxWidth={260} /><button type="button" className="icon-button" onClick={() => setGif(null)} aria-label={t('Remove')}><X size={16} /></button></div>}
-          {gifOpen && <GifPicker variant="inline" onPick={g => { setGif(toGifAttachment(g)); setGifOpen(false); setImages([]); setShowMedia(false); }} onClose={() => setGifOpen(false)} />}
+          {gifOpen && <GifPicker variant="inline" layout="row" onPick={g => { setGif(toGifAttachment(g)); setGifOpen(false); setImages([]); setShowMedia(false); }} onClose={() => setGifOpen(false)} />}
           {pollOn && <div className="poll-edit">
             {options.map((o, i) => <div key={i} className="poll-edit-row"><input value={o} maxLength={40} placeholder={t('Choice {n}', { n: i + 1 })} onChange={e => setOptions(options.map((x, k) => k === i ? e.target.value : x))} />{options.length > 2 && <button type="button" className="icon-button" aria-label="Remove choice" onClick={() => setOptions(options.filter((_, k) => k !== i))}><Trash2 size={16} /></button>}</div>)}
             <div className="poll-edit-foot">{options.length < 4 && <button type="button" className="pill-btn ghost" onClick={() => setOptions([...options, ''])}><Plus size={15} /> {t("Add choice")}</button>}
@@ -75,7 +74,7 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
           <button type="button" className="icon-button" onClick={() => { setPollOn(true); setImages([]); setShowMedia(false); }} aria-label={t("Add poll")} disabled={images.length > 0 || !!quote || !!gif}><BarChart3 size={21} /></button>
           <button type="button" className="icon-button cmp-gif-btn" onClick={() => setGifOpen(!gifOpen)} aria-label="GIF" disabled={pollOn || images.length > 0}>GIF</button>
         </div>
-        <div className="cmp-count"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="#333" strokeWidth="3" /><circle cx="13" cy="13" r="10" fill="none" stroke={left < 0 ? '#f4212e' : left < 40 ? '#ffd400' : '#fff'} strokeWidth="3" strokeDasharray={`${ring * 62.8} 62.8`} transform="rotate(-90 13 13)" /></svg>{left < 40 && <span className={left < 0 ? 'over' : ''}>{left}</span>}</div>
+        {left<40&&<span className={'cmp-limit'+(left<0?' over':'')} role="status">{t(left<0?'Over the character limit: {n}':'Characters remaining: {n}',{n:Math.abs(left)})}</span>}
         <button className="primary modal-publish" disabled={!can} onClick={publish}>{t("Publish")} <ArrowRight size={18} /></button>
       </div>
     </div>

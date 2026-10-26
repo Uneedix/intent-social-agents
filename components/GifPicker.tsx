@@ -24,6 +24,7 @@ export type GifPickerProps = {
   onPick: (gif: GifPick) => void;
   onClose?: () => void;
   variant?: 'auto' | 'popover' | 'sheet' | 'inline';
+  layout?: 'grid' | 'row';
   autoFocus?: boolean;
   className?: string;
   /** Test/preview hook; defaults to window.fetch. */
@@ -52,7 +53,7 @@ function measure(url: string, video: boolean): Promise<{ width: number; height: 
   });
 }
 
-export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true, className, fetcher }: GifPickerProps) {
+export function GifPicker({ onPick, onClose, variant = 'auto', layout = 'grid', autoFocus = true, className, fetcher }: GifPickerProps) {
   const { t, lang } = useI18n();
   const locale = isGifLocale(LANG_CODES[lang]) ? LANG_CODES[lang] : 'en';
   const [query, setQuery] = useState('');
@@ -113,12 +114,13 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
 
   const loadMore = useCallback(() => { if (next && !loadingMore && status === 'ready') void fetchPage(debounced, next); }, [next, loadingMore, status, debounced, fetchPage]);
   useEffect(() => {
+    if(layout==='row')return;
     const el = sentinelRef.current;
     if (!el || !next || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) loadMore(); }, { root: scrollRef.current, rootMargin: '200px' });
     io.observe(el);
     return () => io.disconnect();
-  }, [next, loadMore]);
+  }, [next, loadMore, layout]);
 
   /** Two balanced masonry columns by accumulated aspect height. */
   const columns = useMemo(() => {
@@ -173,7 +175,7 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
   );
 
   return (
-    <div className={[s.root, s[variant], className].filter(Boolean).join(' ')} role="dialog" aria-label={t('GIFs')}
+    <div className={[s.root, s[variant], layout==='row'&&s.strip, className].filter(Boolean).join(' ')} role="dialog" aria-label={t('GIFs')}
       onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); if (query) setQuery(''); else onClose?.(); } }}>
       <div className={s.top}>
         <label className={s.search}>
@@ -182,7 +184,7 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
             onChange={e => setQuery(e.target.value)} autoComplete="off" enterKeyHint="search" disabled={status === 'unconfigured'} />
         </label>
         <button type="button" className={s.iconBtn} aria-label={t('Upload GIF from device')} title={t('Upload GIF from device')} onClick={() => fileRef.current?.click()} disabled={busy}><Upload size={16} /></button>
-        {onClose && variant !== 'inline' && <button type="button" className={s.iconBtn} aria-label={t('Close')} onClick={onClose}><X size={16} /></button>}
+        {onClose && (variant !== 'inline'||layout==='row') && <button type="button" className={s.iconBtn} aria-label={t('Close')} onClick={onClose}><X size={16} /></button>}
         <input ref={fileRef} type="file" accept="image/gif" hidden onChange={onFile} />
       </div>
 
@@ -200,7 +202,7 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
             {fallback}
           </div>
         ) : status === 'loading' ? (
-          <div className={s.masonry} aria-label={t('Loading GIFs…')}>
+          layout==='row'?<div className={s.rowResults} aria-label={t('Loading GIFs…')}>{[0,1,2,3,4,5].map(i=><div key={i} className={s.skeleton} style={{height:112,width:100+(i%3)*25,flexShrink:0}}/>)}</div>:<div className={s.masonry} aria-label={t('Loading GIFs…')}>
             {[0, 1].map(c => <div key={c} className={s.col}>{[0, 1, 2].map(i => <div key={i} className={s.skeleton} style={{ height: 90 + ((c + i) % 3) * 30 }} />)}</div>)}
           </div>
         ) : items.length === 0 ? (
@@ -208,6 +210,12 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
         ) : (
           <>
             <h3 className={s.heading}>{debounced ? t('Search results') : t('Trending')}</h3>
+            {layout==='row'?<div className={s.rowResults} aria-label={t('GIFs')}>
+              {items.map(r=><button key={r.id} type="button" className={s.tile} style={{height:112,width:Math.max(88,Math.min(220,Math.round(112*r.width/r.height))),flexShrink:0}} onClick={()=>pickResult(r)} aria-label={r.title?`GIF: ${r.title}`:'GIF'} title={r.title||undefined}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}<img src={r.previewUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"/>
+              </button>)}
+              {next&&<button type="button" className={s.rowMore} onClick={loadMore} disabled={loadingMore}>{t(loadingMore?'Loading GIFs…':'Load more')}</button>}
+            </div>:<>
             <div className={s.masonry}>
               {columns.map((col, c) => (
                 <div key={c} className={s.col}>
@@ -222,6 +230,7 @@ export function GifPicker({ onPick, onClose, variant = 'auto', autoFocus = true,
               ))}
             </div>
             {next && <div ref={sentinelRef} className={s.more}><button type="button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? t('Loading GIFs…') : t('Load more')}</button></div>}
+            </>}
           </>
         )}
       </div>
