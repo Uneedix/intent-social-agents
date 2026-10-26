@@ -65,7 +65,7 @@ test('group chat keeps new messages after 200, pages timestamp ties and ignores 
   const mockedSession = mock.module('../components/SessionBoundary.tsx', { cache: true, namedExports: {
     useSession: () => ({ user: { id: 'alice' }, scope: 'alice' }),
   } });
-  const mockedCss = ['../components/groups/groups.module.css', '../components/ui/ui.module.css'].map(path => mock.module(path, { cache: true, defaultExport: {} }));
+  const mockedCss = ['../components/groups/groups.module.css', '../components/ui/ui.module.css', '../components/TranslationControls.module.css'].map(path => mock.module(path, { cache: true, defaultExport: {} }));
   const { default: GroupMessages } = await import('../components/GroupMessages');
   let renderer: ReactTestRenderer | undefined;
   const bodies = () => renderer!.root.findAll(node => node.type === 'div' && typeof node.props.className === 'string' && node.props.className.startsWith('group-message ')).map(node => node.findByType('p').children.join(''));

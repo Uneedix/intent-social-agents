@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Hash, Info, Lock, LogOut, MessageCircle, MoreHorizontal, PhoneCall, RefreshCw, Send, Settings, Smile, Sparkles, Trash2, Users, Volume2, X } from 'lucide-react';
 import { Button, Menu, inputClass } from '../ui';
 import { useT } from '../I18n';
+import { useHistoryTranslation } from '../TranslationControls';
+import type {HistoryLoadResult} from '../../lib/translation-history';
 import { CATEGORY_LABEL, canJoinVoice, displayRole, formatCount, type ChannelKind, type JoinState, type Privacy, type VoiceAccess } from './model';
 import { EmojiPicker } from '../EmojiPicker';
 import { GifPicker } from '../GifPicker';
@@ -32,6 +34,7 @@ export type ViewActions = {
   openChannel: (id: string) => void; send: (body: string) => Promise<boolean>; loadOlder: () => void;
   /** Opens channel settings (Structure). Absent for demo communities. */
   editChannels?: () => void;
+  loadAllHistory?: (signal:AbortSignal)=>Promise<HistoryLoadResult>;
 };
 type Tab = 'feed' | 'channels' | 'members' | 'about';
 
@@ -49,6 +52,7 @@ export default function CommunityView({ v, a }: { v: ViewModel; a: ViewActions }
   const locale = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   useEffect(() => { if (tab === 'channels' && !v.channelsEnabled) setTab('feed'); }, [tab, v.channelsEnabled]);
   useEffect(() => { chatEnd.current?.scrollIntoView({ block: 'nearest' }); }, [v.messages.length, v.activeChannel]);
+  const translation=useHistoryTranslation('community:'+v.name+'|'+(v.activeChannel||''),v.messages.filter(m=>!parseGifBody(m.body)).map(m=>({id:m.id,text:m.body})),a.loadAllHistory?{hasOlder:v.hasOlder,loading:v.messagesLoading||v.olderLoading,loadAll:a.loadAllHistory}:undefined);
   const member = v.join === 'member';
   const staff = v.canManage;
   const intro = v.channels.find(c => c.kind !== 'voice' && /intro/.test(c.name));
@@ -131,12 +135,13 @@ export default function CommunityView({ v, a }: { v: ViewModel; a: ViewActions }
             : !canJoinVoice(active.access, v.role || 'member') && <p className={s.muted}>{t('This voice channel is closed. Only the owner, admins and moderators can join.')}</p>}
           {voiceNote && <p className={s.notice} role="status"><Info size={16} /> {voiceNote}</p>}
         </div> : <>
+          {translation.toolbar}
           <div className={s.chatScroll}>
             {v.hasOlder && <Button size="sm" disabled={v.olderLoading} onClick={a.loadOlder}>{t(v.olderLoading ? 'Loading...' : 'Load older messages')}</Button>}
             {v.messagesLoading && <p className={s.muted} role="status">{t('Loading...')}</p>}
             {!v.messagesLoading && !v.messages.length && <div className={s.emptySmall}>{t('No messages yet.')}</div>}
             {v.messages.map(m => { const gif = parseGifBody(m.body); return <div key={m.id} className={s.msg}><Face src={m.author.avatar} name={m.author.name} size={30} /><div><b>{m.author.me ? t('You') : m.author.name} <small>{ago(m.at, t)}</small></b>
-              {gif ? <div className={s.msgGif}><GifView gif={gif} maxWidth={260} maxHeight={220} /></div> : <p>{m.body}</p>}</div></div>; })}
+              {gif ? <div className={s.msgGif}><GifView gif={gif} maxWidth={260} maxHeight={220} /></div> : <p>{translation.text(m.id,m.body)}</p>}</div></div>; })}
             <div ref={chatEnd} />
           </div>
           {member ? <div className={s.chatCompose}>

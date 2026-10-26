@@ -78,7 +78,7 @@ async function mount(opts: { legacy?: boolean }) {
   mocks ??= [
     mock.module('../lib/supabase/client.ts', { cache: true, namedExports: { createClient: () => current!.client, isSupabaseConfigured: () => true } }),
     mock.module('../components/SessionBoundary.tsx', { cache: true, namedExports: { useSession: () => ({ user: { id: 'alice' }, scope: 'alice' }) } }),
-    ...['../components/groups/groups.module.css', '../components/ui/ui.module.css'].map(path => mock.module(path, { cache: true, defaultExport: {} })),
+    ...['../components/groups/groups.module.css', '../components/ui/ui.module.css', '../components/TranslationControls.module.css'].map(path => mock.module(path, { cache: true, defaultExport: {} })),
   ];
   const { default: GroupMessages } = await import('../components/GroupMessages');
   let r: ReactTestRenderer | undefined;

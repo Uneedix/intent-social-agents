@@ -1,5 +1,7 @@
 'use client';
 import MessageListHeader from './MessageListHeader';
+import { useHistoryTranslation } from './TranslationControls';
+import {loadTranslationHistory} from '../lib/translation-history';
 import {GroupPins} from './MessagePins';
 import { useT } from './I18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -82,6 +84,7 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome, localGroup
  const general = topics.find(x => x.is_general) || null;
  const activeTopicId = topicsOn ? (topics.some(x => x.id === topic) ? topic : general?.id || null) : null;
  const activeTopic = topics.find(x => x.id === activeTopicId) || null;
+ const translation=useHistoryTranslation('group:'+(selected?.id||'')+'|'+(activeTopicId||''),messages.map(m=>({id:m.id,text:m.body})),{hasOlder,loading:conversationLoading||olderLoading,loadAll:loadAllHistory});
  const myRole = (members.find(m => m.user_id === userId)?.role || null) as GroupRole | null;
  const admin = canManage(myRole);
  const upgradeNote = t('Group photos, topics and member management need a database upgrade that has not been applied yet. Basic group chats keep working.');
@@ -159,6 +162,20 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome, localGroup
    oldest.current = [...next].sort(chronological)[0] || cursor; setHasOlder(next.length === PAGE_SIZE); setError('');
   } catch(e) { if(current()) setError(e instanceof Error ? e.message : 'Could not load older messages'); }
   finally { if(alive.current && selection.current === id && selectionVersion.current === version) { olderBusy.current = false; setOlderLoading(false); } }
+ }
+ async function loadAllHistory(signal:AbortSignal){
+  if(!selected||!oldest.current||!hasOlder)return {complete:!hasOlder,pages:0,loaded:0};
+  if(olderBusy.current)throw new Error('history_busy');
+  const id=selected.id,topicId=topicKey.current,version=selectionVersion.current;olderBusy.current=true;setOlderLoading(true);
+  const current=()=>alive.current&&selection.current===id&&topicKey.current===topicId&&selectionVersion.current===version;
+  try{return await loadTranslationHistory({cursor:oldest.current,signal,current,
+   fetchPage:async cursor=>{
+    let query=supabase.from('message_group_messages').select(topicId?'id,sender_id,body,created_at,topic_id':'id,sender_id,body,created_at').eq('group_id',id);
+    if(topicId)query=query.eq('topic_id',topicId);
+    const result=await query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(PAGE_SIZE);
+    if(result.error)throw new Error('history_unavailable');return (result.data||[]) as unknown as Message[];
+   },commit:(rows,more)=>{setMessages(old=>mergeMessages(old,rows));oldest.current=[...rows].sort(chronological)[0]||oldest.current;setHasOlder(more);},
+  });}finally{if(current()){olderBusy.current=false;setOlderLoading(false);}}
  }
  useEffect(()=>{if(userId)void refreshGroups();},[userId,refreshGroups]);
  useEffect(()=>{if(!selected)return;void refreshMeta(selected,topicsOn);
@@ -238,7 +255,7 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome, localGroup
  const history = <>
   {selected&&<GroupPins key={selected.id} db={supabase} groupId={selected.id} userId={userId} admin={admin} target={pinTarget} onClose={()=>setPinTarget(null)} onOpen={(id,targetTopic)=>{if(targetTopic)setTopic(targetTopic);document.getElementById('group-message-'+id)?.scrollIntoView({block:'center',behavior:'smooth'});}}/>}
   {find!=null&&<div className="ms-find gm-find"><input autoFocus value={find} onChange={e=>setFind(e.target.value)} placeholder={t(topicsOn?'Search in this topic':'Search in this chat')} aria-label={t(topicsOn?'Search in this topic':'Search in this chat')}/><span>{find?shown.length:''}</span><Button variant="ghost" size="sm" onClick={()=>setFind(null)}>{t('Close')}</Button></div>}
-  <div className="group-message-history ms-msgs">{conversationLoading&&<p role="status">{t("Loading…")}</p>}{hasOlder&&<Button size="sm" disabled={olderLoading} onClick={()=>void loadOlder()} className="gm-older">{t(olderLoading ? "Loading…" : "Load older messages")}</Button>}{!conversationLoading&&shown.length===0&&<p className="muted gm-empty">{t(find?'No messages match your search.':"No messages yet. Start the conversation.")}</p>}{shown.map(m=><div id={"group-message-"+m.id} key={m.id} className={'group-message '+(m.sender_id===userId?'mine':'other')}><small>{m.sender_id===userId?t('You'):short(m.sender_id)}</small><p>{m.body}</p><button type="button" className="group-pin-action" aria-label={t("Pin")} onClick={()=>setPinTarget(m)}>⌖</button><time>{new Date(m.created_at).toLocaleString()}</time></div>)}</div>
+  <div className="group-message-history ms-msgs">{conversationLoading&&<p role="status">{t("Loading…")}</p>}{hasOlder&&<Button size="sm" disabled={olderLoading} onClick={()=>void loadOlder()} className="gm-older">{t(olderLoading ? "Loading…" : "Load older messages")}</Button>}{!conversationLoading&&shown.length===0&&<p className="muted gm-empty">{t(find?'No messages match your search.':"No messages yet. Start the conversation.")}</p>}{shown.map(m=><div id={"group-message-"+m.id} key={m.id} className={'group-message '+(m.sender_id===userId?'mine':'other')}><small>{m.sender_id===userId?t('You'):short(m.sender_id)}</small><p>{translation.text(m.id,m.body)}</p><button type="button" className="group-pin-action" aria-label={t("Pin")} onClick={()=>setPinTarget(m)}>⌖</button><time>{new Date(m.created_at).toLocaleString()}</time></div>)}</div>
   {activeTopic?.closed ? <ClosedTopic manage={admin} onReopen={()=>patchTopic(activeTopic,{closed:false})}/> : <div className="ms-compose"><form className="group-send" onSubmit={sendMessage}><div className="ms-field"><input value={draft} maxLength={4000} onChange={e=>setDraft(e.target.value)} placeholder={t(topicsOn?"Message the topic...":"Message the group...")} aria-label="Group message"/></div><button className="ms-send" disabled={busy||!draft.trim()} type="submit" aria-label={t("Send")}><Send size={19}/></button></form></div>}
  </>;
  return <div className="group-messages gm-unified">
@@ -258,6 +275,7 @@ function GroupMessagesSession({ supabase, userId, modeSwitch, onHome, localGroup
      <Button variant="ghost" icon onClick={()=>{setModalError('');setInfo(true);}} aria-label={t('Group info')}><Info size={19}/></Button>
     </span>
    </header>
+   {translation.toolbar}
    {topicsOn ? <div className={gs.split+(topic===null?' '+gs.listMode:'')}>
      <div className={gs.rail}><TopicList topics={topicRows} active={topic===null?null:activeTopicId} onOpen={id=>{setTopic(id);}} manage={admin} onNew={()=>{setModalError('');setTopicEdit('new');}}/></div>
      <div className={gs.pane}>{activeTopic&&<TopicBar topic={topicRows.find(x=>x.id===activeTopic.id)||{...activeTopic,general:activeTopic.is_general}} onBack={()=>setTopic(null)} manage={admin} onEdit={()=>{setModalError('');setTopicEdit(topicRows.find(x=>x.id===activeTopic.id)||null);}} onClosed={closed=>patchTopic(activeTopic,{closed})} onPin={pinned=>patchTopic(activeTopic,{pinned})} onSearch={()=>setFind('')}/>}{activeTopic ? history : <p className="muted gm-empty" role="status">{t('Loading…')}</p>}</div>

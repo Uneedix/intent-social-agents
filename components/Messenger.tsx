@@ -17,6 +17,7 @@ import GroupInfoModal, { type InfoMember } from './groups/GroupInfoModal';
 import { TopicList, TopicBar, TopicModal, ClosedTopic, topicTitle, type TopicRow } from './groups/Topics';
 import { GENERAL_ID, withGeneral, sortTopics } from './groups/model';
 import gs from './groups/groups.module.css';
+import { useHistoryTranslation } from './TranslationControls';
 
 const QUICK = ['❤️', '👍', '🔥', '😂', '😮', '😢'];
 const BASE_FOLDERS = [['all', 'All'], ['unread', 'Unread'], ['job', 'Jobs'], ['collab', 'Collaborations'], ['group', 'Groups'], ['other', 'Other'], ['archived', 'Archived']] as const;
@@ -114,6 +115,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   const input = useRef<HTMLTextAreaElement>(null);
   const listSearch = useRef<HTMLInputElement>(null);
   const chat = chats.find(c => c.id === active) || null;
+  const translation = useHistoryTranslation('chat:'+(chat?.id||''),(chat?.messages||[]).filter(m=>!m.deleted&&!!m.text).map(m=>({id:String(m.id),text:m.text})));
   const prof = chat ? chatProfiles[chat.handle] : undefined;
   const isGroup = chat?.kind === 'group';
 
@@ -418,7 +420,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
       <button className="ms-outline sm" onClick={e => { e.stopPropagation(); openPerson(m.contact!); }}>{t('Message')}</button></span>}
     {m.location && <a className="ms-location" href={`https://www.openstreetmap.org/?mlat=${m.location.lat}&mlon=${m.location.lon}#map=16/${m.location.lat}/${m.location.lon}`} target="_blank" rel="noopener noreferrer nofollow" onClick={e => e.stopPropagation()}>
       <span className="ms-file-ic link"><MapPin size={20} /></span><span className="ms-file-txt"><b>{t('Location')}</b><small>{m.location.lat}, {m.location.lon} · {t('Open map')}</small></span></a>}
-    {m.deleted ? <i>{t('Message deleted')}</i> : m.text && <span className="ms-text">{m.text}</span>}
+    {m.deleted ? <i>{t('Message deleted')}</i> : m.text && <span className="ms-text">{translation.text(String(m.id),m.text)}</span>}
   </>;
 
   return <div className={'ms ' + (chat ? 'has-chat ' : '') + (chat && side && !topicsOn ? 'side-open' : '')}>
@@ -466,6 +468,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
             {headMenu && <div className="ms-pop" onMouseLeave={() => setHeadMenu(false)}>{options(() => setHeadMenu(false))}</div>}</div>
         </div>
       </header>}
+      {translation.toolbar}
       <div className={topicsOn ? gs.split + (topicId === null ? ' ' + gs.listMode : '') : 'gt-contents'}>
       {topicsOn && <div className={gs.rail}><TopicList topics={topicRows} active={topicId === null ? null : curTopicId!} onOpen={openTopic} manage onNew={() => setTopicEdit('new')} /></div>}
       <div className={topicsOn ? gs.pane : 'gt-contents'}>
@@ -477,7 +480,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
 
       <div className="ms-msgs" ref={box}>
         {shown.map((m, i) => { const prevM = shown[i - 1]; const showDay = !prevM || startOf(prevM.at) !== startOf(m.at); const mine = m.from === 'me'; const s = sender(m);
-          if (m.from === 'system') return <div key={m.id}>{showDay && <div className="ms-day"><span>{dayLabel(m.at)}</span></div>}<div className="ms-day sys"><span>{m.text}</span></div></div>;
+          if (m.from === 'system') return <div key={m.id}>{showDay && <div className="ms-day"><span>{dayLabel(m.at)}</span></div>}<div className="ms-day sys"><span>{translation.text(String(m.id),m.text)}</span></div></div>;
           const meta = <span className="ms-meta">{m.starred && <Star size={12} fill="currentColor" />}{m.edited && t('edited') + ' '}{hhmm(m.at)}{mine && chat.kind !== 'saved' && (m.read ? <CheckCheck size={16} className="ms-read" /> : <Check size={16} />)}</span>;
           const media = !!(m.gif || m.image || m.voice || m.poll || m.contact || m.location || m.file);
           return <div key={m.id}>{showDay && <div className="ms-day"><span>{dayLabel(m.at)}</span></div>}

@@ -11,12 +11,12 @@ export type Candidate = { id: string; name: string; sub?: string; avatar?: strin
 
 /** Group photo, or generated colour + initials when there is none. */
 export function GroupAvatar({ name, src, color, size = 48, className = '' }: { name: string; src?: string | null; color?: number | null; size?: number; className?: string }) {
-  return <span className={s.av + (!src ? ' no-invert' : '') + ' ' + className} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(color ?? colorFor(name)) }} aria-hidden="true">
+  return <span className={s.av + (!src ? ' system-avatar no-invert' : '') + ' ' + className} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(color ?? colorFor(name)) }} aria-hidden="true">
     {src ? <img src={src} alt="" /> : initialsOf(name)}</span>;
 }
 
 export function PersonAvatar({ name, src, size = 40 }: { name: string; src?: string; size?: number }) {
-  return <span className={s.av + (!src ? ' no-invert' : '')} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(colorFor(name)) }} aria-hidden="true">
+  return <span className={s.av + (!src ? ' system-avatar no-invert' : '')} style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: src ? '#141416' : gradient(colorFor(name)) }} aria-hidden="true">
     {src ? <img src={src} alt="" /> : initialsOf(name)}</span>;
 }
 

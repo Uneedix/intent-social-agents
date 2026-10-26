@@ -1,6 +1,8 @@
 'use client';
 import { useT } from './I18n';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { PostMediaPicker } from './PostMedia';
+import type { PostMediaAttachment } from '../lib/post-media';
 import { GifPicker, toGifAttachment } from './GifPicker';
 import { GifView } from './GifView';
 import type { GifAttachment } from '../lib/gifs';
@@ -13,7 +15,7 @@ import {useStored, useLocalStore} from '../lib/social';
 const LIMIT = 500;
 const CATEGORIES = ['Job opportunity', 'Collaboration', 'Meet people', 'Learning', 'Project', 'Service', 'Other'];
 
-export type Draft = { text: string; images: string[]; poll?: Poll; kind: 'post' | 'intention'; category?: string; audience: 'everyone' | 'followers'; quoteOf?: number; gif?: GifAttachment };
+export type Draft = { text: string; images: string[]; poll?: Poll; kind: 'post' | 'intention'; category?: string; audience: 'everyone' | 'followers'; quoteOf?: number; gif?: GifAttachment; media?: PostMediaAttachment };
 
 export default function Composer({ initialKind, quote, onClose, onPublish }: { initialKind: 'post' | 'intention'; quote?: Post | null; onClose: () => void; onPublish: (d: Draft) => void }) {
   const t = useT();
@@ -24,6 +26,11 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
   const {remove} = useLocalStore();
   const text = quote ? quoteText : kind === 'post' ? postDraft : intentionDraft;
   const setText = (value:string) => { if(quote)setQuoteText(value);else if(kind==='post')setPostDraft(value);else setIntentionDraft(value); };
+  const [media, setMedia] = useState<PostMediaAttachment | null>(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const mediaSelection = useRef<{busy:boolean;selected:PostMediaAttachment|null}>({busy:false,selected:null});
+  const mediaCommitted = useRef(false);
+  const isMediaCommitted = useCallback(() => mediaCommitted.current, []);
   const [images, setImages] = useState<string[]>([]);
   const [gif, setGif] = useState<GifAttachment | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
@@ -38,13 +45,14 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
 
   const left = LIMIT - text.length;
   const pollValid = !pollOn || options.filter(o => o.trim()).length >= 2;
-  const can = (text.trim().length > 0 || images.length > 0 || !!gif) && left >= 0 && pollValid;
+  const can = (text.trim().length > 0 || images.length > 0 || !!gif || !!media) && left >= 0 && pollValid && !mediaBusy;
 
   function publish() {
     if (!can) return;
     const poll: Poll | undefined = pollOn ? { options: options.filter(o => o.trim()).map(o => ({ text: o.trim().slice(0, 40), votes: 0 })), endsAt: Date.now() + days * 86400000 } : undefined;
     if(!quote)remove('intent-draft-' + kind);
-    onPublish({ text: text.trim(), images, poll, kind, category: kind === 'intention' ? category : undefined, audience, quoteOf: quote?.id, gif: gif || undefined });
+    mediaCommitted.current = true;
+    onPublish({ text: text.trim(), images, poll, kind, category: kind === 'intention' ? category : undefined, audience, quoteOf: quote?.id, gif: gif || undefined, media: media || undefined });
   }
 
   return <div className="modal-backdrop" onClick={onClose}>
@@ -57,9 +65,10 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
           <textarea value={text} onChange={e => setText(e.target.value)} placeholder={t(quote ? 'Add a comment…' : kind === 'post' ? "What's on your mind? Use #hashtags and @mentions" : 'What are you looking for or offering?')} autoFocus rows={5} aria-label={t("Text")} />
           {kind === 'intention' && <label className="cmp-cat">{t("Category")}<select value={category} onChange={e => setCategory(e.target.value)}>{CATEGORIES.map(c => <option key={c} value={c}>{t(c)}</option>)}</select></label>}
           {quote && <div className="quote-card"><div className="quote-h"><img src={quote.avatar} alt="" /><b>{quote.author}</b><span>@{quote.handle}</span></div><p>{quote.text.slice(0, 200)}</p></div>}
-          {(showMedia || images.length > 0) && <MediaPicker images={images} onChange={setImages} />}
+          {(showMedia || images.length > 0) && <MediaPicker images={images} onChange={next => { if (!mediaSelection.current.busy && !mediaSelection.current.selected) setImages(next); }} />}
+          <PostMediaPicker value={media} onChange={next => { mediaSelection.current.selected = next; setMedia(next); if (next) { setImages([]); setGif(null); setGifOpen(false); setShowMedia(false); } }} onBusy={busy => { mediaSelection.current.busy = busy; setMediaBusy(busy); }} disabled={pollOn || images.length > 0 || !!gif} isCommitted={isMediaCommitted} />
           {gif && <div className="cmp-gif"><GifView gif={gif} maxWidth={260} /><button type="button" className="icon-button" onClick={() => setGif(null)} aria-label={t('Remove')}><X size={16} /></button></div>}
-          {gifOpen && <GifPicker variant="inline" layout="row" onPick={g => { setGif(toGifAttachment(g)); setGifOpen(false); setImages([]); setShowMedia(false); }} onClose={() => setGifOpen(false)} />}
+          {gifOpen && !mediaBusy && !media && <GifPicker variant="inline" layout="row" onPick={g => { setGif(toGifAttachment(g)); setGifOpen(false); setImages([]); setShowMedia(false); }} onClose={() => setGifOpen(false)} />}
           {pollOn && <div className="poll-edit">
             {options.map((o, i) => <div key={i} className="poll-edit-row"><input value={o} maxLength={40} placeholder={t('Choice {n}', { n: i + 1 })} onChange={e => setOptions(options.map((x, k) => k === i ? e.target.value : x))} />{options.length > 2 && <button type="button" className="icon-button" aria-label="Remove choice" onClick={() => setOptions(options.filter((_, k) => k !== i))}><Trash2 size={16} /></button>}</div>)}
             <div className="poll-edit-foot">{options.length < 4 && <button type="button" className="pill-btn ghost" onClick={() => setOptions([...options, ''])}><Plus size={15} /> {t("Add choice")}</button>}
@@ -70,9 +79,9 @@ export default function Composer({ initialKind, quote, onClose, onPublish }: { i
       </div>
       <div className="cmp-foot">
         <div className="cmp-tools">
-          <button type="button" className="icon-button" onClick={() => setShowMedia(true)} aria-label={t("Add photos")} disabled={pollOn}><ImagePlus size={21} /></button>
-          <button type="button" className="icon-button" onClick={() => { setPollOn(true); setImages([]); setShowMedia(false); }} aria-label={t("Add poll")} disabled={images.length > 0 || !!quote || !!gif}><BarChart3 size={21} /></button>
-          <button type="button" className="icon-button cmp-gif-btn" onClick={() => setGifOpen(!gifOpen)} aria-label="GIF" disabled={pollOn || images.length > 0}><span aria-hidden="true">GIF</span></button>
+          <button type="button" className="icon-button" onClick={() => setShowMedia(true)} aria-label={t("Add photos")} disabled={pollOn || !!media || mediaBusy}><ImagePlus size={21} /></button>
+          <button type="button" className="icon-button" onClick={() => { setPollOn(true); setImages([]); setShowMedia(false); }} aria-label={t("Add poll")} disabled={images.length > 0 || !!quote || !!gif || !!media || mediaBusy}><BarChart3 size={21} /></button>
+          <button type="button" className="icon-button cmp-gif-btn" onClick={() => setGifOpen(!gifOpen)} aria-label="GIF" disabled={pollOn || images.length > 0 || !!media || mediaBusy}><span aria-hidden="true">GIF</span></button>
         </div>
         {left<40&&<span className={'cmp-limit'+(left<0?' over':'')} role="status">{t(left<0?'Over the character limit: {n}':'Characters remaining: {n}',{n:Math.abs(left)})}</span>}
         <button className="primary modal-publish" disabled={!can} onClick={publish}>{t("Publish")} <ArrowRight size={18} /></button>

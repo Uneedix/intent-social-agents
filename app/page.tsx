@@ -1,6 +1,10 @@
 'use client';
 import { useI18n } from '../components/I18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSession } from '../components/SessionBoundary';
+import { deletePostMedia } from '../lib/post-media';
+import { MarketFilters, MarketCategorySelect } from '../components/MarketFilters';
+import { matchesMarketItem, isMarketCategory, type MarketCategoryId } from '../lib/market-categories';
 import { Home, Search, Target, Users, ShoppingBag, MessageCircle, Bell, UserCircle, Bookmark, Clock3, Settings, Plus, Image as ImageIcon, Video, LayoutGrid, BarChart3, X, ArrowRight, MapPin, Megaphone, Trash2, Heart, UserPlus, AtSign, CheckCheck , Repeat2 } from 'lucide-react';
 import GroupMessages from '../components/GroupMessages';
 import AuthStatus from '../components/AuthStatus';
@@ -35,6 +39,7 @@ const seedNotifs = (): Notif[] => [
   { id: 4, kind: 'system', who: 'intent.', avatar: avatars.you, text: 'Welcome to intent. Complete your profile to get better recommendations.', at: Date.now() - 30 * 3600e3, read: true }];
 
 export default function Page() {
+  const {scope}=useSession();
   const { t, lang: language, setLang: setLanguage } = useI18n();
   const [section, setSection] = useState<Section>('Home');
   const [launcher,setLauncher]=useStored<LauncherState>('intent-widget-launcher-v1',DEFAULT_LAUNCHER);
@@ -55,7 +60,7 @@ export default function Page() {
   const [seenStories, setSeenStories] = useStored<string[]>('intent-stories-seen', []);
   const [chats, setChats] = useStored<Chat[]>('intent-chats-v2', sampleChats());
   const [notifs, setNotifs] = useStored<Notif[]>('intent-notifs', seedNotifs());
-  const [myListings, setMyListings] = useStored<{ id: number; name: string; price: number; city: string; image: string; desc?: string }[]>('intent-listings', []);
+  const [myListings, setMyListings] = useStored<{ id: number; name: string; price: number; city: string; image: string; desc?: string; category?: MarketCategoryId }[]>('intent-listings', []);
   const [offers, setOffers] = useStored<Record<string, number>>('intent-offers', {});
   const [offerFor, setOfferFor] = useState<{ id: number; name: string; price: number } | null>(null); const [offerInput, setOfferInput] = useState('');
   const [ads, setAds] = useStored<{ id: number; name: string; budget: number; days?: number; objective: string; status: string }[]>('intent-ads', []);
@@ -78,6 +83,9 @@ export default function Page() {
   const [listingOpen, setListingOpen] = useState(false);
   const [listingName, setListingName] = useState(''); const [listingPrice, setListingPrice] = useState(''); const [listingImage, setListingImage] = useState(''); const [listingDesc, setListingDesc] = useState('');
   const [marketCategory, setMarketCategory] = useState('All');
+  const [marketQuery,setMarketQuery]=useState('');
+  const [marketItemCategory,setMarketItemCategory]=useState<'all'|MarketCategoryId>('all');
+  const [listingCategory,setListingCategory]=useState<MarketCategoryId>('other');
   const [adName, setAdName] = useState(''); const [adBudget, setAdBudget] = useState('10'); const [adObjective, setAdObjective] = useState('Profile visits'); const [adDays, setAdDays] = useState('7');
   const [notifFilter, setNotifFilter] = useState<'all' | 'mentions' | 'follows'>('all');
   const [lightbox, setLightbox] = useState<{ images: string[]; i: number } | null>(null);
@@ -113,13 +121,13 @@ export default function Page() {
   };
 
   const publish = (d: Draft) => {
-    const p: Post = { id: uid(), author: profile.name || 'You', handle: ME, avatar: profile.avatar || avatars.you, time: 'now', createdAt: Date.now(), text: d.text, images: d.images, likes: 0, comments: 0, reposts: 0, kind: d.kind, category: d.category, poll: d.poll, audience: d.audience, quoteOf: d.quoteOf, gif: d.gif, views: 0 };
+    const p: Post = { id: uid(), author: profile.name || 'You', handle: ME, avatar: profile.avatar || avatars.you, time: 'now', createdAt: Date.now(), text: d.text, images: d.images, likes: 0, comments: 0, reposts: 0, kind: d.kind, category: d.category, poll: d.poll, audience: d.audience, quoteOf: d.quoteOf, gif: d.gif, media: d.media, views: 0 };
     if (d.quoteOf) { const q = byId(d.quoteOf); if (q) setReposted(current => current.includes(q.id) ? current : [...current, q.id]); }
     if (d.kind === 'post') { setPosts([p, ...posts]); if (section !== 'Profile') go('Home'); } else { setIntentions([p, ...intentions]); go('Intentions'); }
     setComposer(null); toast(t("Published"));
   };
   const updatePost = () => { if (!editPost?.text.trim()) return; const f = (x: Post) => x.id === editPost.id ? { ...x, text: editPost.text.trim(), edited: true } : x; setPosts(posts.map(f)); setIntentions(intentions.map(f)); setEditPost(null); toast(t("Post updated")); };
-  const deletePost = (p: Post) => { if (p.handle !== ME) return; setPosts(posts.filter(x => x.id !== p.id)); setIntentions(intentions.filter(x => x.id !== p.id)); setSaved(saved.filter(x => x !== p.id)); const c = { ...comments }; delete c[p.id]; setComments(c); if (pinned === p.id) setPinned(null); setConfirmDelete(null); toast(t("Post deleted")); };
+  const deletePost = (p: Post) => { if (p.handle !== ME) return; if(p.media)void deletePostMedia(scope,p.media.id).catch(()=>{}); setPosts(posts.filter(x => x.id !== p.id)); setIntentions(intentions.filter(x => x.id !== p.id)); setSaved(saved.filter(x => x !== p.id)); const c = { ...comments }; delete c[p.id]; setComments(c); if (pinned === p.id) setPinned(null); setConfirmDelete(null); toast(t("Post deleted")); };
   const vote = (p: Post, i: number) => { const f = (x: Post) => x.id === p.id && x.poll && x.poll.myVote == null && Date.now() < x.poll.endsAt ? { ...x, poll: { ...x.poll, myVote: i } } : x; setPosts(posts.map(f)); setIntentions(intentions.map(f)); };
   const toggleFollow = (handle: string) => { const on = following.includes(handle); setFollowing(on ? following.filter(x => x !== handle) : [...following, handle]); toast(t(on ? 'Unfollowed' : 'Following|button')); };
   const tagSearch = (q: string) => { setQuery(q); go('Explore'); };
@@ -146,7 +154,7 @@ export default function Page() {
   const composerBox = <div className="composer"><div className="composer-top"><img className="avatar" src={profile.avatar || avatars.you} alt="Your avatar" /><button className="composer-input" onClick={() => setComposer({ kind: 'post' })}>{t("What's on your mind?")}</button>
     <div className="composer-actions" role="group" aria-label={t('Create post')}>
       <button type="button" className="composer-action composer-action-photo" onClick={()=>setComposer({kind:'post'})} aria-label={t('Photo')} title={t('Photo')}><ImageIcon size={23}/></button>
-      <button type="button" className="composer-action composer-action-video" onClick={()=>toast(t('Video upload needs server storage — coming soon'))} aria-label={t('Video')} title={t('Video')}><Video size={23}/></button>
+      <button type="button" className="composer-action composer-action-video" onClick={()=>setComposer({kind:'post'})} aria-label={t('Video')} title={t('Video')}><Video size={23}/></button>
       <button type="button" className="composer-action composer-action-poll" onClick={()=>setComposer({kind:'post'})} aria-label={t('Poll')} title={t('Poll')}><BarChart3 size={23}/></button>
       <button type="button" className="composer-action composer-action-intention" onClick={()=>setComposer({kind:'intention'})} aria-label={t('Intention')} title={t('Intention')}><Target size={23}/></button>
     </div></div></div>;
@@ -159,11 +167,12 @@ export default function Page() {
     <div className="feed">{visible(intentions).map(card)}</div></>;
 
   const listings = [...myListings, ...products];
+  const visibleListings=listings.filter(p=>(marketCategory==='All'||myListings.some(x=>x.id===p.id))&&matchesMarketItem(p,marketQuery,marketItemCategory));
   const fx: Record<string, number> = { EUR: .23, USD: .27, HUF: 90 };
   const market = <><div className="page-heading"><div><h1>{t("Market")}</h1><p>{t("Discover great things from your community.")}</p></div><button className="primary" onClick={() => setListingOpen(true)}><Plus size={18} /> {t("List item")}</button></div>
     <div className="chips">{['All', 'Mine'].map(s => <button key={s} className={marketCategory === s ? 'selected' : ''} onClick={() => setMarketCategory(s)}>{t(s)}</button>)}</div>
     <div className="market-controls"><span><MapPin size={17} /> {t("Warsaw, Poland")}</span><select aria-label={t("Display currency")} value={currency} onChange={e => setCurrency(e.target.value)}><option>PLN</option><option>EUR</option><option>USD</option><option>HUF</option></select></div>
-    <div className="product-grid">{listings.filter(p => marketCategory === 'All' || myListings.some(x => x.id === p.id)).map(p => <div className="product" key={p.id}><img src={p.image} alt={p.name} /><strong>{p.name}</strong><b>{currency === 'PLN' ? `${p.price.toLocaleString()} zł` : '≈ ' + (p.price * (fx[currency] || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ' + currency}</b><small>{p.city}</small>{'desc' in p && typeof p.desc === 'string' && p.desc ? <p className="mk-desc">{p.desc}</p> : null}{offers[String(p.id)] != null && <small className="mk-my-offer">{t('Your offer: {amount} zł', { amount: offers[String(p.id)] })}</small>}
+    <MarketFilters query={marketQuery} category={marketItemCategory} onQuery={setMarketQuery} onCategory={setMarketItemCategory} count={visibleListings.length}/><div className="product-grid">{visibleListings.map(p => <div className="product" key={p.id}><img src={p.image} alt={p.name} /><strong>{p.name}</strong><b>{currency === 'PLN' ? `${p.price.toLocaleString()} zł` : '≈ ' + (p.price * (fx[currency] || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ' + currency}</b><small>{p.city}</small>{'desc' in p && typeof p.desc === 'string' && p.desc ? <p className="mk-desc">{p.desc}</p> : null}{offers[String(p.id)] != null && <small className="mk-my-offer">{t('Your offer: {amount} zł', { amount: offers[String(p.id)] })}</small>}
       <div className="product-actions">{!myListings.some(x => x.id === p.id) && <button className="pill-btn" onClick={() => { setOfferFor({ id: p.id, name: p.name, price: p.price }); setOfferInput(''); }}>{t("Make an offer")}</button>}<button className="pill-btn light" onClick={() => { openChatWith('seller-' + p.id, 'Seller · ' + p.name, avatars.daniel, `Hi! Is “${p.name}” still available?`); go('Messages'); }}>{t("Message seller")}</button>{myListings.some(x => x.id === p.id) && <button className="pill-btn ghost" aria-label="Delete listing" onClick={() => setMyListings(myListings.filter(x => x.id !== p.id))}><Trash2 size={15} /></button>}</div></div>)}</div>
     <p className="disclaimer">{t("Demo listings and illustrative exchange rates. No purchases or payments are enabled.")}</p></>;
 
@@ -194,7 +203,7 @@ export default function Page() {
     <p className="disclaimer">{t("Example notifications. Live events will be available after backend integration.")}</p></>;
 
   const settingsProps = { section: settingsSection, onSection: setSettingsSection, profile, onSaveProfile: saveProfile, right: right && !sanitizeLauncher(launcher).hidden, onRight: (enabled:boolean)=>{setRight(enabled);if(enabled)setLauncher(current=>({...sanitizeLauncher(current),hidden:false}));}, currency, onCurrency: setCurrency, privacy, onPrivacy: setPrivacy, allowMessages, onAllowMessages: setAllowMessages, allowMentions, onAllowMentions: setAllowMentions, emailAlerts, onEmailAlerts: setEmailAlerts, language, onLanguage: setLanguage, onAds: () => go('Instant ADS'), muted, onUnmute: (h: string) => setMuted(muted.filter(x => x !== h)), hiddenCount: hidden.length, onClearHidden: () => setHidden([]), words, onWords: setWords, toast };
-  const profilePage = <><button className="widget-restore-profile" onClick={restoreWidgets}><LayoutGrid size={18}/>{t("Restore widgets button")}</button><ProfileStudio profile={profile} onSave={saveProfile} posts={posts} intentions={intentions} followingCount={following.length} pinnedId={pinned} renderPost={card} onPost={p => { go(p.kind === 'intention' ? 'Intentions' : 'Home'); }} onCompose={() => setComposer({ kind: 'post' })} onEdit={() => { setSettingsSection('profile'); go('Settings'); }} /></>;
+  const profilePage = <><button className="widget-restore-profile" onClick={restoreWidgets}><LayoutGrid size={18}/>{t("Restore widgets button")}</button><ProfileStudio profile={profile} onSave={saveProfile} posts={posts} intentions={intentions} repostIds={reposted} followingCount={following.length} pinnedId={pinned} renderPost={card} onPost={p => { go(p.kind === 'intention' ? 'Intentions' : 'Home'); }} onCompose={() => setComposer({ kind: 'post' })} onEdit={() => { setSettingsSection('profile'); go('Settings'); }} /></>;
 
   const AD_OBJ = [{ id: 'Profile visits', Icon: UserCircle }, { id: 'Post engagement', Icon: Heart }, { id: 'Market listing views', Icon: ShoppingBag }, { id: 'Intention responses', Icon: Target }, { id: 'Community discovery', Icon: Users }] as const;
   const adBudgetN = /^\d{1,6}$/.test(adBudget) ? Number(adBudget) : 0; const adDaysN = /^\d{1,2}$/.test(adDays) ? Number(adDays) : 0;
@@ -263,10 +272,10 @@ export default function Page() {
     {editPost && <Modal title={t("Edit post")} width={560} onClose={() => setEditPost(null)} footer={<><Button onClick={() => setEditPost(null)}>{t("Cancel")}</Button><Button variant="primary" disabled={!editPost.text.trim()} onClick={updatePost}>{t("Save changes")}</Button></>}><textarea className={inputClass} rows={6} maxLength={500} aria-label={t("Edit post")} value={editPost.text} onChange={e => setEditPost({ ...editPost, text: e.target.value })} /></Modal>}
     {shareDM && <Modal title={t("Send to…")} width={440} onClose={() => setShareDM(null)}>
       <div className="tg-fwd-list">{chats.map(c => <button key={c.id} onClick={() => { setChats(chats.map(x => x.id === c.id ? { ...x, messages: [...x.messages, { id: uid(), from: 'me', text: `Shared a post by @${shareDM.handle}: “${shareDM.text.slice(0, 140)}”`, image: shareDM.images[0], at: Date.now() }] } : x)); toast(t('Sent to {name}', { name: c.name })); setShareDM(null); }}><img src={c.avatar} alt="" /><b>{c.name}</b></button>)}</div></Modal>}
-    {listingOpen && <Modal title={t("List an item")} subtitle={t("Local listing only. Shipping and checkout are not connected.")} onClose={() => setListingOpen(false)} footer={<><Button onClick={() => setListingOpen(false)}>{t("Cancel")}</Button><Button variant="primary" disabled={!listingName.trim() || Number(listingPrice) <= 0} onClick={() => { setMyListings([{ id: Date.now(), name: listingName.trim(), price: Number(listingPrice), city: profile.location || 'Your location', image: listingImage || products[1].image, desc: listingDesc.trim() || undefined }, ...myListings]); setListingName(''); setListingDesc(''); setListingPrice(''); setListingImage(''); setListingOpen(false); setMarketCategory('Mine'); toast(t("Listing created")); }}>{t("Create listing")}</Button></>}>
+    {listingOpen && <Modal title={t("List an item")} subtitle={t("Local listing only. Shipping and checkout are not connected.")} onClose={() => setListingOpen(false)} footer={<><Button onClick={() => setListingOpen(false)}>{t("Cancel")}</Button><Button variant="primary" disabled={!listingName.trim() || Number(listingPrice) <= 0} onClick={() => { setMyListings([{ id: Date.now(), name: listingName.trim(), price: Number(listingPrice), city: profile.location || 'Your location', image: listingImage || products[1].image, desc: listingDesc.trim() || undefined, category: listingCategory }, ...myListings]); setListingName(''); setListingCategory('other'); setListingDesc(''); setListingPrice(''); setListingImage(''); setListingOpen(false); setMarketCategory('Mine'); toast(t("Listing created")); }}>{t("Create listing")}</Button></>}>
       <ImagePicker label={t("Item photo")} hint={t("A clear photo on a plain background sells faster.")} value={listingImage} onChange={setListingImage} />
       <Field label={t("Item name")}><input className={inputClass} value={listingName} onChange={e => setListingName(e.target.value)} placeholder={t("Item title")} maxLength={80} /></Field>
-      <Field label={t("Price (PLN)")}><input className={inputClass} type="number" min="1" inputMode="numeric" value={listingPrice} onChange={e => setListingPrice(e.target.value)} /></Field>
+      <MarketCategorySelect value={listingCategory} onChange={v=>{if(isMarketCategory(v))setListingCategory(v)}}/><Field label={t("Price (PLN)")}><input className={inputClass} type="number" min="1" inputMode="numeric" value={listingPrice} onChange={e => setListingPrice(e.target.value)} /></Field>
       <Field label={t("Description")}><textarea className={inputClass} rows={4} maxLength={1000} value={listingDesc} onChange={e => setListingDesc(e.target.value)} placeholder={t("Condition, size, what is included, how to pick up...")} /></Field></Modal>}
     {offerFor && (() => { const min = minOffer(offerFor.price); const chk = checkOffer(offerInput, offerFor.price); const err = !offerInput.trim() ? '' : chk.ok ? '' : chk.reason === 'too-low' ? t('The offer cannot be lower than {min} zł.', { min }) : chk.reason === 'not-lower' ? t('The offer must be lower than the asking price.') : t('Enter a whole number.');
       return <Modal title={t("Make an offer")} subtitle={offerFor.name + ' · ' + t('Asking price: {price} zł', { price: offerFor.price.toLocaleString() })} onClose={() => setOfferFor(null)} footer={<><Button onClick={() => setOfferFor(null)}>{t("Cancel")}</Button><Button variant="primary" disabled={!chk.ok} onClick={() => { if (!chk.ok) return; const p = offerFor; setOffers({ ...offers, [String(p.id)]: chk.amount }); openChatWith('seller-' + p.id, 'Seller · ' + p.name, avatars.daniel, t('Hi! I would like to offer {amount} zł for “{name}” (asking {price} zł).', { amount: chk.amount, name: p.name, price: p.price })); setOfferFor(null); toast(t('Offer sent')); go('Messages'); }}>{t("Send offer")}</Button></>}>

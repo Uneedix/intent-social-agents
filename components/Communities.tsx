@@ -176,7 +176,7 @@ function LiveCommunityPage({ db, user, community, mine, count, notice, onBack, o
     join: () => { onJoin(); setTimeout(() => void live.reload(), 600); },
     leave: () => void live.perform(async () => { if (!user) return; await leaveCommunity(db, user.id, c.id, join === 'pending'); await live.reload(); onLeft(); }),
     publish: body => live.publish(body), deletePost: id => void live.deletePost(id),
-    openChannel: live.openChannel, send: body => live.send(body), loadOlder: () => void live.loadOlder(),
+    openChannel: live.openChannel, send: body => live.send(body), loadOlder: () => void live.loadOlder(), loadAllHistory: live.loadAllHistory,
   };
   return <>
     <CommunityView v={v} a={a} />

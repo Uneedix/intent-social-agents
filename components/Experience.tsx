@@ -28,13 +28,12 @@ export function SearchHub({query,onQuery,people,posts,intentions,onFollow,follow
  {(category==='All'||category==='Market')&&<><h2><ShoppingBag size={19}/> {t("Marketplace")}</h2><div className="experience-market">{filteredItems.map(p=><div className="experience-product" key={p.id}><img src={p.image} alt=""/><strong>{p.name}</strong><small>{p.city} · {p.price.toLocaleString()} PLN</small></div>)}</div>{!filteredItems.length&&<p className="muted">{t("No matching listings.")}</p>}</>}
  </section>;
 }
-export function ProfileStudio({ profile, posts, intentions, followingCount, pinnedId, renderPost, onCompose, onEdit }: { profile: ProfileData; onSave?: (p: ProfileData) => void; posts: Post[]; intentions: Post[]; followingCount: number; pinnedId: number | null; renderPost: (p: Post) => React.ReactNode; onPost?: (p: Post) => void; onCompose: () => void; onEdit: () => void }) {
+export function ProfileStudio({ profile, posts, intentions, repostIds = [], followingCount, pinnedId, renderPost, onCompose, onEdit }: { profile: ProfileData; onSave?: (p: ProfileData) => void; posts: Post[]; intentions: Post[]; repostIds?: number[]; followingCount: number; pinnedId: number | null; renderPost: (p: Post) => React.ReactNode; onPost?: (p: Post) => void; onCompose: () => void; onEdit: () => void }) {
   const t = useT();
-  const [tab, setTab] = useState<'Posts' | 'Media' | 'Intentions' | 'About'>('Posts');
+  const [tab, setTab] = useState<'Posts' | 'Reposts' | 'Intentions' | 'About'>('Posts');
   const mine = posts.filter(p => p.handle === 'you');
   const pinned = [...posts, ...intentions].find(p => p.id === pinnedId && p.handle === 'you');
-  const list = tab === 'Posts' ? mine.filter(p => p.id !== pinned?.id) : intentions.filter(p => p.handle === 'you');
-  const media = mine.flatMap(p => p.images.map(src => ({ src, id: p.id })));
+  const list = tab === 'Posts' ? mine.filter(p => p.id !== pinned?.id) : tab === 'Reposts' ? [...repostIds].reverse().map(id=>[...posts,...intentions].find(p=>p.id===id)).filter((p):p is Post=>!!p) : intentions.filter(p => p.handle === 'you');
   return <section className="experience">
     <div className="profile-cover-enhanced" style={profile.cover ? { backgroundImage: `url(${profile.cover})` } : undefined} />
     <div className="profile-enhanced"><img src={profile.avatar} alt="Your avatar" /><div><h1>{profile.name}</h1><p>@{profile.handle}{profile.pronouns && ` · ${profile.pronouns}`}</p><p className="profile-bio">{profile.bio}</p>
@@ -42,10 +41,9 @@ export function ProfileStudio({ profile, posts, intentions, followingCount, pinn
       {profile.interests && <div className="profile-interests">{profile.interests.split(',').map(t => t.trim()).filter(Boolean).map(t => <span key={t}>{t}</span>)}</div>}</div>
       <button className="outline" onClick={onEdit}><Edit3 size={16} /> {t("Edit profile")}</button></div>
     <div className="stats"><span><strong>{mine.length}</strong> {t("Posts")}</span><span><strong>{intentions.filter(p => p.handle === 'you').length}</strong> {t("Intentions")}</span><span><strong>{followingCount}</strong> {t("Following")}</span></div>
-    <div className="experience-tabs profile-tabs">{(['Posts', 'Media', 'Intentions', 'About'] as const).map(x => <button key={x} className={tab === x ? 'selected' : ''} onClick={() => setTab(x)}>{t(x)}</button>)}</div>
+    <div className="experience-tabs profile-tabs">{(['Posts', 'Reposts', 'Intentions', 'About'] as const).map(x => <button key={x} className={tab === x ? 'selected' : ''} onClick={() => setTab(x)}>{t(x)}</button>)}</div>
     {tab === 'About' ? <div className="experience-card"><h2>{t("About")}</h2><p>{profile.bio}</p><p><MapPin size={16} /> {profile.location}</p><p><Globe size={16} /> {profile.website || t('No website provided')}</p><p>{profile.interests}</p></div>
-      : tab === 'Media' ? (media.length ? <div className="ig-grid profile-grid">{media.map((m, i) => <div key={i} className="ig-cell"><img src={m.src} alt="" loading="lazy" /></div>)}</div> : <div className="empty">{t("Photos you post appear here.")} <button className="outline" onClick={onCompose}>{t("Share a photo")}</button></div>)
-      : <div className="feed">{tab === 'Posts' && pinned && renderPost(pinned)}{list.length ? list.map(renderPost) : !pinned && <div className="empty">{t(tab === 'Posts' ? 'Your posts will appear here.' : 'Your intentions will appear here.')} <button className="outline" onClick={onCompose}>{t("Create")}</button></div>}</div>}
+      : <div className="feed">{tab === 'Posts' && pinned && renderPost(pinned)}{list.length ? list.map(renderPost) : (tab !== 'Posts' || !pinned) && <div className="empty">{t(tab === 'Posts' ? 'Your posts will appear here.' : tab === 'Reposts' ? 'Your reposts will appear here.' : 'Your intentions will appear here.')} <button className="outline" onClick={onCompose}>{t("Create")}</button></div>}</div>}
   </section>;
 }
 

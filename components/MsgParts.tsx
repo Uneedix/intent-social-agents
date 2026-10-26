@@ -12,8 +12,8 @@ export function Avatar({ chat, size: s = 48, dot }: { chat: Pick<Chat, 'kind' | 
   return <span className="ms-av" style={st}>
     {chat.kind === 'saved' ? <span className="ms-av-saved" style={st}><Bookmark size={s * 0.42} fill="currentColor" /></span>
       : chat.avatar ? <img src={chat.avatar} alt="" style={st} />
-      : chat.kind === 'group' ? <span className="ms-av-logo ms-av-group no-invert" style={{ ...st, fontSize: s * 0.34, background: gradient(chat.color ?? colorFor(chat.name)) }}>{initials(chat.name) || <Users size={s * 0.42} />}</span>
-      : <span className="ms-av-logo" style={{ ...st, fontSize: s * 0.32 }}>{initials(chat.name)}</span>}
+      : chat.kind === 'group' ? <span className="ms-av-logo ms-av-group system-avatar no-invert" style={{ ...st, fontSize: s * 0.34, background: gradient(chat.color ?? colorFor(chat.name)) }}>{initials(chat.name) || <Users size={s * 0.42} />}</span>
+      : <span className="ms-av-logo system-avatar" style={{ ...st, fontSize: s * 0.32 }}>{initials(chat.name)}</span>}
     {dot && chat.online && <i />}</span>;
 }
 

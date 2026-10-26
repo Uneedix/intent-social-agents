@@ -7,14 +7,14 @@ import s from './communities.module.css';
 export function Pic({ src, className, seed = '', initial = true }: { src: string | null | undefined; className: string; seed?: string; initial?: boolean }) {
   const [failed, setFailed] = useState(false);
   const hue = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
-  return <span className={className + ((!src || failed) && initial ? ' no-invert' : '')} style={{ ['--hue' as string]: hue }} aria-hidden="true">
+  return <span className={className + ((!src || failed) && initial ? ' system-avatar no-invert' : '')} style={{ ['--hue' as string]: hue }} aria-hidden="true">
     {src && !failed ? <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} /> : initial && <i className={s.picInitial}>{seed.trim().slice(0, 1).toUpperCase()}</i>}
   </span>;
 }
 
 export function Face({ src, name, size = 32 }: { src?: string | null; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
-  return <span className={s.face} style={{ width: size, height: size }} title={name}>
+  return <span className={s.face + ((!src || failed) ? ' system-avatar' : '')} style={{ width: size, height: size }} title={name}>
     {src && !failed ? <img src={src} alt="" onError={() => setFailed(true)} /> : <UserRound size={Math.round(size * .56)} />}
   </span>;
 }

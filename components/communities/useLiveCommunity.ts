@@ -2,6 +2,7 @@
 // Live community detail: members, feed, channels, request queue and channel chat.
 // Every async result is ignored when the selection/channel changed in the meantime.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {loadTranslationHistory} from '../../lib/translation-history';
 import type { User } from '@supabase/supabase-js';
 import type { DB } from './api';
 import { channelKind, clampCapacity, errorText, isMissingSchema, normalizeChannel, normalizeVoiceName, type Channel, type VoiceAccess, type Community, type Member, type Msg, type Post } from './model';
@@ -124,6 +125,16 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
     } catch (x) { if (current() && mode !== 'poll') setError(errorText(x, 'Could not load channel messages')); }
     finally { if (current()) { if (mode === 'older') { olderBusy.current = false; setOlderLoading(false); } else if (mode === 'open') setMessagesLoading(false); } }
   }, [db]);
+  const loadAllHistory=async(signal:AbortSignal)=>{
+    if(!activeChannel||!oldest.current||!hasOlder)return {complete:!hasOlder,pages:0,loaded:0};
+    if(olderBusy.current)throw new Error('history_busy');
+    const id=activeChannel,request=channelRequest.current;olderBusy.current=true;setOlderLoading(true);
+    const current=()=>alive.current&&channelSelection.current===id&&channelRequest.current===request;
+    try{return await loadTranslationHistory({cursor:oldest.current,signal,current,
+      fetchPage:async cursor=>{const result=await db.from('community_messages').select('id,body,author_id,created_at').eq('channel_id',id).or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(PAGE_SIZE);if(result.error)throw new Error('history_unavailable');return (result.data||[]) as Msg[];},
+      commit:(rows,more)=>{setMessages(old=>mergeMessages(old,rows));oldest.current=[...rows].sort(chronological)[0]||oldest.current;setHasOlder(more);},
+    });}finally{if(current()){olderBusy.current=false;setOlderLoading(false);}}
+  };
   const openChannel = (id: string) => {
     channelSelection.current = id; channelRequest.current++; oldest.current = null; olderBusy.current = false;
     setActiveChannel(id); setMessages([]); setHasOlder(false); setOlderLoading(false); setMessagesLoading(false); setError('');
@@ -146,7 +157,7 @@ export function useLiveCommunity(db: DB, initial: Community, user: User | null, 
     community, members, posts, channels, requests, messages, activeChannel, error, busy, loading, needsMigration, voiceReady, voiceNeedsMigration,
     messagesLoading, olderLoading, hasOlder, setError, setCommunity,
     reload: load, update, publish, deletePost, createChannel, updateVoiceChannel, deleteChannel, approve, decline, setRole, removeMember,
-    openChannel, loadOlder: () => activeChannel && loadMessages(activeChannel, 'older'), send, perform,
+    openChannel, loadAllHistory, loadOlder: () => activeChannel && loadMessages(activeChannel, 'older'), send, perform,
   };
 }
 export type Live = ReturnType<typeof useLiveCommunity>;

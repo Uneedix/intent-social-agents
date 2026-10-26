@@ -5,9 +5,9 @@
    Token values mirror docs/DESIGN_SYSTEM.md.
    ===================================================================== */
 :root{
-  --ds-bg:#050505;--ds-card:#0b0b0c;--ds-raised:#141416;--ds-hover:#1f1f22;--ds-field:#0b0b0c;
-  --ds-line:#1f1f22;--ds-line-2:#2a2a2e;--ds-line-3:#333338;
-  --ds-text:#fff;--ds-text-2:#a5a5ab;--ds-muted:#8d8d93;--ds-danger:#ff6b6b;--ds-focus:#5ea0ff;
+  --ds-bg:var(--tone-050505,#050505);--ds-card:var(--tone-0b0b0c,#0b0b0c);--ds-raised:var(--tone-141416,#141416);--ds-hover:var(--tone-1f1f22,#1f1f22);--ds-field:var(--tone-0b0b0c,#0b0b0c);
+  --ds-line:var(--tone-1f1f22,#1f1f22);--ds-line-2:var(--tone-2a2a2e,#2a2a2e);--ds-line-3:var(--tone-333338,#333338);
+  --ds-text:var(--tone-ffffff,#ffffff);--ds-text-2:var(--tone-a5a5ab,#a5a5ab);--ds-muted:var(--tone-8d8d93,#8d8d93);--ds-danger:#ff6b6b;--ds-focus:#5ea0ff;
   --ds-h-sm:34px;--ds-h-md:42px;--ds-h-lg:50px;
   --ds-r-menu:16px;--ds-r-item:10px;--ds-r-field:12px;--ds-r-modal:22px;
   --ds-shadow-pop:0 20px 50px rgba(0,0,0,.6);--ds-shadow-modal:0 30px 80px rgba(0,0,0,.6);
@@ -21,29 +21,29 @@
   font-size:14.5px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;
   border:1px solid transparent;transition:background-color .15s,border-color .15s,color .15s,transform .1s,opacity .15s,box-shadow .15s;
 }
-.primary{background:#fff;color:#000;border-color:#fff}
-.primary:hover:not(:disabled){background:#e9e9ec;border-color:#e9e9ec}
-.outline,.pill-btn{background:transparent;color:#fff;border-color:var(--ds-line-3)}
-.outline:hover:not(:disabled),.pill-btn:hover:not(:disabled){background:#151517}
+.primary{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000);border-color:var(--tone-ffffff,#ffffff)}
+.primary:hover:not(:disabled){background:var(--tone-e9e9ec,#e9e9ec);border-color:var(--tone-e9e9ec,#e9e9ec)}
+.outline,.pill-btn{background:transparent;color:var(--tone-ffffff,#ffffff);border-color:var(--ds-line-3)}
+.outline:hover:not(:disabled),.pill-btn:hover:not(:disabled){background:var(--tone-151517,#151517)}
 .pill-btn{height:var(--ds-h-sm);min-height:var(--ds-h-sm);padding:0 14px;font-size:13.5px}
-.pill-btn.light{background:#fff;color:#000;border-color:#fff}.pill-btn.light:hover:not(:disabled){background:#e9e9ec}
+.pill-btn.light{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000);border-color:var(--tone-ffffff,#ffffff)}.pill-btn.light:hover:not(:disabled){background:var(--tone-e9e9ec,#e9e9ec)}
 .pill-btn.ghost{border-color:transparent}
 .danger-button{background:transparent;color:var(--ds-danger);border-color:#4a2326}
-.danger-button:hover:not(:disabled){background:#1d1011}
+.danger-button:hover:not(:disabled){background:var(--tone-1d1011,#1d1011)}
 :is(.primary,.outline,.pill-btn,.danger-button,.se-pill,.icon-button):active:not(:disabled){transform:scale(.98)}
 :is(.primary,.outline,.pill-btn,.danger-button):disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 /* remove the legacy "lift" hover so every button behaves the same */
 @media(hover:hover){.primary:not(:disabled):hover{transform:none;box-shadow:none}}
 /* icon buttons: 40px circle, same hover as ghost */
 .icon-button{border-radius:999px;transition:background-color .15s,color .15s,transform .1s}
-.icon-button:hover:not(:disabled){background:#151517}
+.icon-button:hover:not(:disabled){background:var(--tone-151517,#151517)}
 /* one focus ring everywhere */
 :where(button,a,select,input,textarea,[role=tab],[role=menuitem]):focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}
 :where(input,textarea,select):focus-visible{outline-offset:0}
 /* header auth / account buttons */
 .top-actions .outline,.top-actions .primary,.top-actions a.outline,.top-actions a.primary{height:var(--ds-h-sm);min-height:var(--ds-h-sm);padding:0 14px;font-size:13.5px;text-decoration:none}
 .acct-btn{height:42px;border-color:var(--ds-line-2);background:var(--ds-card);transition:background-color .15s}
-.acct-btn:hover{background:#151517}
+.acct-btn:hover{background:var(--tone-151517,#151517)}
 @media(max-width:640px){.primary,.outline,.danger-button{font-size:14px}}
 
 /* ---------- 2. Menus / popovers: one style ---------- */
@@ -56,19 +56,19 @@
 .post-options{top:calc(100% + 6px)}
 :is(.pop,.post-options,.acct-menu,.ms-menu-list)>button,.acct-menu button{
   display:flex;align-items:center;gap:12px;min-height:40px;padding:10px 12px;border:0;border-radius:var(--ds-r-item);
-  background:none;color:#eee;font-size:14.5px;text-align:left;transition:background-color .12s;
+  background:none;color:var(--tone-eeeeee,#eeeeee);font-size:14.5px;text-align:left;transition:background-color .12s;
 }
 :is(.pop,.post-options,.acct-menu,.ms-menu-list)>button:hover,.acct-menu button:hover,
 :is(.pop,.post-options,.acct-menu,.ms-menu-list)>button:focus-visible{background:var(--ds-hover);outline:0}
 :is(.pop,.post-options,.acct-menu,.ms-menu-list) svg{width:18px;height:18px;flex:none}
 :is(.pop,.post-options,.acct-menu,.ms-menu-list) .danger{color:var(--ds-danger)!important}
-:is(.pop,.post-options,.acct-menu) hr{border:0;height:1px;margin:6px 4px;background:#26262a}
+:is(.pop,.post-options,.acct-menu) hr{border:0;height:1px;margin:6px 4px;background:var(--tone-26262a,#26262a)}
 
 /* ---------- 3. Modals / sheets (legacy markup) ---------- */
 .modal-backdrop{z-index:120;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:ds-fade .16s ease both}
-.modal{background:#0f0f11;border:1px solid #26262a;border-radius:var(--ds-r-modal);box-shadow:var(--ds-shadow-modal);padding:20px;animation:ds-pop .18s var(--ds-ease) both;max-height:min(88vh,820px);overflow-y:auto}
+.modal{background:var(--tone-0f0f11,#0f0f11);border:1px solid var(--tone-26262a,#26262a);border-radius:var(--ds-r-modal);box-shadow:var(--ds-shadow-modal);padding:20px;animation:ds-pop .18s var(--ds-ease) both;max-height:min(88vh,820px);overflow-y:auto}
 .modal-head{gap:12px;margin-bottom:4px}.modal-head h2,.modal>h2{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
-.modal textarea,.intent-dialog textarea{background:var(--ds-field);border:1px solid var(--ds-line-2);border-radius:var(--ds-r-field);color:#fff}
+.modal textarea,.intent-dialog textarea{background:var(--ds-field);border:1px solid var(--ds-line-2);border-radius:var(--ds-r-field);color:var(--tone-ffffff,#ffffff)}
 .dialog-actions{gap:10px;padding-top:4px}
 @media(max-width:640px){
   .modal-backdrop{align-items:flex-end;padding:0}
@@ -80,38 +80,38 @@
 /* ---------- 4. Chips & tabs: identical everywhere ---------- */
 .chips button,.modal-types button,.experience-tabs button,.ms-chips button{
   display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:999px;
-  border:1px solid var(--ds-line-2);background:#0d0d0e;color:#eee;font-size:13.5px;font-weight:500;white-space:nowrap;cursor:pointer;
+  border:1px solid var(--ds-line-2);background:var(--tone-0d0d0e,#0d0d0e);color:var(--tone-eeeeee,#eeeeee);font-size:13.5px;font-weight:500;white-space:nowrap;cursor:pointer;
   transition:background-color .15s,color .15s,border-color .15s;
 }
-.chips button:hover:not(.selected),.modal-types button:hover:not(.selected),.experience-tabs button:hover:not(.selected),.ms-chips button:hover:not(.on){background:#151517}
-.chips button.selected,.modal-types button.selected,.experience-tabs button.selected,.ms-chips button.on{background:#fff;color:#000;border-color:#fff;font-weight:600}
+.chips button:hover:not(.selected),.modal-types button:hover:not(.selected),.experience-tabs button:hover:not(.selected),.ms-chips button:hover:not(.on){background:var(--tone-151517,#151517)}
+.chips button.selected,.modal-types button.selected,.experience-tabs button.selected,.ms-chips button.on{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000);border-color:var(--tone-ffffff,#ffffff);font-weight:600}
 .chips,.experience-tabs,.modal-types{gap:8px}
 @media(hover:hover){.experience-tabs button:hover{transform:none}}
 @media(max-width:900px){.chips button,.modal-types button,.experience-tabs button,.ms-chips button{height:32px;padding:0 13px}}
 /* segmented switch (Feeds / Intentions, Chats / Groups) */
 .switcher{border-color:var(--ds-line-2);background:var(--ds-card);padding:4px}
 .switcher button{height:var(--ds-h-md);padding:0 12px;font-weight:600;transition:background-color .15s,color .15s}
-.switcher button:not(.active):hover{background:#151517}
+.switcher button:not(.active):hover{background:var(--tone-151517,#151517)}
 /* underline tabs */
-.feed-tabs button,.community-tabs button{transition:color .15s}.feed-tabs button:hover,.community-tabs button:hover{color:#fff}
+.feed-tabs button,.community-tabs button{transition:color .15s}.feed-tabs button:hover,.community-tabs button:hover{color:var(--tone-ffffff,#ffffff)}
 
 /* ---------- 5. Inputs / selects / checkboxes ---------- */
 main select,.modal select,.ads-workspace select,.setting-row select,.market-controls select,.cmp-cat select{
   -webkit-appearance:none;appearance:none;height:var(--ds-h-md);padding:0 38px 0 14px;border-radius:var(--ds-r-field);
   border:1px solid var(--ds-line-2);background:var(--ds-field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a5a5ab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 14px center;
-  color:#fff;font-size:14.5px;cursor:pointer;transition:border-color .15s
+  color:var(--tone-ffffff,#ffffff);font-size:14.5px;cursor:pointer;transition:border-color .15s
 }
 main select:hover{border-color:var(--ds-line-3)}
-main select:focus,.modal select:focus{border-color:#5a5a62}
-select option{background:var(--ds-raised);color:#fff}
+main select:focus,.modal select:focus{border-color:var(--tone-5a5a62,#5a5a62)}
+select option{background:var(--ds-raised);color:var(--tone-ffffff,#ffffff)}
 .ads-workspace input,.modal input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]){
-  height:46px;border-radius:var(--ds-r-field);border:1px solid var(--ds-line-2);background:var(--ds-field);color:#fff;padding:0 14px;outline:0;transition:border-color .15s
+  height:46px;border-radius:var(--ds-r-field);border:1px solid var(--ds-line-2);background:var(--ds-field);color:var(--tone-ffffff,#ffffff);padding:0 14px;outline:0;transition:border-color .15s
 }
-.ads-workspace input:focus,.modal input:focus,.modal textarea:focus{border-color:#5a5a62}
-input[type=checkbox],input[type=radio]{accent-color:#fff;width:18px;height:18px}
+.ads-workspace input:focus,.modal input:focus,.modal textarea:focus{border-color:var(--tone-5a5a62,#5a5a62)}
+input[type=checkbox],input[type=radio]{accent-color:var(--tone-ffffff,#ffffff);width:18px;height:18px}
 
 /* ---------- 6. Toast ---------- */
-.toast{display:flex;align-items:center;gap:10px;max-width:min(520px,calc(100vw - 32px));background:#f4f4f6;color:#000;font-size:14.5px;font-weight:600;
+.toast{display:flex;align-items:center;gap:10px;max-width:min(520px,calc(100vw - 32px));background:var(--tone-f4f4f6,#f4f4f6);color:var(--tone-000000,#000000);font-size:14.5px;font-weight:600;
   padding:12px 20px;border-radius:999px;z-index:200;box-shadow:0 14px 40px rgba(0,0,0,.55);animation:ds-toast .22s var(--ds-ease) both;text-align:center}
 @media(max-width:900px){.toast{bottom:calc(env(safe-area-inset-bottom) + 92px)}}
 
