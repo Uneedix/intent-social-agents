@@ -34,7 +34,7 @@
 .ms-folder-chip.lifted>button{cursor:grabbing}
 .ms-folder-tabs.reordering{touch-action:none;overflow:visible}
 
-.widget-mode-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px}.widget-mode-switch>span{font-size:13px;color:var(--ds-text-2)}.widget-mode-switch .pill-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:12px}
+.widget-mode-switch{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:14px}.widget-mode-switch>span{font-size:13px;color:var(--ds-text-2)}.widget-mode-switch .pill-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;max-width:100%;height:auto;min-height:36px;padding-block:8px;white-space:normal;overflow-wrap:anywhere;font-size:12px}.widget-mode-switch .pill-btn>svg{flex-shrink:0}
 
 /* Keep the home feed focused and centred, even with a wide browser window. */
 @media(min-width:901px){.main.is-home>.content{width:100%;max-width:680px;margin-inline:auto}}
