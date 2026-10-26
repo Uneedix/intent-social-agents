@@ -1,7 +1,7 @@
 /* The page keeps color-scheme: dark on purpose — components with light-scheme styles would double-invert. */
 /* Light theme: the dark UI is inverted (black ↔ white). Media and avatars are inverted back so photos,
    GIFs and emoji keep their real colours. hue-rotate keeps accent colours (blue, green, red) recognisable. */
-html[data-theme="light"]{filter:invert(1) hue-rotate(180deg) brightness(1.04);background:#1b1b1c}
+html[data-theme="light"]{filter:invert(1) hue-rotate(180deg);background:#1b1b1c}
 html[data-theme="light"] body{background:#1b1b1c}
 html[data-theme="light"] :is(img,video,picture,canvas,iframe,svg image,.no-invert,[style*="background-image"]){filter:invert(1) hue-rotate(180deg)}
 .theme-pick{display:flex;gap:8px;flex-wrap:wrap}
@@ -22,3 +22,13 @@ html[data-theme="light"] .story-ring{filter:invert(1) hue-rotate(180deg)}
 html[data-theme="light"] .story-ring img{filter:none;border-color:#fff}
 html[data-theme="light"] .story-ring.seen{background:#d6d6da!important}
 html[data-theme="light"] .story-ring.empty{background:#ececef}
+
+/* Real Latin/Cyrillic weights keep light-mode UI text consistent and avoid faux bold. */
+html[data-theme="light"] body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+html[data-theme="light"] :is(button,input,textarea,select){font-family:inherit}
+html[data-theme="light"] :is(.acct-name,.acct-head b){font-weight:600}
+/* Override the old !important black avatar gap; preserve the story gradient. */
+html[data-theme="light"] .stories .story-ring img,
+html[data-theme="light"] .stories .story:first-child .story-ring.seen img{border-color:#fff!important}
+html[data-theme="light"] .stories .story-add{background:#fff;color:#111;border-color:#fff;filter:invert(1) hue-rotate(180deg)}
+html[data-theme="light"] .stories .story-add:hover{background:#f3f3f3}

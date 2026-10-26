@@ -8,3 +8,12 @@
 .removeConfirm{margin:0 12px 12px;padding:11px;background:var(--widget-field);border:1px solid var(--widget-line);border-radius:10px}.removeConfirm p{font-size:11px;line-height:1.6;margin:0 0 9px}.removeConfirm>div{display:flex;gap:8px;justify-content:flex-end}.removeConfirm button{font-size:10px!important;border:1px solid var(--widget-line);border-radius:7px;background:transparent;color:var(--widget-text);padding:6px 9px}.removeConfirm button:last-child{background:var(--widget-track);color:var(--widget-accent)}
 
 .googleNote{color:var(--widget-muted);font-size:9px;line-height:1.7;margin:13px 0 0;padding-top:10px;border-top:1px solid var(--widget-line)}
+
+:global(html[data-theme="light"]) .panelHeader h2,
+:global(html[data-theme="light"]) .widgetTitle h3,
+:global(html[data-theme="light"]) .monthHeader strong{font-weight:600}
+:global(html[data-theme="light"]) .widgetTitle h3{font-size:14px;line-height:1.35}
+:global(html[data-theme="light"]) .monthHeader strong{font-size:13px}
+:global(html[data-theme="light"]) .day{font-size:13px!important}
+:global(html[data-theme="light"]) .weekday{font-size:11px}
+:global(html[data-theme="light"]) :is(.meta,.googleNote,.empty,.itemText){font-size:11px;line-height:1.65}
