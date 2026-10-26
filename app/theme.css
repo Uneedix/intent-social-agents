@@ -32,3 +32,7 @@ html[data-theme="light"] .stories .story-ring img,
 html[data-theme="light"] .stories .story:first-child .story-ring.seen img{border-color:#fff!important}
 html[data-theme="light"] .stories .story-add{background:#fff;color:#111;border-color:#fff;filter:invert(1) hue-rotate(180deg)}
 html[data-theme="light"] .stories .story-add:hover{background:#f3f3f3}
+/* Neutral grey avatar outlines in light mode: profile editor and your story. */
+html[data-theme="light"] .pe-av img{border-color:#d4d4d4}
+html[data-theme="light"] .stories .story:first-child .story-ring img,
+html[data-theme="light"] .stories .story:first-child .story-ring.seen img{border-color:#d4d4d4!important}
