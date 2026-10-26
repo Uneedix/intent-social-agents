@@ -9,7 +9,7 @@ import FloatingWidgetLauncher from './FloatingWidgetLauncher';
 import type {LauncherState} from '../lib/mobile-controls';
 
 /** One mounted panel across breakpoints: hidden duplicate stores would overwrite edits. */
-export default function WidgetRail({ header, launcher, onLauncherChange }: { header?: React.ReactNode; launcher:LauncherState; onLauncherChange:(state:LauncherState)=>void }) {
+export default function WidgetRail({ header, launcher, onLauncherChange, onHide }: { header?: React.ReactNode; onHide?:()=>void; launcher:LauncherState; onLauncherChange:(state:LauncherState)=>void }) {
   const { lang } = useI18n();
   const label = lang === 'Русский' ? 'Мои виджеты' : lang === 'Polski' ? 'Moje widżety' : 'My widgets';
   const closeLabel = lang === 'Русский' ? 'Закрыть виджеты' : lang === 'Polski' ? 'Zamknij widżety' : 'Close widgets';
@@ -59,7 +59,7 @@ export default function WidgetRail({ header, launcher, onLauncherChange }: { hea
       <ResizeHandle pane="widgetRail" edge="start" container=".app" label="Resize widget panel" />
       <div className={styles.desktopHeader}>{header}</div>
       <div className={styles.mobileHeader}><strong>{label}</strong><button type="button" aria-label={closeLabel} onClick={() => setOpen(false)}><X size={20} /></button></div>
-      <WidgetPanel />
+      <WidgetPanel onHide={onHide} />
     </aside>
   </>;
 }

@@ -1,13 +1,13 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
-import {CalendarDays,CheckSquare,StickyNote,Timer,Hourglass,ArrowLeftRight,Link2,Target,Plus,X,ChevronUp,ChevronDown,ChevronLeft,ChevronRight,Search,LayoutGrid,ArrowUpRight,RotateCcw,Play,Pause} from 'lucide-react';
+import {CalendarDays,CheckSquare,StickyNote,Timer,Hourglass,ArrowLeftRight,Link2,Target,Plus,X,ChevronUp,ChevronDown,ChevronLeft,ChevronRight,Search,LayoutGrid,ArrowUpRight,RotateCcw,Play,Pause,EyeOff} from 'lucide-react';
 import {useStored} from '../lib/social';
 import {useI18n} from './I18n';
 import {WIDGET_TYPES,CURRENCIES,LIMITS,defaultPanel,validatePanel,createWidget,applyPreset,moveWidget,widgetId,localDate,validDate,safeLink,validDateTime,remainingFocusSeconds,startFocus,pauseFocus,validateRates,type Widget,type WidgetType,type WidgetData,type PanelState,type Preset,type Currency,type RatesResponse} from '../lib/widgets';
 import styles from './WidgetPanel.module.css';
 
 const words={
- personal:['PERSONAL','ЛИЧНОЕ','OSOBISTE'],googlePlanned:['Google Calendar sync is planned · not enabled','Синхронизация Google Calendar запланирована · не включена','Synchronizacja Google Calendar planowana · nieaktywna'],dashboard:['Your space','Ваше пространство','Twoja przestrzeń'],subtitle:['A little room for what matters.','Место для того, что важно.','Miejsce na to, co ważne.'],saved:['Saved on this device · current account','Сохранено на устройстве · текущий аккаунт','Zapisane na urządzeniu · bieżące konto'],
+ hide:['Hide widgets','Скрыть виджеты','Ukryj widżety'],personal:['PERSONAL','ЛИЧНОЕ','OSOBISTE'],googlePlanned:['Google Calendar sync is planned · not enabled','Синхронизация Google Calendar запланирована · не включена','Synchronizacja Google Calendar planowana · nieaktywna'],dashboard:['Your space','Ваше пространство','Twoja przestrzeń'],subtitle:['A little room for what matters.','Место для того, что важно.','Miejsce na to, co ważne.'],saved:['Saved on this device · current account','Сохранено на устройстве · текущий аккаунт','Zapisane na urządzeniu · bieżące konto'],
  add:['Add widget','Добавить виджет','Dodaj widżet'],library:['Widget library','Библиотека виджетов','Biblioteka widżetów'],search:['Search widgets','Поиск виджетов','Szukaj widżetów'],close:['Close library','Закрыть библиотеку','Zamknij bibliotekę'],all:['All','Все','Wszystkie'],plan:['Planning','Планирование','Planowanie'],work:['Focus','Фокус','Skupienie'],tools:['Everyday','На каждый день','Na co dzień'],
  calendar:['Calendar','Календарь','Kalendarz'],tasks:['Tasks','Задачи','Zadania'],notes:['Notes','Заметки','Notatki'],focus:['Focus timer','Таймер фокуса','Minutnik skupienia'],countdown:['Countdown','Обратный отсчёт','Odliczanie'],rates:['Exchange rates','Курсы валют','Kursy walut'],links:['Quick links','Быстрые ссылки','Szybkie linki'],goals:['Goal tracker','Прогресс цели','Postęp celu'],
  calendarDesc:['Your dates, without the noise.','Важные даты без лишнего.','Ważne daty bez rozpraszania.'],tasksDesc:['Small steps. Real progress.','Маленькие шаги к результату.','Małe kroki, realny postęp.'],notesDesc:['Keep a thought close.','Держите идеи под рукой.','Zachowaj myśl pod ręką.'],focusDesc:['One thing at a time.','Одно дело за раз.','Jedna rzecz naraz.'],countdownDesc:['Something to look forward to.','То, чего вы ждёте.','Coś, na co czekasz.'],ratesDesc:['Daily reference, clearly sourced.','Справочные курсы с источником.','Dzienne kursy ze źródłem.'],linksDesc:['Your useful corners of the web.','Полезные места в интернете.','Przydatne miejsca w sieci.'],goalsDesc:['Make consistency visible.','Замечайте свой прогресс.','Zobacz swoją regularność.'],
@@ -29,7 +29,7 @@ function useWords(){const {lang}=useI18n();const index=lang==='Русский'?1
 function useNow(){const [now,setNow]=useState(()=>Date.now());useEffect(()=>{const tick=()=>setNow(Date.now());const id=setInterval(tick,1000);document.addEventListener('visibilitychange',tick);return()=>{clearInterval(id);document.removeEventListener('visibilitychange',tick);};},[]);return now;}
 function SmallButton({label,onClick,disabled,children}:{label:string;onClick:()=>void;disabled?:boolean;children:ReactNode}){return <button type="button" className={styles.iconButton} aria-label={label} title={label} onClick={onClick} disabled={disabled}>{children}</button>;}
 
-export default function WidgetPanel({compact=false}:{compact?:boolean}){
+export default function WidgetPanel({compact=false,onHide}:{compact?:boolean;onHide?:()=>void}){
  const {t,locale}=useWords();
  // Version 0 is an uninitialized sentinel. Empty array schemas cannot validate the widget union.
  const [stored,setStored]=useStored<{version:number;widgets:unknown[]}>('intent-widget-panel-v1',{version:0,widgets:[]});
@@ -40,7 +40,7 @@ export default function WidgetPanel({compact=false}:{compact?:boolean}){
  const [removeId,setRemoveId]=useState<string|null>(null);const addButton=useRef<HTMLButtonElement>(null);
  const update=<K extends WidgetType,>(id:string,type:K,data:WidgetData[K])=>change(current=>({...current,widgets:current.widgets.map(item=>item.id===id&&item.type===type?{...item,data} as Widget:item)}));
  return <section className={`${styles.panel} ${compact?styles.compact:''}`} aria-label={t('dashboard')}>
-  <header className={styles.panelHeader}><span className={styles.eyebrow}>INTENT / {t('personal')}</span><div><h2>{t('dashboard')}</h2><SmallButton label={t('library')} onClick={()=>setCatalog(true)}><LayoutGrid size={19}/></SmallButton></div><p>{t('subtitle')}</p></header>
+  <header className={styles.panelHeader}><span className={styles.eyebrow}>INTENT / {t('personal')}</span><div><h2>{t('dashboard')}</h2><span className={styles.panelTools}><SmallButton label={t('library')} onClick={()=>setCatalog(true)}><LayoutGrid size={19}/></SmallButton>{onHide&&<SmallButton label={t('hide')} onClick={onHide}><EyeOff size={18}/></SmallButton>}</span></div><p>{t('subtitle')}</p></header>
   <div className={styles.widgetList}>{state.widgets.map((widget,index)=>{const Icon=icons[widget.type];const name=t(widget.type);return <article key={widget.id} className={`${styles.widget} ${widget.type==='notes'?styles.notes:''}`}>
    <header className={styles.widgetHeader}><span className={styles.widgetTitle}><Icon size={16}/><h3>{name}</h3></span><div className={styles.widgetActions}>
     <SmallButton label={t('up',{name})} disabled={index===0} onClick={()=>change(s=>moveWidget(s,widget.id,-1))}><ChevronUp size={13}/></SmallButton>

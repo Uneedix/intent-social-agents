@@ -13,7 +13,7 @@ html[data-theme="light"] :is(img,video,picture,canvas,iframe,svg image,.no-inver
 @media(max-width:640px){.theme-row{flex-wrap:wrap;gap:12px}}
 html[data-theme="light"] :is(.ms-inl-rx button:not(.more),.ms-quick button:not(.more),.reaction-picker button,.ms-rx button){filter:invert(1) hue-rotate(180deg)}
 /* Light theme tweaks (values are pre-inversion: #000 shows white, #c4c4c8 shows dark grey). */
-html[data-theme="light"] .ms-av-saved{background:#000;color:#3a3a3e;box-shadow:inset 0 0 0 1px #2a2a2e}
+html[data-theme="light"] .ms-av-saved{background:#3d8ef0;color:#fff;box-shadow:none;filter:invert(1) hue-rotate(180deg)}
 html[data-theme="light"] :is(.primary,.auth-join,.create-button,.post-submit,.pill-btn.light,.mobile-compose-fab,.ad-mock-cta){background:#1877f2!important;border-color:#1877f2!important;color:#fff!important;filter:invert(1) hue-rotate(180deg)}
 html[data-theme="light"] :is(.primary,.auth-join,.create-button,.post-submit,.pill-btn.light):hover:not(:disabled){background:#166fe5!important}
 html[data-theme="light"] :is(.follow,.switcher button.active,.chips button.selected,.modal-types button.selected,.ms-chips button.on,.message-mode-switch button.on,.message-mode-switch button.active,.ad-obj.on,.ad-chips button.on,.theme-opt.on){background:#e7f3ff!important;border-color:#e7f3ff!important;color:#1877f2!important;filter:invert(1) hue-rotate(180deg)}

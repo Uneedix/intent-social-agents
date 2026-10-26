@@ -38,7 +38,7 @@ export default function Page() {
   const { t, lang: language, setLang: setLanguage } = useI18n();
   const [section, setSection] = useState<Section>('Home');
   const [launcher,setLauncher]=useStored<LauncherState>('intent-widget-launcher-v1',DEFAULT_LAUNCHER);
-  const restoreWidgets=()=>{setLauncher({...DEFAULT_LAUNCHER});go('Home');};
+  const restoreWidgets=()=>{setLauncher(current=>({...sanitizeLauncher(current),hidden:false}));setRight(true);go('Home');};
   const [feedMode, setFeedMode] = useState<'foryou' | 'following'>('foryou');
   const [posts, setPosts] = useStored<Post[]>('intent-posts', [...initialPosts, SAMPLE_POLL]);
   const [intentions, setIntentions] = useStored<Post[]>('intent-intentions', initialIntentions);
@@ -71,6 +71,7 @@ export default function Page() {
   const [toastMsg, setToastMsg] = useState('');
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messageMode, setMessageMode] = useState<'direct' | 'groups'>('direct');
+  const [localGroupView,setLocalGroupView]=useState(false);
   const [editPost, setEditPost] = useState<Post | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Post | null>(null);
   const [shareDM, setShareDM] = useState<Post | null>(null);
@@ -142,8 +143,13 @@ export default function Page() {
   }, [posts, hidden, muted, words, feedMode, following, pinned, reposted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- sections ---------- */
-  const composerBox = <div className="composer"><div className="composer-top"><img className="avatar" src={profile.avatar || avatars.you} alt="Your avatar" /><button className="composer-input" onClick={() => setComposer({ kind: 'post' })}>{t("What's on your mind?")}</button></div>
-    <div className="composer-bottom"><button onClick={() => setComposer({ kind: 'post' })}><ImageIcon /> {t("Photo")}</button><button onClick={() => toast(t("Video upload needs server storage — coming soon"))}><Video /> {t("Video")}</button><button onClick={() => setComposer({ kind: 'post' })}><BarChart3 /> {t("Poll")}</button><button onClick={() => setComposer({ kind: 'intention' })}><Target /> {t("Intention")}</button><button onClick={() => { go('Market'); setListingOpen(true); }}><ShoppingBag /> {t("List item")}</button><button className="post-submit" onClick={() => setComposer({ kind: 'post' })}>{t("Post")}</button></div></div>;
+  const composerBox = <div className="composer"><div className="composer-top"><img className="avatar" src={profile.avatar || avatars.you} alt="Your avatar" /><button className="composer-input" onClick={() => setComposer({ kind: 'post' })}>{t("What's on your mind?")}</button>
+    <div className="composer-actions" role="group" aria-label={t('Create post')}>
+      <button type="button" className="composer-action composer-action-photo" onClick={()=>setComposer({kind:'post'})} aria-label={t('Photo')} title={t('Photo')}><ImageIcon size={23}/></button>
+      <button type="button" className="composer-action composer-action-video" onClick={()=>toast(t('Video upload needs server storage — coming soon'))} aria-label={t('Video')} title={t('Video')}><Video size={23}/></button>
+      <button type="button" className="composer-action composer-action-poll" onClick={()=>setComposer({kind:'post'})} aria-label={t('Poll')} title={t('Poll')}><BarChart3 size={23}/></button>
+      <button type="button" className="composer-action composer-action-intention" onClick={()=>setComposer({kind:'intention'})} aria-label={t('Intention')} title={t('Intention')}><Target size={23}/></button>
+    </div></div></div>;
   const feedTabs = <div className="feed-tabs"><button className={feedMode === 'foryou' ? 'on' : ''} onClick={() => setFeedMode('foryou')}>{t("For you")}</button><button className={feedMode === 'following' ? 'on' : ''} onClick={() => setFeedMode('following')}>{t("Following")}</button></div>;
   const home = <><Stories mine={myStories} setMine={setMyStories} seen={seenStories} setSeen={setSeenStories} toast={toast} onReply={(h, msg) => { const s = people.find(x => x[1] === h); openChatWith(h, s?.[0] || h, s?.[2] || avatars.you, msg); }} />
     <div className="home-composer">{composerBox}</div>{feedTabs}<button type="button" className="mobile-compose-fab" aria-label={t("Create post")} onClick={()=>setComposer({kind:"post"})}><Plus size={26}/></button>
@@ -161,11 +167,11 @@ export default function Page() {
       <div className="product-actions">{!myListings.some(x => x.id === p.id) && <button className="pill-btn" onClick={() => { setOfferFor({ id: p.id, name: p.name, price: p.price }); setOfferInput(''); }}>{t("Make an offer")}</button>}<button className="pill-btn light" onClick={() => { openChatWith('seller-' + p.id, 'Seller · ' + p.name, avatars.daniel, `Hi! Is “${p.name}” still available?`); go('Messages'); }}>{t("Message seller")}</button>{myListings.some(x => x.id === p.id) && <button className="pill-btn ghost" aria-label="Delete listing" onClick={() => setMyListings(myListings.filter(x => x.id !== p.id))}><Trash2 size={15} /></button>}</div></div>)}</div>
     <p className="disclaimer">{t("Demo listings and illustrative exchange rates. No purchases or payments are enabled.")}</p></>;
 
-  const modeSwitch = <div className="message-mode-switch"><button className={messageMode === 'direct' ? 'active' : ''} onClick={() => setMessageMode('direct')}>{t("Chats")}</button><button className={messageMode === 'groups' ? 'active' : ''} onClick={() => setMessageMode('groups')}>{t("Group chats")}</button></div>;
-  const messages = messageMode === 'direct'
-    ? <Messenger chats={chats} setChats={setChats} active={activeChat} setActive={setActiveChat} toast={toast} modeSwitch={modeSwitch} onHome={()=>go('Home')} people={people}
+  const modeSwitch = <div className="message-mode-switch"><button className={messageMode === 'direct' ? 'active' : ''} onClick={() => {setLocalGroupView(false);setMessageMode('direct');}}>{t("Chats")}</button><button className={messageMode === 'groups' ? 'active' : ''} onClick={() => {setLocalGroupView(false);setMessageMode('groups');}}>{t("Group chats")}</button></div>;
+  const messages = messageMode === 'direct' || localGroupView
+    ? <Messenger groupOnly={messageMode==='groups'} chats={chats} setChats={setChats} active={activeChat} setActive={id=>{setActiveChat(id);if(!id&&messageMode==='groups')setLocalGroupView(false);}} toast={toast} modeSwitch={modeSwitch} onHome={()=>go('Home')} people={people}
         onViewProfile={h => { setQuery('@' + h); go('Explore'); }} onShareIntention={() => setComposer({ kind: 'intention' })} onCommunities={() => go('Communities')} />
-    : <GroupMessages localGroups={chats.filter(c=>c.kind==='group')} onOpenLocalGroup={id=>{setActiveChat(id);setMessageMode('direct');}} modeSwitch={modeSwitch} onHome={()=>go('Home')} />;
+    : <GroupMessages localGroups={chats.filter(c=>c.kind==='group')} onOpenLocalGroup={id=>{setActiveChat(id);setMessageMode('groups');setLocalGroupView(true);}} modeSwitch={modeSwitch} onHome={()=>go('Home')} />;
 
   const exploreState = useExploreState();
   const exploreMessage = (h: string, name: string, avatar: string) => { openChatWith(h, name, avatar); go('Messages'); };
@@ -187,7 +193,7 @@ export default function Page() {
     {!shownNotifs.length && <div className="empty">{t("You’re all caught up.")}</div>}
     <p className="disclaimer">{t("Example notifications. Live events will be available after backend integration.")}</p></>;
 
-  const settingsProps = { section: settingsSection, onSection: setSettingsSection, profile, onSaveProfile: saveProfile, right, onRight: setRight, currency, onCurrency: setCurrency, privacy, onPrivacy: setPrivacy, allowMessages, onAllowMessages: setAllowMessages, allowMentions, onAllowMentions: setAllowMentions, emailAlerts, onEmailAlerts: setEmailAlerts, language, onLanguage: setLanguage, onAds: () => go('Instant ADS'), muted, onUnmute: (h: string) => setMuted(muted.filter(x => x !== h)), hiddenCount: hidden.length, onClearHidden: () => setHidden([]), words, onWords: setWords, toast };
+  const settingsProps = { section: settingsSection, onSection: setSettingsSection, profile, onSaveProfile: saveProfile, right: right && !sanitizeLauncher(launcher).hidden, onRight: (enabled:boolean)=>{setRight(enabled);if(enabled)setLauncher(current=>({...sanitizeLauncher(current),hidden:false}));}, currency, onCurrency: setCurrency, privacy, onPrivacy: setPrivacy, allowMessages, onAllowMessages: setAllowMessages, allowMentions, onAllowMentions: setAllowMentions, emailAlerts, onEmailAlerts: setEmailAlerts, language, onLanguage: setLanguage, onAds: () => go('Instant ADS'), muted, onUnmute: (h: string) => setMuted(muted.filter(x => x !== h)), hiddenCount: hidden.length, onClearHidden: () => setHidden([]), words, onWords: setWords, toast };
   const profilePage = <><button className="widget-restore-profile" onClick={restoreWidgets}><LayoutGrid size={18}/>{t("Restore widgets button")}</button><ProfileStudio profile={profile} onSave={saveProfile} posts={posts} intentions={intentions} followingCount={following.length} pinnedId={pinned} renderPost={card} onPost={p => { go(p.kind === 'intention' ? 'Intentions' : 'Home'); }} onCompose={() => setComposer({ kind: 'post' })} onEdit={() => { setSettingsSection('profile'); go('Settings'); }} /></>;
 
   const AD_OBJ = [{ id: 'Profile visits', Icon: UserCircle }, { id: 'Post engagement', Icon: Heart }, { id: 'Market listing views', Icon: ShoppingBag }, { id: 'Intention responses', Icon: Target }, { id: 'Community discovery', Icon: Users }] as const;
@@ -227,27 +233,29 @@ export default function Page() {
     : <><div className="page-heading"><div><h1>{t("Your activity")}</h1><p>{t("Activity on this device.")}</p></div></div><div className="activity-cards"><div><b>{myCount}</b><span>{t("Publications")}</span></div><div><b>{myComments}</b><span>{t("Comments")}</span></div><div><b>{Object.keys(reactions).length}</b><span>{t("Reactions")}</span></div><div><b>{saved.length}</b><span>{t("Saved")}</span></div><div><b>{reposted.length}</b><span>{t("Reposts")}</span></div></div>
       {(hidden.length > 0 || muted.length > 0) && <div className="settings-group"><h2>{t("Hidden & muted")}</h2>{muted.map(h => <div className="setting-row" key={h}><div><strong>@{h}</strong><small>{t("Muted account")}</small></div><button className="outline" onClick={() => setMuted(muted.filter(x => x !== h))}>{t("Unmute")}</button></div>)}{hidden.length > 0 && <div className="setting-row"><div><strong>{t('{n} hidden posts', { n: hidden.length })}</strong><small>{t("Posts you marked “Not interested”")}</small></div><button className="outline" onClick={() => setHidden([])}>{t("Show again")}</button></div>}</div>}</>;
 
-  const showRight = right && section !== 'Settings' && section !== 'Messages' && section !== 'Advanced Settings' && section !== 'Communities';
+  const showRight = (right || section === 'Home') && section !== 'Settings' && section !== 'Messages' && section !== 'Advanced Settings' && section !== 'Communities';
   const unreadChats = chats.reduce((a, c) => a + (c.unread || 0), 0); const unreadNotifs = notifs.filter(n => !n.read).length;
   const topActions = <div className="top-actions">
     <button className="icon-button badge-btn" onClick={() => go('Messages')} aria-label={t("Messages")}><MessageCircle />{unreadChats > 0 && <i>{unreadChats}</i>}</button>
     <button className="icon-button badge-btn" onClick={() => go('Notifications')} aria-label={t("Notifications")}><Bell />{unreadNotifs > 0 && <i>{unreadNotifs}</i>}</button>
     <AuthStatus onRestoreWidgets={restoreWidgets} avatar={profile.avatar || avatars.you} name={profile.name} onProfile={() => go('Profile')} onSettings={() => { setSettingsSection('profile'); go('Settings'); }} /></div>;
-  const sidebar = <aside className="rightbar"><ResizeHandle pane="widgetRail" edge="start" container=".app" label="Resize widget panel" />{topActions}<div className="widget"><div className="widget-heading"><strong>{t("Recommended for you")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{people.map(([name, handle, img]) => <div className="person" key={handle}><img className="avatar" src={img} alt="" /><div><strong>{name} ✓</strong><small>@{handle}</small></div><button className={'follow ' + (following.includes(handle) ? 'on' : '')} onClick={() => toggleFollow(handle)}>{t(following.includes(handle) ? 'Following|button' : 'Follow')}</button></div>)}</div>
+  const recommendedPeople=people.filter(([,handle])=>handle!==ME&&!muted.includes(handle)&&!following.includes(handle));
+  const sidebar = <aside className="rightbar" aria-label={t("Recommendations")}><ResizeHandle pane="widgetRail" edge="start" container=".app" label="Resize widget panel" />{section==='Home'&&<div className="widget widget-mode-switch"><span>{t('Recommendations')}</span><button type="button" className="pill-btn" onClick={restoreWidgets}><LayoutGrid size={16}/>{t('Show widgets')}</button></div>}<div className="widget"><div className="widget-heading"><strong>{t("Recommended for you")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{recommendedPeople.map(([name, handle, img]) => <div className="person" key={handle}><img className="avatar" src={img} alt="" /><div><strong>{name} ✓</strong><small>@{handle}</small></div><button className={'follow ' + (following.includes(handle) ? 'on' : '')} onClick={() => toggleFollow(handle)}>{t(following.includes(handle) ? 'Following|button' : 'Follow')}</button></div>)}{!recommendedPeople.length&&<button type="button" className="pill-btn" onClick={()=>go('Explore')}>{t('Find more people')}</button>}</div>
     <div className="widget"><div className="widget-heading"><strong>{t("Trending now")}</strong><button onClick={() => go('Explore')}>{t("See all")}</button></div>{['#Warsaw', '#Technology', '#Art', '#Startups', '#Music'].map((tag, i) => <button className="trend" key={tag} onClick={() => tagSearch(tag)}><span>#{i + 1}</span><div><strong>{tag.slice(1)}</strong><small>{t("Trending topic")}</small></div><ArrowRight size={16} /></button>)}</div>
     <div className="widget promo"><strong>{t("Find your people.")}<br />{t("Build what matters.")}</strong><button onClick={() => go('Intentions')} aria-label="Open intentions"><ArrowRight /></button></div></aside>;
 
   return <div className="app">
+    <header className="account-corner" aria-label={t('Account controls')}>{section==='Messages'&&<button type="button" className="mobile-brand account-brand" onClick={()=>go('Home')} aria-label={t('Home')}>intent<span>.</span></button>}{topActions}</header>
     {storageError && <div className="storage-warning" role="alert">{t('Changes could not be saved on this device. Free up browser storage before reloading.')} <button onClick={() => setStorageError(false)}>{t('Dismiss')}</button></div>}
     <aside className="leftbar"><button className="logo" onClick={() => go('Home')}>intent<span>.</span></button>
       <nav>{nav.map(({ name, Icon }) => <button key={name} className={section === name ? 'active' : ''} onClick={() => go(name)}><Icon size={24} />{t(name)}{name === 'Messages' && unreadChats > 0 && <em>{unreadChats}</em>}{name === 'Notifications' && unreadNotifs > 0 && <em>{unreadNotifs}</em>}</button>)}
         <div className="nav-divider" />{extras.map(({ name, Icon }) => <button key={name} className={section === name ? 'active' : ''} onClick={() => go(name)}><Icon size={23} />{t(name)}</button>)}</nav>
       <button className="create-button" onClick={() => setComposer({ kind: 'post' })}><Plus /> {t("Create")}</button></aside>
-    <main className={'main ' + (!showRight ? 'expanded' : 'with-right') + (section === 'Messages' ? ' is-messages' : '')}>
+    <main className={'main ' + (!showRight ? 'expanded' : 'with-right') + (section === 'Messages' ? ' is-messages' : section === 'Home' ? ' is-home' : '')}>
       <div className="topbar"><button type="button" className="mobile-brand" onClick={()=>go('Home')} aria-label={t("Home")}>intent<span>.</span></button><div className="global-search"><Search size={22} /><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => go('Explore')} placeholder={t("Search people, posts, intentions, communities...")} aria-label={t("Search")} /></div>
-        {topActions}</div>
+        </div>
       <div className="content">{content}</div></main>
-    {showRight && (section === 'Home' ? <WidgetRail header={topActions} launcher={sanitizeLauncher(launcher)} onLauncherChange={setLauncher} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar">{topActions}<ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : sidebar)}
+    {showRight && (section === 'Home' && right && !sanitizeLauncher(launcher).hidden ? <WidgetRail onHide={()=>setRight(false)} launcher={sanitizeLauncher(launcher)} onLauncherChange={setLauncher} /> : section === 'Explore' && !query.trim() ? <aside className="rightbar"><ExploreRail people={people} following={following} onFollow={toggleFollow} muted={muted} state={exploreState} onSearch={setQuery} onMessage={exploreMessage} onDiscover={() => go('Intentions')} toast={toast} /></aside> : sidebar)}
     <nav className="mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4]].map(({ name, Icon }) => <button className={section === name ? 'active' : ''} key={name} onClick={() => go(name)}><Icon size={24} /><small>{t(name)}</small></button>)}<button className="mobile-create" onClick={() => setComposer({ kind: 'post' })} aria-label={t("Create")}><Plus /></button></nav>
 
     {composer && <Composer initialKind={composer.kind} quote={composer.quote} onClose={() => setComposer(null)} onPublish={publish} />}

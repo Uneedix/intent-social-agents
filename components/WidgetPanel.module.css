@@ -17,3 +17,5 @@
 :global(html[data-theme="light"]) .day{font-size:13px!important}
 :global(html[data-theme="light"]) .weekday{font-size:11px}
 :global(html[data-theme="light"]) :is(.meta,.googleNote,.empty,.itemText){font-size:11px;line-height:1.65}
+
+.panelTools{display:inline-flex;align-items:center;gap:5px;flex-shrink:0}

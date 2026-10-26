@@ -1,4 +1,5 @@
 'use client';
+import MessageListHeader from './MessageListHeader';
 import {PinDialog,PinnedList,type PinScope} from './MessagePins';
 import { useT, useI18n } from './I18n';
 import {normalizeFolderOrder,moveFolder,reorderFolder} from '../lib/chat-folders';
@@ -56,9 +57,9 @@ function ListItem({ active, onOpen, onMenu, label, children }: { c: Chat; active
     onPointerDown={press.onPointerDown} onPointerUp={press.onPointerUp} onPointerLeave={press.onPointerLeave} onPointerCancel={press.onPointerCancel} onContextMenu={press.onContextMenu}>{children}</button>;
 }
 
-type Props = { chats: Chat[]; setChats: (c: Chat[]) => void; active: string | null; setActive: (id: string | null) => void; toast: (m: string) => void; modeSwitch?: ReactNode; onHome?:()=>void; people?: [string, string, string][]; onViewProfile?: (handle: string) => void; onShareIntention?: () => void; onCommunities?: () => void };
+type Props = { chats: Chat[]; setChats: (c: Chat[]) => void; active: string | null; setActive: (id: string | null) => void; toast: (m: string) => void; modeSwitch?: ReactNode; groupOnly?:boolean; onHome?:()=>void; people?: [string, string, string][]; onViewProfile?: (handle: string) => void; onShareIntention?: () => void; onCommunities?: () => void };
 
-export default function Messenger({ chats, setChats, active, setActive, toast, modeSwitch, onHome, people = [], onViewProfile, onShareIntention }: Props) {
+export default function Messenger({ chats, setChats, active, setActive, toast, modeSwitch, groupOnly=false, onHome, people = [], onViewProfile, onShareIntention }: Props) {
   const t = useT();
   const {lang}=useI18n();
   const ui=lang==='Русский'?{left:'Переместить влево',right:'Переместить вправо',options:'Настроить папку',selected:'Выбранные участники',search:'Поиск людей…',group:'Создать группу',hint:'Папки можно перетаскивать или перемещать через меню.'}:lang==='Polski'?{left:'Przenieś w lewo',right:'Przenieś w prawo',options:'Opcje folderu',selected:'Wybrane osoby',search:'Szukaj osób…',group:'Utwórz grupę',hint:'Przeciągnij folder lub przesuń go w menu.'}:{left:'Move left',right:'Move right',options:'Folder options',selected:'Selected people',search:'Search people…',group:'Create group',hint:'Drag folders or move them using their menu.'};
@@ -171,9 +172,9 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
   };
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return chats.filter(c => inFolder(c, folder) && (!s || c.name.toLowerCase().includes(s) || c.handle.toLowerCase().includes(s) || c.messages.some(m => m.text.toLowerCase().includes(s))))
+    return chats.filter(c => (!groupOnly||c.kind==='group') && inFolder(c, folder) && (!s || c.name.toLowerCase().includes(s) || c.handle.toLowerCase().includes(s) || c.messages.some(m => m.text.toLowerCase().includes(s))))
       .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || (last(b)?.at || 0) - (last(a)?.at || 0));
-  }, [chats, folder, q, lists]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chats, folder, q, lists, groupOnly]); // eslint-disable-line react-hooks/exhaustive-deps
   const unreadCount = chats.filter(c => c.unread && !c.archived).length;
   const pinCount = chats.filter(c => c.pinned && c.kind !== 'saved').length;
 
@@ -424,7 +425,7 @@ export default function Messenger({ chats, setChats, active, setActive, toast, m
     {/* ---------- chat list ---------- */}
     <aside className="ms-list">
       <ResizeHandle pane="chatList" edge="end" container=".ms" label="Resize chat list" />
-      <div className="ms-title"><h1>{t('Messages')}</h1><button type="button" className="ms-logo ms-home-logo" onClick={onHome} aria-label={t('Home')}>intent<span>.</span></button><span className="ms-title-tools">{modeSwitch}<button className="icon-button ms-show-m" onClick={() => setNewChat('people')} aria-label={t('New chat')}><SquarePen size={22} /></button></span></div>
+      <MessageListHeader modeSwitch={modeSwitch} onHome={onHome} onNew={()=>setNewChat('people')} newLabel={t('New chat')}/>
       <div className="ms-search-row"><label className="ms-search"><Search size={20} /><input ref={listSearch} value={q} onChange={e => setQ(e.target.value)} placeholder={t('Search messages...')} aria-label={t('Search messages...')} /></label>
         <button className="ms-new ms-hide-m" onClick={() => setNewChat('people')} aria-label={t('New chat')} title={t('New chat')}><SquarePen size={20} /></button></div>
       <div className={'ms-chips ms-folder-tabs'+(lifted?' reordering':'')} role="tablist" aria-label={t('Chats')} title={ui.hint}>{folders.map(([k,l])=><span className={'ms-folder-chip '+(folder===k?'active':'')+(lifted===k?' lifted':'')} key={k} data-folder={k} onPointerDown={e=>holdStart(e,k)} onContextMenu={e=>{e.preventDefault();setFolderMenu(k);}}>

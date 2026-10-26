@@ -40,7 +40,7 @@ export default function AuthStatus({ avatar, name, onProfile, onSettings, onRest
   const forget = (email: string) => { const next = readKnown().filter(e => e !== email); writeKnown(next); setKnown(next); };
 
   const restoreAction=onRestoreWidgets&&<button role="menuitem" onClick={()=>{setOpen(false);onRestoreWidgets();}}><LayoutGrid size={17}/>{t('Restore widgets button')}</button>;
-  if (!user) return <div className="auth-status acct" ref={box}><Link href="/login">{t("Log in")}</Link><Link href="/register" className="auth-join">{t("Sign up")}</Link><button className="icon-button" aria-label={t('Profile options')} aria-expanded={open} onClick={()=>setOpen(!open)}><UserCircle size={23}/></button>{open&&<div className="acct-menu" role="menu">{onProfile&&<button role="menuitem" onClick={()=>{setOpen(false);onProfile();}}><UserCircle size={17}/>{t('View profile')}</button>}{restoreAction}</div>}</div>;
+  if (!user) return <div className="auth-status acct" ref={box}><Link href="/login">{t("Log in")}</Link><Link href="/register" className="auth-join">{t("Sign up")}</Link><button className="icon-button" aria-label={t('Profile options')} aria-expanded={open} onClick={()=>setOpen(!open)}><UserCircle size={23}/></button>{open&&<div className="acct-menu" role="menu">{onProfile&&<button role="menuitem" onClick={()=>{setOpen(false);onProfile();}}><UserCircle size={17}/>{t('View profile')}</button>}{restoreAction}<Link role="menuitem" href="/login">{t('Log in')}</Link><Link role="menuitem" href="/register">{t('Sign up')}</Link></div>}</div>;
 
   const email = user.email || '';
   const others = known.filter(e => e !== email);
