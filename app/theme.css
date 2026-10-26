@@ -36,3 +36,6 @@ html[data-theme="light"] .stories .story-add:hover{background:#f3f3f3}
 html[data-theme="light"] .pe-av img{border-color:#d4d4d4}
 html[data-theme="light"] .stories .story:first-child .story-ring img,
 html[data-theme="light"] .stories .story:first-child .story-ring.seen img{border-color:#d4d4d4!important}
+/* Keep unread counters red with white text in both themes. */
+.badge-btn>i{background:#e41e3f;color:#fff}
+html[data-theme="light"] .badge-btn>i{filter:invert(1) hue-rotate(180deg)}
