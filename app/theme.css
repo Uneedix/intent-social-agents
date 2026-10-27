@@ -31,7 +31,7 @@ html[data-theme="light"] .ms-av-saved{background:#3d8ef0;color:#fff}
 html:not([data-theme="light"]){--intent-card:#141416;--ds-bg:#000;--ds-card:#141416;--ds-raised:#1c1c1f;--ds-field:#1b1b1e;--ds-line:#2a2a2e}
 html:not([data-theme="light"]) :is(.post,.composer,.widget,.product,.experience-card,.experience-empty,.experience-result,.settings2-panel,.settings-group,.ad-card,.stats,.modal,.intent-dialog,.ms-card,.group-list,.group-conversation){background-color:var(--intent-card)}
 html:not([data-theme="light"]) .ms{--card:var(--intent-card)}
-html:not([data-theme="light"]) :is(.global-search,.home-composer){background-color:var(--intent-card)}
+html:not([data-theme="light"]) .global-search{background-color:var(--intent-card)}
 /* Message colours are explicit, independent of the surrounding theme. */
 html[data-theme="light"] .ms{--bub:#e5e7eb;--bub-me:#d9e8ff;--mut:#656a73}
 html[data-theme="light"] :is(.ms-row.mine .ms-bub,.ms-row.mine .ms-bub.media,.ms-row.mine .ms-bub.photo,.group-message.mine){background:#d9e8ff;color:#172d4d}
