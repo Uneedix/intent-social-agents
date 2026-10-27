@@ -20,13 +20,13 @@ button.story-ring{cursor:pointer}
 .se-pick .se-top{position:static;align-items:center}
 .se-round{width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:var(--tone-ffffff,#ffffff);display:grid;place-items:center;position:relative;backdrop-filter:blur(6px)}
 .se-round.on{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000)}
-.se-round em{position:absolute;right:52px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:700;opacity:0;pointer-events:none;white-space:nowrap;text-shadow:0 1px 4px #000;transition:opacity .2s}
+.se-round em{position:absolute;right:52px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:700;opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .2s}
 .se-round:hover em{opacity:1}
 .se-tools{display:flex;flex-direction:column;gap:10px}
 .se-frame{position:relative;flex:1;border-radius:18px;overflow:hidden;background:var(--tone-000000,#000000);touch-action:none}
 .se-frame>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none}
-.st-text{position:absolute;transform:translate(-50%,-50%);font-weight:800;font-size:26px;line-height:1.15;text-align:center;max-width:86%;overflow-wrap:anywhere;text-shadow:0 2px 8px rgba(0,0,0,.45);padding:2px 6px;border-radius:8px;user-select:none;z-index:2}
-.st-text.bg{text-shadow:none;padding:6px 12px}
+.st-text{position:absolute;transform:translate(-50%,-50%);font-weight:800;font-size:26px;line-height:1.15;text-align:center;max-width:86%;overflow-wrap:anywhere;padding:2px 6px;border-radius:8px;user-select:none;z-index:2}
+.st-text.bg{padding:6px 12px}
 .st-text.drag{cursor:grab;touch-action:none}.st-text.drag:active{cursor:grabbing}
 .se-filters{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;overflow-x:auto;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.75));z-index:3;scrollbar-width:none}
 .se-filters button{flex:none;border:0;background:none;color:var(--tone-ffffff,#ffffff);display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600}
@@ -36,8 +36,8 @@ button.story-ring{cursor:pointer}
 .se-text-tools{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center}
 .se-aa{width:42px;height:42px;border-radius:50%;border:2px solid var(--tone-ffffff,#ffffff);background:transparent;color:var(--tone-ffffff,#ffffff);font-weight:800;font-size:17px}
 .se-aa.on{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000)}
-.se-textedit input{width:100%;border:0;outline:0;text-align:center;font-weight:800;font-size:28px;padding:6px 10px;border-radius:10px;text-shadow:0 2px 8px rgba(0,0,0,.4)}
-.se-textedit input.bg{text-shadow:none}
+.se-textedit input{width:100%;border:0;outline:0;text-align:center;font-weight:800;font-size:28px;padding:6px 10px;border-radius:10px;}
+.se-textedit input.bg{}
 .se-textedit input::placeholder{color:rgba(255,255,255,.6)}
 .se-colors{position:absolute;bottom:18px;display:flex;gap:10px}
 .se-colors button{width:28px;height:28px;border-radius:50%;border:2px solid var(--tone-ffffff,#ffffff);padding:0}
@@ -68,7 +68,7 @@ button.story-ring{cursor:pointer}
 .sv-bars i{background:#fff}
 
 /* Readable white story overlays without heavy bold or a blurred halo. */
-.sv-head{font-weight:400;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.sv-head{font-weight:400;}
 .sv-head b{font-weight:500}
 .sv-head small{font-weight:400}
-.sv-cap{font-weight:400;line-height:1.45;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.sv-cap{font-weight:400;line-height:1.45;}

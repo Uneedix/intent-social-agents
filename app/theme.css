@@ -42,3 +42,6 @@ html[data-theme="light"] :is(.ms-row.mine .ms-meta,.group-message.mine small,.gr
 
 /* Use the supplied real Inter weights consistently in both themes. */
 body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis-weight:none}
+
+/* Site-wide typography rule: text never casts a shadow in either theme. */
+*,*::before,*::after{text-shadow:none!important}
