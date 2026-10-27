@@ -192,6 +192,15 @@ async function run(config) {
     await empty('Outsider cannot read group roster', () => outsider.db.from('message_group_members').select('user_id').eq('group_id', groupId));
     await empty('Outsider cannot read group messages', () => outsider.db.from('message_group_messages').select('id').eq('group_id', groupId));
     await denied('Outsider cannot send group message', () => outsider.db.from('message_group_messages').insert({ group_id: groupId, body: 'Forbidden outsider group fixture' }));
+    const second=await rows('Owner sends second pinnable message',()=>owner.db.from('message_group_messages').insert({group_id:groupId,body:'Second pin fixture'}).select('id').single(),data=>typeof data?.id==='string');
+    const first=await rows('Read first pinnable message',()=>member.db.from('message_group_messages').select('id').eq('group_id',groupId).eq('body','Member group fixture').single(),data=>typeof data?.id==='string');
+    await ok('Member pins multiple messages',()=>member.db.from('group_message_pins').insert([{group_id:groupId,message_id:first.id},{group_id:groupId,message_id:second.id}]));
+    await rows('Owner sees both shared pins with message bodies',()=>owner.db.from('group_message_pins').select('message_id,message:message_group_messages!group_message_pins_message_fkey(id,body)').eq('group_id',groupId),data=>data?.length===2&&data.every(x=>typeof x.message?.body==='string'));
+    await empty('Outsider cannot read pins',()=>outsider.db.from('group_message_pins').select('message_id').eq('group_id',groupId));
+    await denied('Outsider cannot pin a message',()=>outsider.db.from('group_message_pins').insert({group_id:groupId,message_id:first.id}));
+    await rows('Owner can unpin member pins',()=>owner.db.from('group_message_pins').delete().eq('group_id',groupId).select('message_id'),data=>data?.length===2);
+    await denied('Member cannot delete community',()=>member.db.rpc('delete_community',{cid:communities.public}),['P0001','42501']);
+    await rows('Owner deletes only this run community',()=>owner.db.rpc('delete_community',{cid:communities.private}),data=>data===communities.private);
     console.log('PASS hosted Auth, Communities and group permissions');
   } catch (error) {
     failed = true;

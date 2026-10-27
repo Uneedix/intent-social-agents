@@ -1,0 +1,34 @@
+/* INTENT UI kit — shared buttons, modals, sheets and menus. See docs/DESIGN_SYSTEM.md */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:999px;font:inherit;font-size:14.5px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s,transform .1s,opacity .15s}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn:focus-visible{outline:2px solid #5ea0ff;outline-offset:2px}
+.primary{background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000)}.primary:hover:not(:disabled){background:var(--tone-e9e9ec,#e9e9ec)}
+.outline{background:transparent;color:var(--tone-ffffff,#ffffff);border-color:var(--tone-333338,#333338)}.outline:hover:not(:disabled){background:var(--tone-151517,#151517)}
+.ghost{background:transparent;color:var(--tone-dddddd,#dddddd)}.ghost:hover:not(:disabled){background:var(--tone-151517,#151517)}
+.danger{background:transparent;color:#ff6b6b;border-color:#4a2326}.danger:hover:not(:disabled){background:var(--tone-1d1011,#1d1011)}
+.sm{height:34px;padding:0 14px;font-size:13px}.lg{height:50px;padding:0 24px;font-size:15.5px}
+.block{width:100%}
+.iconBtn{width:40px;height:40px;padding:0;border-radius:50%}
+.backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);display:grid;place-items:center;padding:16px;animation:fade .16s ease}
+.modal{width:min(var(--w,520px),100%);max-height:min(88vh,820px);display:flex;flex-direction:column;background:var(--intent-card,var(--tone-0f0f11,#0f0f11));border:1px solid var(--tone-26262a,#26262a);border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--tone-ffffff,#ffffff);animation:pop .18s ease;overflow:hidden}
+.head{display:flex;align-items:center;gap:12px;padding:18px 20px 12px}.head h2{flex:1;margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.sub{margin:-6px 20px 8px;color:var(--tone-a5a5ab,#a5a5ab);font-size:14px}
+.body{padding:8px 20px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px 18px;border-top:1px solid var(--tone-1f1f22,#1f1f22)}
+.steps{display:flex;gap:6px;padding:0 20px 6px}.steps i{flex:1;height:3px;border-radius:2px;background:var(--tone-2a2a2e,#2a2a2e)}.steps i.on{background:var(--tone-ffffff,#ffffff)}
+.field{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--tone-c8c8cc,#c8c8cc)}
+.input{height:46px;border-radius:12px;border:1px solid var(--tone-2a2a2e,#2a2a2e);background:var(--tone-0b0b0c,#0b0b0c);color:var(--tone-ffffff,#ffffff);padding:0 14px;font:inherit;font-size:15px;outline:0}
+.input:focus{border-color:var(--tone-5a5a62,#5a5a62)}textarea.input{height:auto;min-height:92px;padding:12px 14px;resize:vertical}
+.hint{font-size:12.5px;color:var(--tone-8d8d93,#8d8d93)}
+.choice{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--tone-2a2a2e,#2a2a2e);border-radius:14px;background:var(--tone-0b0b0c,#0b0b0c);cursor:pointer;text-align:left;color:var(--tone-ffffff,#ffffff);font:inherit}
+.choice.on{border-color:var(--tone-ffffff,#ffffff);background:var(--tone-151517,#151517)}.choice b{display:block;font-size:14.5px}.choice small{color:var(--tone-a5a5ab,#a5a5ab);font-size:13px}
+.toggle{position:relative;width:44px;height:26px;border-radius:13px;background:var(--tone-3a3a3e,#3a3a3e);border:0;flex:none;cursor:pointer}.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--tone-ffffff,#ffffff);transition:left .15s}.toggle.on{background:#2ecc71}.toggle.on::after{left:21px}
+.menu{position:absolute;z-index:60;min-width:220px;padding:6px;background:var(--tone-141416,#141416);border:1px solid var(--tone-2a2a2e,#2a2a2e);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.6);animation:pop .14s ease}
+.menuItem{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:none;color:var(--tone-eeeeee,#eeeeee);font:inherit;font-size:14.5px;text-align:left;cursor:pointer}.menuItem:hover,.menuItem:focus-visible{background:var(--tone-1f1f22,#1f1f22);outline:0}.menuItem.dangerItem{color:#ff6b6b}
+.menuSep{height:1px;margin:6px 4px;background:var(--tone-26262a,#26262a)}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes sheet{from{transform:translateY(28px);opacity:.6}to{transform:none;opacity:1}}
+@media(max-width:640px){.backdrop{place-items:end stretch;padding:0}.modal{animation-name:sheet;animation-duration:.22s;width:100%;max-height:92dvh;border-radius:24px 24px 0 0;border-bottom:0}.foot{padding-bottom:calc(env(safe-area-inset-bottom) + 18px)}}
+@media(prefers-reduced-motion:reduce){.modal,.menu,.backdrop{animation:none}}
+/* Light theme (page is inverted): primary shows as dark grey instead of pure black. */
+:global(html[data-theme="light"]) .primary{background:#1877f2;color:var(--tone-ffffff,#ffffff);}:global(html[data-theme="light"]) .primary:hover:not(:disabled){background:#166fe5}

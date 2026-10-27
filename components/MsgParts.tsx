@@ -3,16 +3,17 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Bookmark, Play, Pause, Users, X } from 'lucide-react';
 import type { Chat } from '../lib/data';
 import { useT } from './I18n';
+import { colorFor, gradient } from './groups/model';
 
 export const initials = (n: string) => n.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-export function Avatar({ chat, size: s = 48, dot }: { chat: Pick<Chat, 'kind' | 'avatar' | 'name' | 'online'>; size?: number; dot?: boolean }) {
+export function Avatar({ chat, size: s = 48, dot }: { chat: Pick<Chat, 'kind' | 'avatar' | 'name' | 'online'> & { color?: number }; size?: number; dot?: boolean }) {
   const st = { width: s, height: s };
   return <span className="ms-av" style={st}>
     {chat.kind === 'saved' ? <span className="ms-av-saved" style={st}><Bookmark size={s * 0.42} fill="currentColor" /></span>
       : chat.avatar ? <img src={chat.avatar} alt="" style={st} />
-      : chat.kind === 'group' ? <span className="ms-av-logo" style={st}><Users size={s * 0.42} /></span>
-      : <span className="ms-av-logo" style={{ ...st, fontSize: s * 0.32 }}>{initials(chat.name)}</span>}
+      : chat.kind === 'group' ? <span className="ms-av-logo ms-av-group system-avatar no-invert" style={{ ...st, fontSize: s * 0.34, background: gradient(chat.color ?? colorFor(chat.name)) }}>{initials(chat.name) || <Users size={s * 0.42} />}</span>
+      : <span className="ms-av-logo system-avatar" style={{ ...st, fontSize: s * 0.32 }}>{initials(chat.name)}</span>}
     {dot && chat.online && <i />}</span>;
 }
 

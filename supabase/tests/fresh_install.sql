@@ -27,3 +27,30 @@ END $$;
 \ir ../migrations/20261024120000_private_function_implementations.sql
 \ir private_function_security.sql
 \ir access_control.sql
+-- v0.7 roles: apply twice (idempotent), test it, then rerun earlier suites for compatibility.
+\ir ../migrations/20261025100000_community_roles.sql
+\ir ../migrations/20261025100000_community_roles.sql
+\ir community_roles.sql
+-- Owner deletion: current schema plus exact target/id and role-boundary regressions.
+\ir ../migrations/20261025120000_owner_community_delete.sql
+\ir ../migrations/20261025120000_owner_community_delete.sql
+\ir owner_community_delete.sql
+\ir private_function_security.sql
+\ir access_control.sql
+-- Telegram-style groups: topics, avatar and roles. Repeatable; older clients
+-- (no topic_id) keep working, so the legacy suite is rerun on the new schema.
+\ir ../migrations/20261025110000_group_topics_avatar.sql
+\ir ../migrations/20261025110000_group_topics_avatar.sql
+\ir access_control.sql
+\ir group_topics.sql
+
+\ir ../migrations/20261025130000_group_message_pins.sql
+\ir ../migrations/20261025130000_group_message_pins.sql
+\ir group_message_pins.sql
+-- Voice channels: repeatable; earlier suites rerun on the new schema (text channels unchanged).
+\ir ../migrations/20261025140000_voice_channels.sql
+\ir ../migrations/20261025140000_voice_channels.sql
+\ir voice_channels.sql
+\ir community_roles.sql
+\ir access_control.sql
+\ir private_function_security.sql

@@ -1,0 +1,40 @@
+/* Chat-only refinements. Shared pane sizing and media styles remain in their existing owners. */
+.ms-home-logo{border:0;background:transparent;color:inherit;padding:0;cursor:pointer;text-align:left}
+.ms-chips.ms-folder-tabs{min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:9px;scrollbar-width:thin;scrollbar-color:var(--tone-404047,#404047) transparent;align-items:center;flex-shrink:0}
+.ms-folder-chip{position:relative;display:inline-flex;flex:0 0 auto;max-width:260px;align-items:center}
+.ms-folder-chip>button[role="tab"]{padding-right:33px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.ms-folder-chip>button[role="tab"] em{display:inline-grid;margin-left:7px;vertical-align:middle}
+.ms-chips .ms-folder-chip>.ms-folder-options{position:absolute;right:4px;top:5px;width:24px;height:26px;padding:0;border:0;background:transparent;border-radius:7px;display:grid;place-items:center;color:var(--tone-b6b6bd,#b6b6bd)}
+.ms-chips .ms-folder-chip.active>.ms-folder-options{color:var(--tone-24242a,#24242a)}
+.ms-chips .ms-folder-chip>.ms-folder-options:hover{background:#ffffff20}
+.ms-folder-chip:active{cursor:grabbing}
+.np-selected{display:flex;align-items:center;gap:7px;overflow-x:auto;overflow-y:hidden;min-height:43px;max-height:54px;flex-shrink:0;padding:4px 2px 9px;scrollbar-width:thin;scrollbar-color:var(--tone-48484f,#48484f) transparent}
+.np-selected>button{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;max-width:220px;min-height:31px;padding:5px 9px;border:1px solid var(--tone-3c3c43,#3c3c43);border-radius:999px;background:var(--tone-1a1a1f,#1a1a1f);color:var(--tone-eeeeee,#eeeeee);font-size:12px;line-height:1.4}
+.np-selected>button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.np-selected>button svg{flex-shrink:0}
+.sh.np{min-width:0}.sh.np>.ms-search,.sh.np>.np-tabs,.sh.np>.np-name{flex-shrink:0}.sh.np>.np-list{min-height:90px;max-height:40dvh;overflow:auto}
+.ms.ms-groups.group-messages-grid{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,clamp(280px,24vw,368px))) minmax(0,1fr);border:0;border-radius:0;overflow:visible;min-height:560px;height:calc(100dvh - 36px);gap:16px}
+.ms.ms-groups.group-messages-grid.side-open{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,clamp(280px,24vw,368px))) minmax(0,1fr) var(--pane-chat-side,clamp(260px,22vw,370px))}
+.ms.ms-groups>.group-list.ms-list{border:0;padding:0 0 0 4px;min-width:0;max-height:none;overflow:visible;position:relative}
+.ms-groups .group-list-item.ms-item{padding:12px 14px;gap:14px;border:1px solid transparent;border-radius:14px}.ms-groups .group-list-item.current{border-color:var(--tone-3a3a3e,#3a3a3e);background:var(--tone-161618,#161618)}
+.ms-groups .group-server-avatar{width:52px;height:52px;background:var(--tone-17171d,#17171d);border:1px solid var(--tone-2b2b32,#2b2b32);color:var(--tone-e8e8ee,#e8e8ee);font-size:20px;font-weight:600}
+.ms-groups .ms-mid strong{display:block;min-width:0;font-size:16.5px;font-weight:600}.ms-groups .ms-mid small{display:block}
+.ms-groups>.group-conversation.ms-chat{min-height:0;max-height:none}.ms-groups .group-conversation-head.ms-head{padding:20px 22px 14px;gap:8px;border-bottom:1px solid var(--line)}
+.ms-groups .ms-who strong{font-size:22px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ms-groups .ms-who small{font-size:14px}.ms-groups .group-conversation-head .group-server-avatar{width:44px;height:44px;font-size:18px}
+.ms-groups .group-message-history.ms-msgs{min-height:0;padding:16px 22px;gap:12px;flex:1;overflow-y:auto}.ms-groups .group-load-older{align-self:center;flex-shrink:0;font-size:12px}
+.ms-groups .group-message{max-width:min(80%,560px);padding:11px 14px;border-radius:16px;background:var(--bub);min-width:0}.ms-groups .group-message.mine{background:var(--bub-me)}.ms-groups .group-message p{font-size:15px;white-space:pre-wrap;line-height:1.5;margin:5px 0}.ms-groups .group-message time{display:block;text-align:right;margin-top:5px}
+.ms-groups .group-send{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--line);border-radius:18px;padding:10px;background:var(--tone-0b0b0c,#0b0b0c)}.ms-groups .group-send .ms-field{flex:1;min-width:0}.ms-groups .group-send>.ms-send{flex-shrink:0;width:54px;height:54px;border:1px solid var(--tone-2a2a2e,#2a2a2e);border-radius:14px;background:var(--tone-141416,#141416)}.ms-groups .group-send>.ms-send:not(:disabled){background:var(--tone-ffffff,#ffffff);color:var(--tone-000000,#000000);border-color:var(--tone-ffffff,#ffffff)}.ms-groups .group-send textarea{width:100%}
+.ms-groups .ms-compose{flex-shrink:0;min-height:0}.ms-groups .group-error{margin:10px 12px;flex-shrink:0;font-size:12px}.ms-groups .ms-placeholder{padding:24px;text-align:center}.ms-groups .ms-placeholder>span{max-width:340px;line-height:1.6}
+.group-info-card{padding:16px}.group-info-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.group-info-heading h2{font-size:17px;margin:0}.group-info-card h3{font-size:15px;overflow-wrap:anywhere}.group-info-card>.group-member-row{padding:12px 0}.group-info-card .group-invite{display:flex;align-items:flex-end;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--tone-28282e,#28282e)}.group-info-card .group-invite label{display:grid;gap:6px;flex:1;min-width:0;color:var(--tone-aaaaaa,#aaaaaa);font-size:11px}.group-info-card .group-invite input{width:100%;min-width:0;font-size:12px}.group-info-card .group-invite button{font-size:12px}.group-info-card .ms-local-note{padding:10px 0 0}
+.ms-groups .group-create{margin:0;border:0;padding:0;gap:14px}.ms-groups .group-create input{width:100%;box-sizing:border-box}.ms-groups .group-create .np-cta{margin:0;flex:1}.ms-groups .group-create .ms-outline{min-height:44px}
+@media(max-width:1279px){.ms.ms-groups.group-messages-grid.side-open{grid-template-columns:var(--pane-group-list,var(--pane-chat-list,minmax(280px,360px))) minmax(0,1fr)}}
+@media(max-width:900px){
+ .ms.ms-groups.group-messages-grid,.ms.ms-groups.group-messages-grid.side-open{display:block;height:auto;min-height:0;grid-template-columns:1fr}
+ .ms.ms-groups>.group-list.ms-list{padding:14px 16px 90px;border:0;max-height:none;overflow:visible}
+ .ms-groups .group-list-item.ms-item{padding:10px 8px;border-color:transparent;background:transparent}.ms-groups .group-list-item .group-server-avatar{width:50px;height:50px}
+ .ms-groups .group-conversation-head.ms-head{padding:calc(env(safe-area-inset-top) + 8px) 8px 8px}.ms-groups .ms-who strong{font-size:17px}.ms-groups .ms-who small{font-size:12px}.ms-groups .group-conversation-head .group-server-avatar{width:42px;height:42px}
+ .ms-groups .group-message-history.ms-msgs{padding:10px 12px}.ms-groups .group-message{max-width:86%;border-radius:18px}.ms-groups .group-message.mine{background:var(--tone-f2f2f4,#f2f2f4);color:var(--tone-111111,#111111)}.ms-groups .group-message.mine small,.ms-groups .group-message.mine time{color:var(--tone-555555,#555555)}
+ .ms-groups .group-send{border:0;background:transparent;padding:0;gap:6px}.ms-groups .group-send>.ms-send{width:44px;height:44px;border-radius:50%}.ms-groups .group-info{padding:calc(env(safe-area-inset-top) + 12px) 12px 30px}.group-info-card{padding:14px}.ms-home-logo{flex-shrink:0}
+ .ms-folder-chip>button[role="tab"]{padding-right:31px}.ms-chips .ms-folder-chip>.ms-folder-options{top:3px;height:26px}
+ .np-selected{padding-bottom:8px;max-height:54px}.sh.np>.np-list{max-height:35dvh}
+}
+@media(prefers-reduced-motion:reduce){.ms-folder-chip{scroll-behavior:auto}}

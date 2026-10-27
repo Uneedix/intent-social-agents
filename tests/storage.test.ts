@@ -1,3 +1,4 @@
+import {sampleChats} from '../lib/data';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clearScope, exportScope, readStored, storageKey, writeStored } from '../lib/storage';
@@ -89,3 +90,12 @@ test('blocked storage reads fall back and quota failures are reported', () => {
   assert.equal(writeStored(storage, 'key', 'draft'), false);
 });
 
+
+test('heterogeneous chat history retains grouped pins across reloads',()=>{
+ const storage=new MemoryStorage();const initial=sampleChats();const chats=structuredClone(initial);
+ chats[1].pinnedMessages=[{messageId:chats[1].messages[0].id,scope:'self'},{messageId:chats[1].messages[1].id,scope:'everyone'}];
+ const key=storageKey('alice','intent-chats-v2');writeStored(storage,key,chats);
+ const restored=readStored(storage,key,initial);
+ assert.deepEqual(restored[1].pinnedMessages,chats[1].pinnedMessages);
+ assert.deepEqual(restored,chats);
+});

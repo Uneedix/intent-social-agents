@@ -4,6 +4,7 @@ import {useEffect,useRef,useState} from 'react';
 import {compressImage, notifyStorageFailure, useStored, useLocalStore} from '../lib/social';
 import { clearScope, exportScope } from '../lib/storage';
 import { useAppearance } from './Appearance';
+import { hasCustomPaneSizes } from '../lib/pane-sizes';
 import {Search,Users,FileText,ShoppingBag,Bookmark,MapPin,Check,Edit3,Camera,Link2,Shield,Globe,Bell,Monitor,Download,Trash2,Lock,Eye,EyeOff,UserRound,ArrowUpDown,Upload,Image as ImageIcon} from 'lucide-react';
 import {avatars,products,type Post} from '../lib/data';
 
@@ -27,13 +28,12 @@ export function SearchHub({query,onQuery,people,posts,intentions,onFollow,follow
  {(category==='All'||category==='Market')&&<><h2><ShoppingBag size={19}/> {t("Marketplace")}</h2><div className="experience-market">{filteredItems.map(p=><div className="experience-product" key={p.id}><img src={p.image} alt=""/><strong>{p.name}</strong><small>{p.city} · {p.price.toLocaleString()} PLN</small></div>)}</div>{!filteredItems.length&&<p className="muted">{t("No matching listings.")}</p>}</>}
  </section>;
 }
-export function ProfileStudio({ profile, posts, intentions, followingCount, pinnedId, renderPost, onCompose, onEdit }: { profile: ProfileData; onSave?: (p: ProfileData) => void; posts: Post[]; intentions: Post[]; followingCount: number; pinnedId: number | null; renderPost: (p: Post) => React.ReactNode; onPost?: (p: Post) => void; onCompose: () => void; onEdit: () => void }) {
+export function ProfileStudio({ profile, posts, intentions, repostIds = [], followingCount, pinnedId, renderPost, onCompose, onEdit }: { profile: ProfileData; onSave?: (p: ProfileData) => void; posts: Post[]; intentions: Post[]; repostIds?: number[]; followingCount: number; pinnedId: number | null; renderPost: (p: Post) => React.ReactNode; onPost?: (p: Post) => void; onCompose: () => void; onEdit: () => void }) {
   const t = useT();
-  const [tab, setTab] = useState<'Posts' | 'Media' | 'Intentions' | 'About'>('Posts');
+  const [tab, setTab] = useState<'Posts' | 'Reposts' | 'Intentions' | 'About'>('Posts');
   const mine = posts.filter(p => p.handle === 'you');
   const pinned = [...posts, ...intentions].find(p => p.id === pinnedId && p.handle === 'you');
-  const list = tab === 'Posts' ? mine.filter(p => p.id !== pinned?.id) : intentions.filter(p => p.handle === 'you');
-  const media = mine.flatMap(p => p.images.map(src => ({ src, id: p.id })));
+  const list = tab === 'Posts' ? mine.filter(p => p.id !== pinned?.id) : tab === 'Reposts' ? [...repostIds].reverse().map(id=>[...posts,...intentions].find(p=>p.id===id)).filter((p):p is Post=>!!p) : intentions.filter(p => p.handle === 'you');
   return <section className="experience">
     <div className="profile-cover-enhanced" style={profile.cover ? { backgroundImage: `url(${profile.cover})` } : undefined} />
     <div className="profile-enhanced"><img src={profile.avatar} alt="Your avatar" /><div><h1>{profile.name}</h1><p>@{profile.handle}{profile.pronouns && ` · ${profile.pronouns}`}</p><p className="profile-bio">{profile.bio}</p>
@@ -41,10 +41,9 @@ export function ProfileStudio({ profile, posts, intentions, followingCount, pinn
       {profile.interests && <div className="profile-interests">{profile.interests.split(',').map(t => t.trim()).filter(Boolean).map(t => <span key={t}>{t}</span>)}</div>}</div>
       <button className="outline" onClick={onEdit}><Edit3 size={16} /> {t("Edit profile")}</button></div>
     <div className="stats"><span><strong>{mine.length}</strong> {t("Posts")}</span><span><strong>{intentions.filter(p => p.handle === 'you').length}</strong> {t("Intentions")}</span><span><strong>{followingCount}</strong> {t("Following")}</span></div>
-    <div className="experience-tabs profile-tabs">{(['Posts', 'Media', 'Intentions', 'About'] as const).map(x => <button key={x} className={tab === x ? 'selected' : ''} onClick={() => setTab(x)}>{t(x)}</button>)}</div>
+    <div className="experience-tabs profile-tabs">{(['Posts', 'Reposts', 'Intentions', 'About'] as const).map(x => <button key={x} className={tab === x ? 'selected' : ''} onClick={() => setTab(x)}>{t(x)}</button>)}</div>
     {tab === 'About' ? <div className="experience-card"><h2>{t("About")}</h2><p>{profile.bio}</p><p><MapPin size={16} /> {profile.location}</p><p><Globe size={16} /> {profile.website || t('No website provided')}</p><p>{profile.interests}</p></div>
-      : tab === 'Media' ? (media.length ? <div className="ig-grid profile-grid">{media.map((m, i) => <div key={i} className="ig-cell"><img src={m.src} alt="" loading="lazy" /></div>)}</div> : <div className="empty">{t("Photos you post appear here.")} <button className="outline" onClick={onCompose}>{t("Share a photo")}</button></div>)
-      : <div className="feed">{tab === 'Posts' && pinned && renderPost(pinned)}{list.length ? list.map(renderPost) : !pinned && <div className="empty">{t(tab === 'Posts' ? 'Your posts will appear here.' : 'Your intentions will appear here.')} <button className="outline" onClick={onCompose}>{t("Create")}</button></div>}</div>}
+      : <div className="feed">{tab === 'Posts' && pinned && renderPost(pinned)}{list.length ? list.map(renderPost) : (tab !== 'Posts' || !pinned) && <div className="empty">{t(tab === 'Posts' ? 'Your posts will appear here.' : tab === 'Reposts' ? 'Your reposts will appear here.' : 'Your intentions will appear here.')} <button className="outline" onClick={onCompose}>{t("Create")}</button></div>}</div>}
   </section>;
 }
 
@@ -61,7 +60,7 @@ export function SettingsStudio(props: SettingsProps) {
   const t = useT();
   const { section, onSection } = props;
   const { scope } = useLocalStore();
-  const {compact, setCompact, reduceMotion, setReduceMotion} = useAppearance(); const [contentLangs, setContentLangs] = useStored<string[]>('intent-content-languages', ['English']); const [confirmReset, setConfirmReset] = useState(false);
+  const {theme, setTheme, compact, setCompact, reduceMotion, setReduceMotion, paneSizes, resetPaneSizes} = useAppearance(); const [contentLangs, setContentLangs] = useStored<string[]>('intent-content-languages', ['English']); const [confirmReset, setConfirmReset] = useState(false);
   const [push, setPush] = useStored<Record<string, boolean>>('intent-push', { likes: true, comments: true, follows: true, messages: true, mentions: true });
   const [activity, setActivity] = useStored('intent-activity-status', true); const [word, setWord] = useState('');
   const toggle = (label: string, value: boolean, onChange: (v: boolean) => void, description: string) => <div className="setting-row"><div><strong>{t(label)}</strong><small>{t(description)}</small></div><button className={'toggle ' + (value ? 'on' : '')} onClick={() => onChange(!value)} aria-label={t(label)} aria-pressed={value} /></div>;
@@ -84,7 +83,10 @@ export function SettingsStudio(props: SettingsProps) {
       {section === 'words' && <><p className="muted">{t("Posts containing these words or #hashtags are hidden from your feed and search.")}</p>
         <form className="words-form" onSubmit={e => { e.preventDefault(); const w = word.trim().toLowerCase(); if (w && !props.words.includes(w)) props.onWords([...props.words, w]); setWord(''); }}><input value={word} onChange={e => setWord(e.target.value)} maxLength={40} placeholder={t("Add a word or #hashtag")} aria-label="Hidden word" /><button className="primary" disabled={!word.trim()}>{t("Add")}</button></form>
         <div className="profile-interests">{props.words.map(w => <span key={w}>{w}<button aria-label={`Remove ${w}`} onClick={() => props.onWords(props.words.filter(x => x !== w))}>×</button></span>)}</div></>}
-      {section === 'appearance' && <>{toggle('Show right sidebar', props.right, props.onRight, 'Recommendations and trending topics')}{toggle('Compact interface', compact, setCompact, 'Reduce padding in cards and panels')}{toggle('Reduce motion', reduceMotion, setReduceMotion, 'Minimize transitions and animations')}</>}
+      {section === 'appearance' && <><div className="setting-row theme-row"><div><strong>{t('Theme')}</strong><small>{t('Dark or light interface on this device')}</small></div>
+          <div className="theme-pick" role="radiogroup" aria-label={t('Theme')}>{(['dark', 'light'] as const).map(v => <button key={v} type="button" role="radio" aria-checked={theme === v} className={'theme-opt ' + v + (theme === v ? ' on' : '')} onClick={() => setTheme(v)}><span className="theme-swatch no-invert" aria-hidden="true"><i /><i /></span>{t(v === 'dark' ? 'Dark' : 'Light')}</button>)}</div></div>
+        {toggle('Show personal widgets', props.right, props.onRight, 'When hidden, people and trending topics appear instead.')}{toggle('Compact interface', compact, setCompact, 'Reduce padding in cards and panels')}{toggle('Reduce motion', reduceMotion, setReduceMotion, 'Minimize transitions and animations')}
+        <div className="setting-row"><div><strong>{t('Panel sizes')}</strong><small>{t('On a computer, drag the dividers in Messages and next to the widgets to change panel widths.')}</small></div><button className="outline" disabled={!hasCustomPaneSizes(paneSizes)} onClick={() => { resetPaneSizes(); props.toast(t('Layout reset')); }}>{t('Reset layout')}</button></div></>}
       {section === 'security' && <><div className="setting-row"><div><strong>{t("Password")}</strong><small>{t("Change your password by email link")}</small></div><a className="outline" href="/forgot-password">{t("Reset password")}</a></div>
         <div className="setting-row"><div><strong>{t("Two-factor authentication")}</strong><small>{t("Coming soon — will use Supabase Auth MFA (authenticator app)")}</small></div><button className="outline" disabled>{t("Set up")}</button></div>
         <div className="setting-row"><div><strong>{t("Sign out")}</strong><small>{t("End the session on this device")}</small></div><a className="outline" href="/login">{t("Switch account")}</a></div></>}

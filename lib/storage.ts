@@ -6,7 +6,7 @@ export function storageKey(scope: string, key: string) {
 function matchesShape(value: unknown, fallback: unknown): boolean {
   if (fallback === null) return value === null || typeof value === 'number';
   if (Array.isArray(fallback)) {
-    return Array.isArray(value) && value.every(item => fallback.length === 0 || matchesShape(item, fallback[0]));
+    return Array.isArray(value) && value.every(item => fallback.length === 0 || fallback.some(sample => matchesShape(item, sample)));
   }
   if (typeof fallback === 'object') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;

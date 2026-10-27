@@ -1,0 +1,65 @@
+.mobile-brand,.mobile-compose-fab{display:none}.widget-restore-profile{display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--border,var(--tone-29292d,#29292d));border-radius:24px;background:transparent;color:inherit;margin:0 0 20px}.leftbar>.create-button{margin-top:14px}
+@media(max-width:900px){.home-composer{display:none}.topbar:before{content:none!important}.mobile-brand{display:block;font:800 36px/1 Inter,sans-serif;letter-spacing:-2px;background:none;border:0;color:inherit;padding:0;cursor:pointer}.mobile-brand span{color:var(--tone-b9b9bd,#b9b9bd)}.mobile-compose-fab{display:grid;place-items:center;position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));width:54px;height:54px;border:1px solid var(--tone-dddddd,#dddddd);border-radius:50%;background:var(--tone-ffffff,#ffffff);color:var(--tone-090909,#090909);box-shadow:0 5px 22px #0008;z-index:14}.acct-menu{max-width:calc(100vw - 28px)}}
+
+.pin-choices{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}.message-pin-strip{padding:10px 16px;border-block:1px solid var(--tone-29292f,#29292f);background:var(--tone-111115,#111115)}.message-pin-toggle{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:inherit}.message-pin-toggle span{min-width:0;flex:1}.message-pin-toggle b,.message-pin-toggle small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.message-pin-toggle small{color:var(--tone-a7a7af,#a7a7af);margin-top:3px}.message-pin-list{max-height:240px;overflow:auto}.message-pin-list>div{display:flex;gap:8px;border-top:1px solid var(--tone-303037,#303037);padding:9px 0}.message-pin-list button{background:none;border:0;color:inherit;text-align:left}.message-pin-list button:first-child{flex:1;min-width:0}.message-pin-list small,.message-pin-list span{display:block;overflow-wrap:anywhere}.message-pin-list small{color:var(--tone-a7a7af,#a7a7af)}.pin-error{display:block;color:#f99;padding:8px}.group-pin-action{border:0;background:transparent;color:var(--tone-bbbbbb,#bbbbbb);float:right;cursor:pointer}.gm-unified .group-list .ms-search{margin:10px}.gm-unified>.ms-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.gm-unified .ms-title-tools{display:flex;gap:12px;align-items:center}.gm-unified .ms-home-logo{display:none}@media(max-width:900px){.gm-unified .ms-title h1{display:none}.gm-unified .ms-home-logo{display:block;font-size:30px;font-weight:800}.gm-unified>.ms-title{gap:10px}.gm-unified .message-mode-switch button{font-size:12px;padding:8px 10px}.gm-unified.group-messages{padding:0}}
+
+/* Outgoing bubbles share one readable dark-blue treatment across breakpoints. */
+.ms{--bub-me:#102e54}.ms-row.mine .ms-bub,.ms-row.mine .ms-bub.media,.ms-row.mine .ms-bub.photo,.ms-ctx-box.mine .ms-ctx-preview,.group-message.mine,.ms-groups .group-message.mine{background:#102e54;color:var(--tone-f3f7ff,#f3f7ff)}
+.ms-row.mine .ms-meta,.ms-row.mine .ms-bub.media .ms-meta,.group-message.mine small,.group-message.mine time,.ms-groups .group-message.mine small,.ms-groups .group-message.mine time{color:#b9cce5}.ms-row.mine .ms-bub a{color:#b6d7ff}
+.message-pin-strip{border-radius:12px;margin:8px 10px;padding:10px 12px;border:1px solid #26364b;background:#101923;flex-shrink:0}.pin-chevron{flex-shrink:0;transition:transform .15s}.pin-chevron.open{transform:rotate(180deg)}.message-pin-list{padding-top:8px;max-height:260px}.message-pin-list>.message-pin-entry{align-items:flex-start;gap:10px;padding:10px 0;border-color:#273345}.pin-number{display:grid;place-items:center;flex-shrink:0;width:24px;height:24px;border-radius:8px;background:#1b304b;color:#b9d4f8;font-size:12px}.pin-entry-content{flex:1;min-width:0}.message-pin-list .pin-message-link{display:block;padding:0;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45}.pin-audiences{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.message-pin-list .pin-audience{display:inline-flex;align-items:center;gap:6px;background:#1b293b;border-radius:999px;padding:3px 8px;color:#bbcee6;font-size:11px}.message-pin-list .pin-audience>button{display:grid;place-items:center;flex:none;padding:2px;color:#bbcee6}
+@media(prefers-reduced-motion:reduce){.pin-chevron{transition:none}}
+.ms-row.mine .ms-text{color:var(--tone-f3f7ff,#f3f7ff)}.ms-row.mine .ms-read{color:#79b8ff}
+/* Equal inset on every side; metadata must not pull the text toward an edge. */
+.ms-bub:not(.photo):not(.media){padding:14px;gap:6px}
+.ms-bub>.ms-text{display:block;margin:0;padding:0;text-align:start}
+.ms-row.mine .ms-bub:not(.photo)>.ms-meta{margin:0;padding:0;align-self:flex-end}
+.group-message,.ms-groups .group-message{padding:14px}
+.group-message>p,.ms-groups .group-message>p{margin:0;padding:0;text-align:start}
+.group-message>time,.ms-groups .group-message>time{margin-top:6px}
+@media(max-width:900px){.ms-bub:not(.photo):not(.media),.group-message,.ms-groups .group-message{padding:12px}}
+/* Give message text the available line width instead of a narrow nested column. */
+.ms-stack:has(.ms-text){max-width:min(82%,560px)}
+.ms-bub-wrap,.ms-bub{min-width:0}
+.ms-bub>.ms-text{align-self:stretch;width:100%;max-width:none;min-width:0}
+.ms-field textarea{scrollbar-width:none;overflow-y:auto}
+.ms-field textarea::-webkit-scrollbar{display:none;width:0;height:0}
+.ms-field textarea::-webkit-scrollbar-button{display:none}
+@media(max-width:900px){.ms-stack:has(.ms-text){max-width:90%}}
+/* Phone header: brand on the left, account menu pinned to the right; Messages logo matches Home. */
+@media(max-width:900px){.topbar>.mobile-brand{margin-right:auto}.topbar>.top-actions{margin-left:auto}
+ .ms-title .ms-home-logo,.gm-unified .ms-home-logo{font:800 36px/1 Inter,sans-serif!important;letter-spacing:-2px!important}}
+/* Folder chips: no options button; hold to reorder (or open the menu if you release without moving). */
+.ms-folder-chip>button[role="tab"]{padding-right:16px!important}
+.ms-folder-chip.lifted{transform:scale(1.06);box-shadow:0 6px 18px #000a;z-index:2;border-radius:999px}
+.ms-folder-chip.lifted>button{cursor:grabbing}
+.ms-folder-tabs.reordering{touch-action:none;overflow:visible}
+
+.widget-restore.pill-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:100%;height:auto;min-height:44px;margin-bottom:18px;padding:10px 14px;white-space:normal;overflow-wrap:anywhere}.widget-restore>svg{flex-shrink:0}
+
+/* Keep the home feed focused and centred, even with a wide browser window. */
+@media(min-width:901px){.main.is-home>.content{width:100%;max-width:680px;margin-inline:auto}}
+
+.home-composer .composer{padding:14px 16px}.home-composer .composer-top{gap:10px}.home-composer .composer-input{min-width:0;padding:14px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.composer-actions{display:flex;align-items:center;gap:3px;flex-shrink:0}.composer-action{display:grid;place-items:center;flex-shrink:0;width:38px;height:42px;border:0;border-radius:10px;padding:0;background:transparent;cursor:pointer}.composer-action:hover{background:#ffffff0d}.composer-action-photo{color:#45bd62}.composer-action-video{color:#f3425f}.composer-action-poll{color:#ed9d21}.composer-action-intention{color:#2789ef}
+html[data-theme="light"] .composer-action{}html[data-theme="light"] .composer-action:hover{background:var(--tone-e8edf3,#e8edf3)}html[data-theme="light"] .composer-action:focus-visible{outline:2px solid #1877f2;outline-offset:2px}
+
+/* One account header, anchored to the same right edge in every section. */
+.account-corner{position:absolute;top:0;right:20px;min-height:88px;max-width:calc(100vw - 32px);display:flex;align-items:center;justify-content:flex-end;z-index:25}.account-corner>.top-actions{margin-left:auto}.rightbar{padding-top:88px}.main.expanded>.topbar{padding-right:380px}.acct-menu>a[role="menuitem"]{display:flex;align-items:center;padding:10px;border-radius:10px;color:inherit;text-decoration:none;font-size:14px}.acct-menu>a[role="menuitem"]:hover{background:var(--tone-1f1f1f,#1f1f1f)}.main.is-messages{padding-top:88px}
+.ms-list-heading{flex-shrink:0;margin-bottom:18px}.ms-list-heading>.ms-title{display:flex;justify-content:space-between;margin:4px 0 16px}.ms-list-heading>.ms-title h1{flex:1}.ms-mode-row{display:flex;align-items:center;justify-content:flex-start}.ms-mode-row .message-mode-switch{display:flex;margin:0;gap:2px;padding:4px;background:var(--tone-141416,#141416);border:0;border-radius:999px}.ms-mode-row .message-mode-switch button{padding:7px 12px;white-space:nowrap;font-size:12.5px;line-height:1.2}
+@media(min-width:901px){.main.is-messages .ms,.main.is-messages .ms.ms-groups.group-messages-grid{height:calc(100dvh - 124px);min-height:480px}}
+@media(min-width:901px) and (max-width:1050px){.topbar{padding-right:380px}.rightbar{padding-top:0}}
+@media(max-width:900px){.account-corner{right:16px;min-height:70px}.account-corner:has(.account-brand){left:16px;justify-content:space-between}.account-corner .top-actions{gap:8px}.account-corner .auth-status>a{display:none}.account-corner .badge-btn{display:inline-flex}.account-corner .acct-menu{max-width:calc(100vw - 32px)}.main.expanded>.topbar{padding-right:16px}.main.is-messages{padding-top:70px}.ms-list-heading>.ms-title h1{display:block;font-size:27px}.ms-list-heading>.ms-title{margin:0 0 12px}.ms-mode-row .message-mode-switch button{padding:8px 13px}.app:has(.ms.has-chat)>.account-corner{display:none}.ms-list-heading{margin-bottom:16px}}
+
+.ms-groups .ms-search-row .ms-search{margin:0}.ms-groups .group-list .ms-chats{padding-top:8px}.ms-groups .gm-list-filters{align-items:center}.ms-groups .gm-list-filters .gm-refresh{margin-left:auto;border:0;padding:5px;flex-shrink:0}.ms-groups .group-send .ms-field input{background:transparent;border:0;min-width:0;width:100%;padding:14px 0;color:inherit}.ms-groups .group-local-list>small{display:block;color:var(--mut);font-size:11px;padding:12px}.ms-groups .group-message-history{min-height:0}.ms-groups .group-list.ms-list .ms-title{min-height:0}.gm-unified .disclaimer{font-size:11px;margin:6px 0 0}.ms-groups .group-empty p{max-width:320px;line-height:1.6}.ms-groups .group-conversation.ms-chat .ms-who{background:none;border:0;color:inherit;padding:0;display:flex;align-items:center;gap:10px;text-align:left}.ms-groups .group-conversation.ms-chat .gm-head-actions{display:flex;align-items:center;gap:4px}
+
+/* Post composer: separate audience controls and give every line comfortable insets. */
+.composer-modal .cmp-main{gap:12px}.composer-modal .cmp-main>textarea{margin:0;padding:14px 16px;min-height:140px;line-height:1.5;box-sizing:border-box}.composer-modal .aud-btn{margin:0}.composer-modal .cmp-foot{gap:12px;padding-top:16px;margin-top:16px}.cmp-limit{font-size:11px;line-height:1.4;color:var(--ds-text-2);text-align:right;max-width:130px}.cmp-limit.over{color:#f4212e}
+@media(max-width:600px){.composer-modal .cmp-row{gap:10px}.composer-modal .cmp-main>textarea{padding:12px 14px;font-size:16px}.composer-modal .cmp-row>.avatar{width:36px;height:36px}.composer-modal .cmp-limit{max-width:90px;font-size:10px}.composer-modal .modal-publish{gap:6px;padding-inline:14px}}
+
+@media(max-width:600px){.composer-modal .cmp-foot{flex-wrap:wrap}.composer-modal .cmp-limit{order:3;flex-basis:100%;max-width:none;text-align:right}}
+
+/* Keep navigation icons aligned even beside longer translated labels. */
+.leftbar nav button>svg{flex-shrink:0}
+.leftbar nav button>.lucide-bell{stroke-width:2.25}
+
+/* Compact desktop header spacing while keeping account controls clear. */
+@media(min-width:901px){.account-corner{min-height:72px}.topbar{min-height:72px}.rightbar{padding-top:80px}.main.is-messages{padding-top:72px}.main.is-messages .content{padding-top:8px}.main.is-messages .ms,.main.is-messages .ms.ms-groups.group-messages-grid{height:calc(100dvh - 98px)}}

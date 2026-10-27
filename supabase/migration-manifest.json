@@ -27,6 +27,26 @@
     {
       "path": "migrations/20261024120000_private_function_implementations.sql",
       "sha256": "f796b17f244b44e50a0bfbf037b9173acc928115e9c0c84d44775993e857ce5a"
+    },
+    {
+      "path": "migrations/20261025100000_community_roles.sql",
+      "sha256": "141f228f669a692e3b89ba07dc66aba592edc3f093c2b1d5923210614b8cbc02"
+    },
+    {
+      "path": "migrations/20261025110000_group_topics_avatar.sql",
+      "sha256": "e8a8ff89bacb7017d5b2b8c566edfb895922260cc351b9103928bd7e41cda84c"
+    },
+    {
+      "path": "migrations/20261025120000_owner_community_delete.sql",
+      "sha256": "c2e168a177c49e050ec9cbaf15edbbd113d2ca0c512df6f535d36731a3680856"
+    },
+    {
+      "path": "migrations/20261025130000_group_message_pins.sql",
+      "sha256": "4583fa02ea0a4a5925a9fcfa53e475bbb849ca113ac1dd0060a52d61b9b089de"
+    },
+    {
+      "path": "migrations/20261025140000_voice_channels.sql",
+      "sha256": "2e37cd1efbeff72c29b05b77df3b1bec42a6aa8b4ac22ebf3b5a1eac73a30289"
     }
   ]
 }

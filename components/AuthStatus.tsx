@@ -2,7 +2,7 @@
 import { useT } from './I18n';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, LogOut, UserPlus, UserCircle, Settings, Check, X } from 'lucide-react';
+import { ChevronDown, LogOut, UserPlus, UserCircle, Settings, Check, X, LayoutGrid } from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
 import {useSession} from './SessionBoundary';
 
@@ -12,9 +12,9 @@ const readKnown = (): string[] => { try { const v = JSON.parse(localStorage.getI
 const writeKnown = (v: string[]) => { try { localStorage.setItem(KEY, JSON.stringify(v.slice(0, 5))); } catch { /* storage blocked */ } };
 export function rememberAccount(email?: string | null) { if (!email) return; writeKnown([email, ...readKnown().filter(e => e !== email)]); }
 
-type Props = { avatar?: string; name?: string; onProfile?: () => void; onSettings?: () => void };
+type Props = { avatar?: string; name?: string; onProfile?: () => void; onSettings?: () => void; onRestoreWidgets?:()=>void };
 
-export default function AuthStatus({ avatar, name, onProfile, onSettings }: Props) {
+export default function AuthStatus({ avatar, name, onProfile, onSettings, onRestoreWidgets }: Props) {
   const t = useT();
   const {user} = useSession();
   const [error,setError] = useState('');
@@ -39,7 +39,8 @@ export default function AuthStatus({ avatar, name, onProfile, onSettings }: Prop
   };
   const forget = (email: string) => { const next = readKnown().filter(e => e !== email); writeKnown(next); setKnown(next); };
 
-  if (!user) return <div className="auth-status"><Link href="/login">{t("Log in")}</Link><Link href="/register" className="auth-join">{t("Sign up")}</Link></div>;
+  const restoreAction=onRestoreWidgets&&<button role="menuitem" onClick={()=>{setOpen(false);onRestoreWidgets();}}><LayoutGrid size={17}/>{t('Restore widgets button')}</button>;
+  if (!user) return <div className="auth-status acct" ref={box}><Link href="/login">{t("Log in")}</Link><Link href="/register" className="auth-join">{t("Sign up")}</Link><button className="icon-button" aria-label={t('Profile options')} aria-expanded={open} onClick={()=>setOpen(!open)}><UserCircle size={23}/></button>{open&&<div className="acct-menu" role="menu">{onProfile&&<button role="menuitem" onClick={()=>{setOpen(false);onProfile();}}><UserCircle size={17}/>{t('View profile')}</button>}{restoreAction}<Link role="menuitem" href="/login">{t('Log in')}</Link><Link role="menuitem" href="/register">{t('Sign up')}</Link></div>}</div>;
 
   const email = user.email || '';
   const others = known.filter(e => e !== email);
@@ -52,6 +53,7 @@ export default function AuthStatus({ avatar, name, onProfile, onSettings }: Prop
       <div className="acct-head">{avatar && <img src={avatar} alt="" />}<div><b>{name || email.split('@')[0]}</b><small>{email}</small></div><Check size={16} /></div>
       {onProfile && <button role="menuitem" onClick={() => { setOpen(false); onProfile(); }}><UserCircle size={17} /> {t("View profile")}</button>}
       {onSettings && <button role="menuitem" onClick={() => { setOpen(false); onSettings(); }}><Settings size={17} /> {t("Settings")}</button>}
+      {restoreAction}
       <p className="acct-label">{t("Switch account")}</p>
       {others.map(e => <div key={e} className="acct-row">
         <button role="menuitem" disabled={busy} onClick={() => signOutTo('/login?email=' + encodeURIComponent(e))}><span className="acct-dot">{e[0]?.toUpperCase()}</span><span className="acct-mail">{e}</span></button>
