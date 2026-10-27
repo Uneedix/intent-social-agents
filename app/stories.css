@@ -59,3 +59,10 @@ button.story-ring{cursor:pointer}
 .sv-sheet button{display:flex;align-items:center;justify-content:center;gap:10px;background:none;border:0;border-bottom:1px solid var(--tone-2c2c2e,#2c2c2e);color:var(--tone-ffffff,#ffffff);padding:15px;font-size:15px;font-weight:600}
 .sv-sheet button:last-child{border-bottom:0;font-weight:400}
 .sv-sheet .danger{color:#ff3b30}
+
+/* Story overlays stay white over media in both themes. */
+.sv{background:#000}
+.sv-head,.sv-cap,.sv-foot{--tone-ffffff:#fff;--tone-dddddd:#fff;color:#fff}
+.sv-head .icon-button,.sv-head small,.sv-cap,.sv-foot input,.sv-foot form button{color:#fff}
+.sv-foot input::placeholder{color:rgba(255,255,255,.8);opacity:1}
+.sv-bars i{background:#fff}
