@@ -39,3 +39,6 @@ html[data-theme="light"] .ms-row.mine .ms-text{color:#172d4d}
 html[data-theme="light"] :is(.ms-row.mine .ms-meta,.group-message.mine small,.group-message.mine time){color:#4a6385}
 
 .system-avatar{background-color:#657082}
+
+/* Use the supplied real Inter weights consistently in both themes. */
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis-weight:none}

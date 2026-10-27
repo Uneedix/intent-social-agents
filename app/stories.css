@@ -66,3 +66,9 @@ button.story-ring{cursor:pointer}
 .sv-head .icon-button,.sv-head small,.sv-cap,.sv-foot input,.sv-foot form button{color:#fff}
 .sv-foot input::placeholder{color:rgba(255,255,255,.8);opacity:1}
 .sv-bars i{background:#fff}
+
+/* Readable white story overlays without heavy bold or a blurred halo. */
+.sv-head{font-weight:400;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.sv-head b{font-weight:500}
+.sv-head small{font-weight:400}
+.sv-cap{font-weight:400;line-height:1.45;text-shadow:0 1px 3px rgba(0,0,0,.55)}
